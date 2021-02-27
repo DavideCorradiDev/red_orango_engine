@@ -2,5 +2,6 @@
 
 members = [
   "roe_math",
-  "roe_app"
+  "roe_app",
+  "roe_shader"
 ]
