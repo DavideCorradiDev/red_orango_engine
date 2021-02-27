@@ -1,4 +1,2 @@
-# Red Ape Engine Application
+# Red Orango Engine application library
 A game loop implementation in Rust
-
-![CI](https://github.com/DavideCorradiDev/roe_app/workflows/CI/badge.svg)

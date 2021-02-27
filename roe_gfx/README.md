@@ -1,4 +1,2 @@
-# Red Ape Engine Gfx
+# Red Orango Engine graphics library
 A Rust graphics library based on gfx_hal.
-
-![CI](https://github.com/DavideCorradiDev/roe_gfx/workflows/CI/badge.svg)

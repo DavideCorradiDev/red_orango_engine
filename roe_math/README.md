@@ -1,4 +1,2 @@
-# Red Ape Engine Mathematics
+# Red Orango Engine math library
 A wrapper around nalgebra plus some utilities.
-
-![CI](https://github.com/DavideCorradiDev/roe_math/workflows/CI/badge.svg)
