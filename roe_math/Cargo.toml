@@ -1,0 +1,16 @@
+[package]
+name = "roe_math"
+version = "0.1.0"
+authors = ["Davide Corradi <davide.corradi.dev@gmail.com>"]
+edition = "2018"
+
+[features]
+serde-serialize = ["serde", "nalgebra/serde-serialize"]
+
+[dependencies]
+nalgebra = "0.21"
+rand = "0.7"
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[dev-dependencies]
+galvanic-assert = "0.8"

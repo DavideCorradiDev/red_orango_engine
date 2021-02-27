@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+  "roe_math",
+  "roe_app"
+]
