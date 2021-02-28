@@ -43,7 +43,7 @@ impl ApplicationImpl {
     const SAMPLE_COUNT: SampleCount = 8;
 
     fn create_sprites(instance: &Instance) -> Vec<Sprite> {
-        let image = image::open("roe_gfx/examples/data/gioconda.jpg")
+        let image = image::open("roe_gfx/data/pictures/gioconda.jpg")
             .expect("Failed to load texture image")
             .into_rgba8();
         let sprite_texture = Texture::from_image(instance, &image, TextureUsage::SAMPLED)
