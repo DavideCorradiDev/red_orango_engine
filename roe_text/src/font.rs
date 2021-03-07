@@ -43,18 +43,6 @@ pub fn ppem_to_fsize(x: PpemSize, res: FontResolution) -> FontSize {
     i26dot6_to_fsize(ppem_to_i26dot6(x, res))
 }
 
-// TODO: hide the library?
-// TODO: replace unwrap calls with proper error handling.
-// TODO: add error case tests.
-// TODO: open ticket for better font size typing.
-// TODO: improve the rendering interface.
-// TODO: test different font sizes.
-// TODO: test with non-latin font.
-// TODO: right-left / top-down text.
-// TODO: formatted text rendering.
-// TODO: newline, text breaks.
-// TODO: unknown character placeholder rendering.
-
 pub struct FontLibrary {
     ft_lib: ft::Library,
 }
@@ -324,9 +312,8 @@ impl Font {
     }
 }
 
-pub struct CharacterSet {}
-
-impl CharacterSet {
+pub mod character_set
+{
     pub fn english() -> Vec<char> {
         (0x0000u32..0x007fu32)
             .map(|x| std::char::from_u32(x).expect("Invalid Unicode codepoint"))
@@ -432,6 +419,6 @@ mod tests {
         let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
         let lib = FontLibrary::new().unwrap();
         let face = Face::from_file(&lib, TEST_FONT_PATH, 0).unwrap();
-        let _font = Font::new(&instance, &face, 12., CharacterSet::english().as_slice());
+        let _font = Font::new(&instance, &face, 12., character_set::english().as_slice());
     }
 }

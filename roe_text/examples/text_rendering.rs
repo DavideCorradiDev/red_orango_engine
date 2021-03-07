@@ -140,7 +140,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             &instance,
             &face,
             10.,
-            text::CharacterSet::english().as_slice(),
+            text::character_set::english().as_slice(),
         );
 
         Ok(Self {
