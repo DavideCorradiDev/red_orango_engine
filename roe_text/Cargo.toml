@@ -1,0 +1,27 @@
+[package]
+authors = ["Davide Corradi <davide.corradi.dev@gmail.com>"]
+edition = "2018"
+name = "roe_text"
+version = "0.1.0"
+
+[dependencies]
+bytemuck = {version = "1.4"}
+freetype-rs = {version = "0.26"}
+harfbuzz_rs = {version = "1.2"}
+num-traits = {version = "0.2"}
+roe_gfx = {path = "../roe_gfx"}
+roe_math = {path = "../roe_math", features = [
+  "serde-serialize",
+]}
+serde = {version = "1.0", features = ["derive"]}
+
+[dev-dependencies]
+galvanic-assert = "0.8"
+roe_app = {path = "../roe_app"}
+
+[build-dependencies]
+roe_shader = {path = "../roe_shader"}
+
+[[example]]
+name = "text_rendering"
+path = "examples/text_rendering.rs"
