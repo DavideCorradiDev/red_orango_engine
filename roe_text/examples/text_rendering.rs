@@ -17,6 +17,8 @@ use roe_gfx::core::{
     InstanceCreationError, InstanceDescriptor, RenderPassOperations, SampleCount, SwapChainError,
 };
 
+use roe_text::FontError;
+
 use text::Renderer as TextRenderer;
 
 pub type ApplicationEvent = ();
@@ -26,6 +28,7 @@ pub enum ApplicationError {
     WindowCreationFailed(window::OsError),
     InstanceCreationFailed(InstanceCreationError),
     RenderFrameCreationFailed(SwapChainError),
+    FontCreationFailed(FontError),
 }
 
 impl std::fmt::Display for ApplicationError {
@@ -40,6 +43,9 @@ impl std::fmt::Display for ApplicationError {
             ApplicationError::RenderFrameCreationFailed(e) => {
                 write!(f, "Render frame creation failed ({})", e)
             }
+            ApplicationError::FontCreationFailed(e) => {
+                write!(f, "Font creation failed ({})", e)
+            }
         }
     }
 }
@@ -50,6 +56,7 @@ impl std::error::Error for ApplicationError {
             ApplicationError::WindowCreationFailed(e) => Some(e),
             ApplicationError::InstanceCreationFailed(e) => Some(e),
             ApplicationError::RenderFrameCreationFailed(e) => Some(e),
+            ApplicationError::FontCreationFailed(e) => Some(e),
         }
     }
 }
@@ -69,6 +76,12 @@ impl From<InstanceCreationError> for ApplicationError {
 impl From<SwapChainError> for ApplicationError {
     fn from(e: SwapChainError) -> Self {
         ApplicationError::RenderFrameCreationFailed(e)
+    }
+}
+
+impl From<FontError> for ApplicationError {
+    fn from(e: FontError) -> Self {
+        ApplicationError::FontCreationFailed(e)
     }
 }
 
@@ -134,14 +147,14 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             },
         );
 
-        let font_lib = text::FontLibrary::new().unwrap();
-        let face = text::Face::from_file(&font_lib, Self::FONT_PATH, 0).unwrap();
+        let font_lib = text::FontLibrary::new()?;
+        let face = text::Face::from_file(&font_lib, Self::FONT_PATH, 0)?;
         let font = text::Font::new(
             &instance,
             &face,
             10.,
             text::character_set::english().as_slice(),
-        );
+        )?;
 
         Ok(Self {
             window,

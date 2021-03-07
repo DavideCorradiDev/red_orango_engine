@@ -8,7 +8,6 @@ use roe_math::geometry2;
 
 use super::{Mesh, MeshIndex, MeshIndexRange, UniformConstants, Vertex};
 
-pub use ft::{Error as FontError, FtResult as FontResult};
 pub use hb::GlyphBuffer as TextShapingInfo;
 
 pub type FaceIndex = u32;
@@ -48,7 +47,7 @@ pub struct FontLibrary {
 }
 
 impl FontLibrary {
-    pub fn new() -> FontResult<Self> {
+    pub fn new() -> Result<Self, FontError> {
         let ft_lib = ft::Library::init()?;
         Ok(Self { ft_lib })
     }
@@ -71,19 +70,18 @@ impl Face {
         lib: &FontLibrary,
         path: P,
         face_index: FaceIndex,
-    ) -> FontResult<Self> {
+    ) -> Result<Self, FontError> {
         let ft_face = lib
             .ft_lib
             .new_face(path.as_ref().as_os_str(), face_index as isize)?;
-        let hb_face = hb::Face::from_file(path, face_index).unwrap().to_shared();
+        let hb_face = hb::Face::from_file(path, face_index)?.to_shared();
         Ok(Self { ft_face, hb_face })
     }
 
-    pub fn load_char(&self, c: char) -> &ft::GlyphSlot {
+    pub fn load_char(&self, c: char) -> Result<&ft::GlyphSlot, FontError> {
         self.ft_face
-            .load_char(c as usize, ft::face::LoadFlag::RENDER)
-            .unwrap();
-        self.ft_face.glyph()
+            .load_char(c as usize, ft::face::LoadFlag::RENDER)?;
+        Ok(self.ft_face.glyph())
     }
 
     pub fn char_index(&self, c: char) -> CharIndex {
@@ -102,18 +100,18 @@ struct Glyph {
 }
 
 impl Glyph {
-    fn new(face: &Face, c: char) -> Self {
+    fn new(face: &Face, c: char) -> Result<Self, FontError> {
         let char_index = face.char_index(c);
-        let glyph = face.load_char(c);
+        let glyph = face.load_char(c)?;
         let bitmap = glyph.bitmap();
-        Glyph {
+        Ok(Glyph {
             char_index,
             pixels: Vec::from(bitmap.buffer()),
             left: glyph.bitmap_left(),
             top: glyph.bitmap_top(),
             width: bitmap.width(),
             rows: bitmap.rows(),
-        }
+        })
     }
 }
 
@@ -124,20 +122,19 @@ struct GlyphSet {
 }
 
 impl GlyphSet {
-    fn new(face: &Face, characters: &[char], size: FontSize, resolution: FontResolution) -> Self {
+    fn new(face: &Face, characters: &[char], size: FontSize, resolution: FontResolution) -> Result<Self, FontError> {
         face.ft_face
-            .set_char_size(0, fsize_to_i26dot6(size) as isize, 0, resolution)
-            .unwrap();
+            .set_char_size(0, fsize_to_i26dot6(size) as isize, 0, resolution)?;
         let mut glyphs = Vec::with_capacity(characters.len());
         for c in characters {
-            glyphs.push(Glyph::new(face, *c));
+            glyphs.push(Glyph::new(face, *c)?);
         }
         let extent = gfx::Extent3d {
             width: glyphs.iter().map(|x| x.width).max().unwrap() as u32,
             height: glyphs.iter().map(|x| x.rows).max().unwrap() as u32,
             depth: characters.len() as u32,
         };
-        Self { glyphs, extent }
+        Ok(Self { glyphs, extent })
     }
 }
 
@@ -161,12 +158,12 @@ pub struct Font {
 impl Font {
     const RESOLUTION: FontResolution = 300;
 
-    pub fn new(instance: &gfx::Instance, face: &Face, size: FontSize, characters: &[char]) -> Self {
+    pub fn new(instance: &gfx::Instance, face: &Face, size: FontSize, characters: &[char]) -> Result<Self, FontError> {
         assert!(!characters.is_empty());
         assert!(size > 0.);
 
         let hb_font = Self::create_shaper(face, size);
-        let glyph_set = GlyphSet::new(face, characters, size, Self::RESOLUTION);
+        let glyph_set = GlyphSet::new(face, characters, size, Self::RESOLUTION)?;
         let glyph_atlas_texture = Self::create_glyph_atlas_texture(instance, &glyph_set);
         let glyph_atlas_sampler = gfx::Sampler::new(instance, &gfx::SamplerDescriptor::default());
         let glyph_atlas_uniform =
@@ -174,7 +171,7 @@ impl Font {
         let glyph_atlas_mesh = Self::create_glyph_atlas_mesh(instance, &glyph_set);
         let glyph_atlas_map = Self::create_glyph_atlas_map(&glyph_set);
 
-        Self {
+        Ok(Self {
             size,
             hb_font,
             glyph_atlas_texture,
@@ -182,7 +179,7 @@ impl Font {
             glyph_atlas_uniform,
             glyph_atlas_mesh,
             glyph_atlas_map,
-        }
+        })
     }
 
     fn create_shaper(face: &Face, size: FontSize) -> hb::Owned<hb::Font<'static>> {
@@ -312,6 +309,46 @@ impl Font {
     }
 }
 
+#[derive(Debug)]
+pub enum FontError {
+    FontCreationFailed(ft::Error),
+    ShaperCreationFailed(std::io::Error)
+}
+
+impl std::fmt::Display for FontError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FontError::FontCreationFailed(e)=> {
+                write!(f, "Font creation failed ({})", e)
+            }
+            FontError::ShaperCreationFailed(e)=> {
+                write!(f, "Shaper creation failed ({})", e)
+            }
+        }
+    }
+}
+
+impl std::error::Error for FontError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            FontError::FontCreationFailed(e) => Some(e),
+            FontError::ShaperCreationFailed(e) => Some(e)
+        }
+    }
+}
+
+impl From<ft::Error> for FontError {
+    fn from(e: ft::Error) -> Self {
+        FontError::FontCreationFailed(e)
+    }
+}
+
+impl From<std::io::Error> for FontError {
+    fn from(e: std::io::Error) -> Self {
+        FontError::ShaperCreationFailed(e)
+    }
+}
+
 pub mod character_set
 {
     pub fn english() -> Vec<char> {
@@ -352,7 +389,7 @@ mod tests {
         let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
         let lib = FontLibrary::new().unwrap();
         let face = Face::from_file(&lib, TEST_FONT_PATH, 0).unwrap();
-        let font = Font::new(&instance, &face, 12., &['a', 'Z', '2', '#']);
+        let font = Font::new(&instance, &face, 12., &['a', 'Z', '2', '#']).unwrap();
         expect_that!(&font.size(), eq(12.));
     }
 
@@ -361,7 +398,7 @@ mod tests {
         let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
         let lib = FontLibrary::new().unwrap();
         let face = Face::from_file(&lib, TEST_FONT_PATH, 0).unwrap();
-        let font = Font::new(&instance, &face, 12., &['a', 'Z', '2', '#']);
+        let font = Font::new(&instance, &face, 12., &['a', 'Z', '2', '#']).unwrap();
         let shaping = font.shape_text("aZzz");
         let positions = shaping.get_glyph_positions();
         let infos = shaping.get_glyph_infos();
@@ -386,7 +423,7 @@ mod tests {
         let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
         let lib = FontLibrary::new().unwrap();
         let face = Face::from_file(&lib, TEST_FONT_PATH, 0).unwrap();
-        let font = Font::new(&instance, &face, 12., &['a', 'Z', '2', 'p']);
+        let font = Font::new(&instance, &face, 12., &['a', 'Z', '2', 'p']).unwrap();
 
         {
             let gri = font.glyph_rendering_info(face.char_index('a'));
@@ -419,6 +456,6 @@ mod tests {
         let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
         let lib = FontLibrary::new().unwrap();
         let face = Face::from_file(&lib, TEST_FONT_PATH, 0).unwrap();
-        let _font = Font::new(&instance, &face, 12., character_set::english().as_slice());
+        let _font = Font::new(&instance, &face, 12., character_set::english().as_slice()).unwrap();
     }
 }
