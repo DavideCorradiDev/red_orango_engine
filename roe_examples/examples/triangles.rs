@@ -19,8 +19,7 @@ use roe_graphics::{
     InstanceDescriptor, RenderPassOperations, SampleCount,
 };
 
-use roe_shape2 as shape2;
-use shape2::Renderer as Shape2Renderer;
+use roe_shape2::Renderer as Shape2Renderer;
 
 use roe_examples::*;
 
@@ -28,9 +27,9 @@ use roe_examples::*;
 struct ApplicationImpl {
     window: CanvasWindow,
     instance: Instance,
-    pipeline: shape2::RenderPipeline,
-    triangle_mesh: shape2::Mesh,
-    saved_triangle_constants: Vec<shape2::PushConstants>,
+    pipeline: roe_shape2::RenderPipeline,
+    triangle_mesh: roe_shape2::Mesh,
+    saved_triangle_constants: Vec<roe_shape2::PushConstants>,
     projection_transform: Projective<f32>,
     current_position: Point<f32>,
     current_angle: f32,
@@ -49,13 +48,13 @@ impl ApplicationImpl {
         }
     }
 
-    pub fn generate_push_constant(&self) -> shape2::PushConstants {
+    pub fn generate_push_constant(&self) -> roe_shape2::PushConstants {
         let object_transform = Similarity::<f32>::from_parts(
             Translation::new(self.current_position.x, self.current_position.y),
             UnitComplex::new(self.current_angle),
             self.current_scaling,
         );
-        shape2::PushConstants::new(
+        roe_shape2::PushConstants::new(
             &convert(self.projection_transform * object_transform),
             self.current_color,
         )
@@ -90,20 +89,20 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             (window, instance)
         };
 
-        let pipeline = shape2::RenderPipeline::new(
+        let pipeline = roe_shape2::RenderPipeline::new(
             &instance,
-            &shape2::RenderPipelineDescriptor {
+            &roe_shape2::RenderPipelineDescriptor {
                 sample_count: Self::SAMPLE_COUNT,
-                ..shape2::RenderPipelineDescriptor::default()
+                ..roe_shape2::RenderPipelineDescriptor::default()
             },
         );
 
-        let triangle_mesh = shape2::Mesh::new(
+        let triangle_mesh = roe_shape2::Mesh::new(
             &instance,
             &[
-                shape2::Vertex::new([-50., 50.]),
-                shape2::Vertex::new([50., 50.]),
-                shape2::Vertex::new([0., -50.]),
+                roe_shape2::Vertex::new([-50., 50.]),
+                roe_shape2::Vertex::new([50., 50.]),
+                roe_shape2::Vertex::new([0., -50.]),
             ],
             &[0, 1, 2],
         );

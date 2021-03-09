@@ -18,10 +18,8 @@ use roe_graphics::{
     Size,
 };
 
-use roe_shape2 as shape2;
-use roe_sprite as sprite;
-use shape2::Renderer as Shape2Renderer;
-use sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer};
+use roe_shape2::Renderer as Shape2Renderer;
+use roe_sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer};
 
 use roe_examples::*;
 
@@ -30,11 +28,11 @@ struct ApplicationImpl {
     window: CanvasWindow,
     canvas: CanvasTexture,
     instance: Instance,
-    shape2_pipeline: shape2::RenderPipeline,
-    triangle_mesh: shape2::Mesh,
-    sprite_pipeline: sprite::RenderPipeline,
-    quad_mesh: sprite::Mesh,
-    sprite_uniform_constants: sprite::UniformConstants,
+    shape2_pipeline: roe_shape2::RenderPipeline,
+    triangle_mesh: roe_shape2::Mesh,
+    sprite_pipeline: roe_sprite::RenderPipeline,
+    quad_mesh: roe_sprite::Mesh,
+    sprite_uniform_constants: roe_sprite::UniformConstants,
     current_angle: f32,
     color: ChangingColor,
 }
@@ -51,22 +49,22 @@ impl ApplicationImpl {
         }
     }
 
-    pub fn generate_triangle_push_constants(&self) -> shape2::PushConstants {
+    pub fn generate_triangle_push_constants(&self) -> roe_shape2::PushConstants {
         let projection_transform = OrthographicProjection::new(0., 1., 1., 0.).to_projective();
         let object_transform = Similarity::<f32>::from_parts(
             Translation::new(0.5, 0.5),
             UnitComplex::new(self.current_angle),
             1.,
         );
-        shape2::PushConstants::new(
+        roe_shape2::PushConstants::new(
             &convert(projection_transform * object_transform),
             *self.color.current_color(),
         )
     }
 
-    pub fn generate_blit_push_constants(&self) -> sprite::PushConstants {
+    pub fn generate_blit_push_constants(&self) -> roe_sprite::PushConstants {
         let projection_transform = OrthographicProjection::new(0., 1., 1., 0.).to_projective();
-        sprite::PushConstants::new(&convert(projection_transform), ColorF32::WHITE)
+        roe_sprite::PushConstants::new(&convert(projection_transform), ColorF32::WHITE)
     }
 }
 
@@ -108,32 +106,32 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             },
         );
 
-        let shape2_pipeline = shape2::RenderPipeline::new(
+        let shape2_pipeline = roe_shape2::RenderPipeline::new(
             &instance,
-            &shape2::RenderPipelineDescriptor {
+            &roe_shape2::RenderPipelineDescriptor {
                 sample_count: Self::SAMPLE_COUNT,
                 color_buffer_format: CanvasColorBufferFormat::Rgba8UnormSrgb,
-                ..shape2::RenderPipelineDescriptor::default()
+                ..roe_shape2::RenderPipelineDescriptor::default()
             },
         );
 
-        let triangle_mesh = shape2::Mesh::new(
+        let triangle_mesh = roe_shape2::Mesh::new(
             &instance,
             &[
-                shape2::Vertex::new([-0.25, 0.25]),
-                shape2::Vertex::new([0.25, 0.25]),
-                shape2::Vertex::new([0., -0.25]),
+                roe_shape2::Vertex::new([-0.25, 0.25]),
+                roe_shape2::Vertex::new([0.25, 0.25]),
+                roe_shape2::Vertex::new([0., -0.25]),
             ],
             &[0, 1, 2],
         );
 
         let sprite_pipeline =
-            sprite::RenderPipeline::new(&instance, &sprite::RenderPipelineDescriptor::default());
+            roe_sprite::RenderPipeline::new(&instance, &roe_sprite::RenderPipelineDescriptor::default());
 
-        let quad_mesh = sprite::Mesh::quad(
+        let quad_mesh = roe_sprite::Mesh::quad(
             &instance,
-            &sprite::Vertex::new([0., 0.], [0., 0.]),
-            &sprite::Vertex::new([1., 1.], [2., 2.]),
+            &roe_sprite::Vertex::new([0., 0.], [0., 0.]),
+            &roe_sprite::Vertex::new([1., 1.], [2., 2.]),
         );
 
         let sampler = Sampler::new(
@@ -149,7 +147,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             .color_texture_view()
             .expect("The canvas color buffer doesn't exist");
         let sprite_uniform_constants =
-            sprite::UniformConstants::new(&instance, canvas_texture_view, &sampler);
+            roe_sprite::UniformConstants::new(&instance, canvas_texture_view, &sampler);
 
         let color = ChangingColor::new(ColorF32::WHITE, ColorF32::WHITE);
 

@@ -16,22 +16,21 @@ use roe_graphics::{
     SamplerDescriptor, Texture, TextureUsage, TextureViewDescriptor,
 };
 
-use roe_sprite as sprite;
-use sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer};
+use roe_sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer};
 
 use roe_examples::*;
 
 #[derive(Debug)]
 struct Sprite {
-    uniform_constants: sprite::UniformConstants,
-    mesh: sprite::Mesh,
+    uniform_constants: roe_sprite::UniformConstants,
+    mesh: roe_sprite::Mesh,
 }
 
 #[derive(Debug)]
 struct ApplicationImpl {
     window: CanvasWindow,
     instance: Instance,
-    pipeline: sprite::RenderPipeline,
+    pipeline: roe_sprite::RenderPipeline,
     projection_transform: Projective<f32>,
     sprites: Vec<Sprite>,
     color: ChangingColor,
@@ -49,19 +48,19 @@ impl ApplicationImpl {
 
         vec![
             Sprite {
-                uniform_constants: sprite::UniformConstants::new(
+                uniform_constants: roe_sprite::UniformConstants::new(
                     instance,
                     &sprite_texture,
                     &Sampler::new(&instance, &SamplerDescriptor::default()),
                 ),
-                mesh: sprite::Mesh::quad(
+                mesh: roe_sprite::Mesh::quad(
                     instance,
-                    &sprite::Vertex::new([0., 0.], [0., 0.]),
-                    &sprite::Vertex::new([400., 400.], [1., 1.]),
+                    &roe_sprite::Vertex::new([0., 0.], [0., 0.]),
+                    &roe_sprite::Vertex::new([400., 400.], [1., 1.]),
                 ),
             },
             Sprite {
-                uniform_constants: sprite::UniformConstants::new(
+                uniform_constants: roe_sprite::UniformConstants::new(
                     instance,
                     &sprite_texture,
                     &Sampler::new(
@@ -74,14 +73,14 @@ impl ApplicationImpl {
                         },
                     ),
                 ),
-                mesh: sprite::Mesh::quad(
+                mesh: roe_sprite::Mesh::quad(
                     instance,
-                    &sprite::Vertex::new([400., 0.], [0., 0.]),
-                    &sprite::Vertex::new([600., 200.], [0.5, 0.5]),
+                    &roe_sprite::Vertex::new([400., 0.], [0., 0.]),
+                    &roe_sprite::Vertex::new([600., 200.], [0.5, 0.5]),
                 ),
             },
             Sprite {
-                uniform_constants: sprite::UniformConstants::new(
+                uniform_constants: roe_sprite::UniformConstants::new(
                     instance,
                     &sprite_texture,
                     &Sampler::new(
@@ -94,14 +93,14 @@ impl ApplicationImpl {
                         },
                     ),
                 ),
-                mesh: sprite::Mesh::quad(
+                mesh: roe_sprite::Mesh::quad(
                     instance,
-                    &sprite::Vertex::new([800., 0.], [1., 0.]),
-                    &sprite::Vertex::new([600., 200.], [0.5, 0.5]),
+                    &roe_sprite::Vertex::new([800., 0.], [1., 0.]),
+                    &roe_sprite::Vertex::new([600., 200.], [0.5, 0.5]),
                 ),
             },
             Sprite {
-                uniform_constants: sprite::UniformConstants::new(
+                uniform_constants: roe_sprite::UniformConstants::new(
                     instance,
                     &sprite_texture,
                     &Sampler::new(
@@ -114,14 +113,14 @@ impl ApplicationImpl {
                         },
                     ),
                 ),
-                mesh: sprite::Mesh::quad(
+                mesh: roe_sprite::Mesh::quad(
                     instance,
-                    &sprite::Vertex::new([400., 400.], [0., 1.]),
-                    &sprite::Vertex::new([600., 200.], [0.5, 0.5]),
+                    &roe_sprite::Vertex::new([400., 400.], [0., 1.]),
+                    &roe_sprite::Vertex::new([600., 200.], [0.5, 0.5]),
                 ),
             },
             Sprite {
-                uniform_constants: sprite::UniformConstants::new(
+                uniform_constants: roe_sprite::UniformConstants::new(
                     instance,
                     &sprite_texture,
                     &Sampler::new(
@@ -134,14 +133,14 @@ impl ApplicationImpl {
                         },
                     ),
                 ),
-                mesh: sprite::Mesh::quad(
+                mesh: roe_sprite::Mesh::quad(
                     instance,
-                    &sprite::Vertex::new([600., 200.], [0.5, 0.5]),
-                    &sprite::Vertex::new([800., 400.], [1., 1.]),
+                    &roe_sprite::Vertex::new([600., 200.], [0.5, 0.5]),
+                    &roe_sprite::Vertex::new([800., 400.], [1., 1.]),
                 ),
             },
             Sprite {
-                uniform_constants: sprite::UniformConstants::new(
+                uniform_constants: roe_sprite::UniformConstants::new(
                     instance,
                     &sprite_texture,
                     &Sampler::new(
@@ -153,14 +152,14 @@ impl ApplicationImpl {
                         },
                     ),
                 ),
-                mesh: sprite::Mesh::quad(
+                mesh: roe_sprite::Mesh::quad(
                     instance,
-                    &sprite::Vertex::new([000., 400.], [-0.5, -0.5]),
-                    &sprite::Vertex::new([400., 800.], [1.5, 1.5]),
+                    &roe_sprite::Vertex::new([000., 400.], [-0.5, -0.5]),
+                    &roe_sprite::Vertex::new([400., 800.], [1.5, 1.5]),
                 ),
             },
             Sprite {
-                uniform_constants: sprite::UniformConstants::new(
+                uniform_constants: roe_sprite::UniformConstants::new(
                     instance,
                     &sprite_texture,
                     &Sampler::new(
@@ -172,10 +171,10 @@ impl ApplicationImpl {
                         },
                     ),
                 ),
-                mesh: sprite::Mesh::quad(
+                mesh: roe_sprite::Mesh::quad(
                     instance,
-                    &sprite::Vertex::new([800., 800.], [1.5, 1.5]),
-                    &sprite::Vertex::new([400., 400.], [-0.5, -0.5]),
+                    &roe_sprite::Vertex::new([800., 800.], [1.5, 1.5]),
+                    &roe_sprite::Vertex::new([400., 400.], [-0.5, -0.5]),
                 ),
             },
         ]
@@ -210,11 +209,11 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             (window, instance)
         };
 
-        let pipeline = sprite::RenderPipeline::new(
+        let pipeline = roe_sprite::RenderPipeline::new(
             &instance,
-            &sprite::RenderPipelineDescriptor {
+            &roe_sprite::RenderPipelineDescriptor {
                 sample_count: Self::SAMPLE_COUNT,
-                ..sprite::RenderPipelineDescriptor::default()
+                ..roe_sprite::RenderPipelineDescriptor::default()
             },
         );
 
@@ -262,7 +261,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
 
     fn on_variable_update(&mut self, dt: std::time::Duration) -> Result<ControlFlow, Self::Error> {
         self.color.update(dt);
-        let push_constants = sprite::PushConstants::new(
+        let push_constants = roe_sprite::PushConstants::new(
             &convert(self.projection_transform),
             *self.color.current_color(),
         );
