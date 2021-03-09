@@ -22,20 +22,7 @@ wgpu = {version = "0.6", features = ["trace", "replay"]}
 
 [dev-dependencies]
 galvanic-assert = "0.8"
-rand = "0.7"
 serial_test = "0.4"
 
 [build-dependencies]
 roe_shader = {path = "../roe_shader"}
-
-[[example]]
-name = "triangles"
-path = "examples/triangles.rs"
-
-[[example]]
-name = "gioconda"
-path = "examples/gioconda.rs"
-
-[[example]]
-name = "offscreen_rendering"
-path = "examples/offscreen_rendering.rs"

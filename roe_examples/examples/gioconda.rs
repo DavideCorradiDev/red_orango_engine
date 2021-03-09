@@ -20,8 +20,7 @@ use roe_gfx::{
     sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer},
 };
 
-mod example_app;
-use example_app::*;
+use roe_examples::*;
 
 #[derive(Debug)]
 struct Sprite {
@@ -43,7 +42,7 @@ impl ApplicationImpl {
     const SAMPLE_COUNT: SampleCount = 8;
 
     fn create_sprites(instance: &Instance) -> Vec<Sprite> {
-        let image = image::open("roe_gfx/data/pictures/gioconda.jpg")
+        let image = image::open("roe_examples/data/pictures/gioconda.jpg")
             .expect("Failed to load texture image")
             .into_rgba8();
         let sprite_texture = Texture::from_image(instance, &image, TextureUsage::SAMPLED)

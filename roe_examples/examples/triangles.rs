@@ -23,8 +23,7 @@ use roe_gfx::{
     shape2::Renderer as Shape2Renderer,
 };
 
-mod example_app;
-use example_app::*;
+use roe_examples::*;
 
 #[derive(Debug)]
 struct ApplicationImpl {

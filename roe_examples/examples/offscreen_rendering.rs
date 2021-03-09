@@ -24,8 +24,7 @@ use roe_gfx::{
     sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer},
 };
 
-mod example_app;
-use example_app::*;
+use roe_examples::*;
 
 #[derive(Debug)]
 struct ApplicationImpl {

@@ -11,4 +11,17 @@ roe_math = {path = "../roe_math", features = [
 ]}
 roe_gfx = {path = "../roe_gfx"}
 rand = "0.7"
+image = {version = "0.23"}
 num = {version = "0.3"}
+
+[[example]]
+name = "triangles"
+path = "examples/triangles.rs"
+
+[[example]]
+name = "gioconda"
+path = "examples/gioconda.rs"
+
+[[example]]
+name = "offscreen_rendering"
+path = "examples/offscreen_rendering.rs"
