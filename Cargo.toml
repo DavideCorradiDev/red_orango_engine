@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+  "roe_examples",
   "roe_math",
   "roe_app",
   "roe_shader",
