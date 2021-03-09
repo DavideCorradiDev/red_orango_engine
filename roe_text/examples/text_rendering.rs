@@ -12,7 +12,7 @@ use roe_math::{
     geometry2::{OrthographicProjection, Projective, Translation},
 };
 
-use roe_gfx::core::{
+use roe_graphics::{
     Canvas, CanvasWindow, CanvasWindowDescriptor, ColorF32, CommandSequence, Instance,
     InstanceCreationError, InstanceDescriptor, RenderPassOperations, SampleCount, SwapChainError,
 };

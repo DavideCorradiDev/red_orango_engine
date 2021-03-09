@@ -10,15 +10,14 @@ use roe_math::{
     geometry2::{OrthographicProjection, Projective},
 };
 
-use roe_gfx::{
-    core::{
-        AddressMode, Canvas, CanvasWindow, CanvasWindowDescriptor, ColorF32, CommandSequence,
-        FilterMode, Instance, InstanceDescriptor, RenderPassOperations, SampleCount, Sampler,
-        SamplerDescriptor, Texture, TextureUsage, TextureViewDescriptor,
-    },
-    sprite,
-    sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer},
+use roe_graphics::{
+    AddressMode, Canvas, CanvasWindow, CanvasWindowDescriptor, ColorF32, CommandSequence,
+    FilterMode, Instance, InstanceDescriptor, RenderPassOperations, SampleCount, Sampler,
+    SamplerDescriptor, Texture, TextureUsage, TextureViewDescriptor,
 };
+
+use roe_sprite as sprite;
+use sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer};
 
 use roe_examples::*;
 

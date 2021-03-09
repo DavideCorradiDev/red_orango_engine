@@ -9,7 +9,7 @@ bytemuck = {version = "1.4"}
 freetype-rs = {version = "0.26"}
 harfbuzz_rs = {version = "1.2"}
 num-traits = {version = "0.2"}
-roe_gfx = {path = "../roe_gfx"}
+roe_graphics = {path = "../roe_graphics"}
 roe_math = {path = "../roe_math", features = [
   "serde-serialize",
 ]}

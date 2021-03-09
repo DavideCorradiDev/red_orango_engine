@@ -5,7 +5,6 @@ members = [
   "roe_math",
   "roe_app",
   "roe_shader",
-  "roe_gfx",
   "roe_graphics",
   "roe_shape2",
   "roe_sprite",

@@ -10,19 +10,18 @@ use roe_math::{
     geometry2::{OrthographicProjection, Similarity, Translation, UnitComplex},
 };
 
-use roe_gfx::{
-    core::{
-        AddressMode, Canvas, CanvasColorBufferFormat, CanvasColorBufferUsage, CanvasTexture,
-        CanvasTextureColorBufferDescriptor, CanvasTextureDescriptor, CanvasWindow,
-        CanvasWindowDescriptor, ColorF32, ColorF64, ColorOperations, CommandSequence, Instance,
-        InstanceDescriptor, LoadOp, RenderPassOperations, SampleCount, Sampler, SamplerDescriptor,
-        Size,
-    },
-    shape2,
-    shape2::Renderer as Shape2Renderer,
-    sprite,
-    sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer},
+use roe_graphics::{
+    AddressMode, Canvas, CanvasColorBufferFormat, CanvasColorBufferUsage, CanvasTexture,
+    CanvasTextureColorBufferDescriptor, CanvasTextureDescriptor, CanvasWindow,
+    CanvasWindowDescriptor, ColorF32, ColorF64, ColorOperations, CommandSequence, Instance,
+    InstanceDescriptor, LoadOp, RenderPassOperations, SampleCount, Sampler, SamplerDescriptor,
+    Size,
 };
+
+use roe_shape2 as shape2;
+use roe_sprite as sprite;
+use shape2::Renderer as Shape2Renderer;
+use sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer};
 
 use roe_examples::*;
 

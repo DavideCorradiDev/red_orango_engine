@@ -9,7 +9,9 @@ roe_app = {path = "../roe_app"}
 roe_math = {path = "../roe_math", features = [
   "serde-serialize",
 ]}
-roe_gfx = {path = "../roe_gfx"}
+roe_graphics = {path = "../roe_graphics"}
+roe_shape2 = {path = "../roe_shape2"}
+roe_sprite = {path = "../roe_sprite"}
 rand = "0.7"
 image = {version = "0.23"}
 num = {version = "0.3"}

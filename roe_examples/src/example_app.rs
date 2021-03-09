@@ -6,7 +6,7 @@ use roe_app::window;
 
 use roe_math::geometry3;
 
-use roe_gfx::core::{ColorF32, InstanceCreationError, SwapChainError};
+use roe_graphics::{ColorF32, InstanceCreationError, SwapChainError};
 
 pub type ApplicationEvent = ();
 

@@ -6,7 +6,7 @@ use std::{fmt::Debug, mem::size_of};
 use num_traits::identities::Zero;
 
 pub use gfx::{MeshIndex, MeshIndexRange};
-use roe_gfx::core as gfx;
+use roe_graphics as gfx;
 
 use roe_math::{conversion::ToHomogeneousMatrix3, geometry2, geometry3};
 

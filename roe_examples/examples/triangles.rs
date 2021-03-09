@@ -14,14 +14,13 @@ use roe_math::{
     geometry2::{OrthographicProjection, Point, Projective, Similarity, Translation, UnitComplex},
 };
 
-use roe_gfx::{
-    core::{
-        Canvas, CanvasWindow, CanvasWindowDescriptor, ColorF32, CommandSequence, Instance,
-        InstanceDescriptor, RenderPassOperations, SampleCount,
-    },
-    shape2,
-    shape2::Renderer as Shape2Renderer,
+use roe_graphics::{
+    Canvas, CanvasWindow, CanvasWindowDescriptor, ColorF32, CommandSequence, Instance,
+    InstanceDescriptor, RenderPassOperations, SampleCount,
 };
+
+use roe_shape2 as shape2;
+use shape2::Renderer as Shape2Renderer;
 
 use roe_examples::*;
 
@@ -232,8 +231,8 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                 &frame,
                 &self.pipeline.render_pass_requirements(),
                 &RenderPassOperations {
-                    color_operations: vec![roe_gfx::core::Operations {
-                        load: roe_gfx::core::LoadOp::Load,
+                    color_operations: vec![roe_graphics::Operations {
+                        load: roe_graphics::LoadOp::Load,
                         store: true,
                     }],
                     ..RenderPassOperations::default()
