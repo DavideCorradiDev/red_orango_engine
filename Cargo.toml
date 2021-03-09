@@ -8,5 +8,6 @@ members = [
   "roe_gfx",
   "roe_graphics",
   "roe_shape2",
+  "roe_sprite",
   "roe_text"
 ]
