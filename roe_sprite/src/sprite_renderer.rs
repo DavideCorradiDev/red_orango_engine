@@ -358,7 +358,11 @@ impl<'a> Renderer<'a> for roe_graphics::RenderPass<'a> {
         self.set_bind_group(0, &uniform_constants.bind_group, &[]);
         self.set_index_buffer(mesh.index_buffer().slice(..));
         self.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
-        self.set_push_constants(roe_graphics::ShaderStage::VERTEX, 0, push_constants.as_slice());
+        self.set_push_constants(
+            roe_graphics::ShaderStage::VERTEX,
+            0,
+            push_constants.as_slice(),
+        );
         self.draw_indexed(index_range, 0, 0..1);
     }
 
@@ -396,7 +400,8 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn creation() {
-        let instance = roe_graphics::Instance::new(&roe_graphics::InstanceDescriptor::default()).unwrap();
+        let instance =
+            roe_graphics::Instance::new(&roe_graphics::InstanceDescriptor::default()).unwrap();
         let _pipeline = RenderPipeline::new(&instance, &RenderPipelineDescriptor::default());
     }
 }

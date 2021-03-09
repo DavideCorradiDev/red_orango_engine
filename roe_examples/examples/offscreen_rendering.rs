@@ -125,8 +125,10 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             &[0, 1, 2],
         );
 
-        let sprite_pipeline =
-            roe_sprite::RenderPipeline::new(&instance, &roe_sprite::RenderPipelineDescriptor::default());
+        let sprite_pipeline = roe_sprite::RenderPipeline::new(
+            &instance,
+            &roe_sprite::RenderPipelineDescriptor::default(),
+        );
 
         let quad_mesh = roe_sprite::Mesh::quad(
             &instance,
