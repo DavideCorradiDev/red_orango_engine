@@ -7,5 +7,6 @@ members = [
   "roe_shader",
   "roe_gfx",
   "roe_graphics",
+  "roe_shape2",
   "roe_text"
 ]
