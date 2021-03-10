@@ -21,7 +21,3 @@ roe_app = {path = "../roe_app"}
 
 [build-dependencies]
 roe_shader = {path = "../roe_shader"}
-
-[[example]]
-name = "text_rendering"
-path = "examples/text_rendering.rs"

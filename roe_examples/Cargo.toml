@@ -12,6 +12,7 @@ roe_math = {path = "../roe_math", features = [
 roe_graphics = {path = "../roe_graphics"}
 roe_shape2 = {path = "../roe_shape2"}
 roe_sprite = {path = "../roe_sprite"}
+roe_text = {path = "../roe_text"}
 rand = "0.7"
 image = {version = "0.23"}
 num = {version = "0.3"}
@@ -27,3 +28,7 @@ path = "examples/gioconda.rs"
 [[example]]
 name = "offscreen_rendering"
 path = "examples/offscreen_rendering.rs"
+
+[[example]]
+name = "text_rendering"
+path = "examples/text_rendering.rs"

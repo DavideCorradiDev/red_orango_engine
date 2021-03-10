@@ -8,6 +8,8 @@ use roe_math::geometry3;
 
 use roe_graphics::{ColorF32, InstanceCreationError, SwapChainError};
 
+use roe_text::FontError;
+
 pub type ApplicationEvent = ();
 
 #[derive(Debug)]
@@ -15,6 +17,7 @@ pub enum ApplicationError {
     WindowCreationFailed(window::OsError),
     InstanceCreationFailed(InstanceCreationError),
     RenderFrameCreationFailed(SwapChainError),
+    FontCreationFailed(FontError),
 }
 
 impl std::fmt::Display for ApplicationError {
@@ -29,6 +32,9 @@ impl std::fmt::Display for ApplicationError {
             ApplicationError::RenderFrameCreationFailed(e) => {
                 write!(f, "Render frame creation failed ({})", e)
             }
+            ApplicationError::FontCreationFailed(e) => {
+                write!(f, "Font creation failed ({})", e)
+            }
         }
     }
 }
@@ -39,6 +45,7 @@ impl std::error::Error for ApplicationError {
             ApplicationError::WindowCreationFailed(e) => Some(e),
             ApplicationError::InstanceCreationFailed(e) => Some(e),
             ApplicationError::RenderFrameCreationFailed(e) => Some(e),
+            ApplicationError::FontCreationFailed(e) => Some(e),
         }
     }
 }
@@ -58,6 +65,12 @@ impl From<InstanceCreationError> for ApplicationError {
 impl From<SwapChainError> for ApplicationError {
     fn from(e: SwapChainError) -> Self {
         ApplicationError::RenderFrameCreationFailed(e)
+    }
+}
+
+impl From<FontError> for ApplicationError {
+    fn from(e: FontError) -> Self {
+        ApplicationError::FontCreationFailed(e)
     }
 }
 

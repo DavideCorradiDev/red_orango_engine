@@ -1,5 +1,3 @@
-extern crate roe_text as text;
-
 use roe_app::{
     application::Application,
     event::{ControlFlow, EventHandler, EventLoop},
@@ -14,86 +12,22 @@ use roe_math::{
 
 use roe_graphics::{
     Canvas, CanvasWindow, CanvasWindowDescriptor, ColorF32, CommandSequence, Instance,
-    InstanceCreationError, InstanceDescriptor, RenderPassOperations, SampleCount, SwapChainError,
+    InstanceDescriptor, RenderPassOperations, SampleCount,
 };
 
-use roe_text::FontError;
+use roe_text::Renderer as TextRenderer;
 
-use text::Renderer as TextRenderer;
-
-pub type ApplicationEvent = ();
-
-#[derive(Debug)]
-pub enum ApplicationError {
-    WindowCreationFailed(window::OsError),
-    InstanceCreationFailed(InstanceCreationError),
-    RenderFrameCreationFailed(SwapChainError),
-    FontCreationFailed(FontError),
-}
-
-impl std::fmt::Display for ApplicationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ApplicationError::WindowCreationFailed(e) => {
-                write!(f, "Window creation failed ({})", e)
-            }
-            ApplicationError::InstanceCreationFailed(e) => {
-                write!(f, "Instance creation failed ({})", e)
-            }
-            ApplicationError::RenderFrameCreationFailed(e) => {
-                write!(f, "Render frame creation failed ({})", e)
-            }
-            ApplicationError::FontCreationFailed(e) => {
-                write!(f, "Font creation failed ({})", e)
-            }
-        }
-    }
-}
-
-impl std::error::Error for ApplicationError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            ApplicationError::WindowCreationFailed(e) => Some(e),
-            ApplicationError::InstanceCreationFailed(e) => Some(e),
-            ApplicationError::RenderFrameCreationFailed(e) => Some(e),
-            ApplicationError::FontCreationFailed(e) => Some(e),
-        }
-    }
-}
-
-impl From<window::OsError> for ApplicationError {
-    fn from(e: window::OsError) -> Self {
-        ApplicationError::WindowCreationFailed(e)
-    }
-}
-
-impl From<InstanceCreationError> for ApplicationError {
-    fn from(e: InstanceCreationError) -> Self {
-        ApplicationError::InstanceCreationFailed(e)
-    }
-}
-
-impl From<SwapChainError> for ApplicationError {
-    fn from(e: SwapChainError) -> Self {
-        ApplicationError::RenderFrameCreationFailed(e)
-    }
-}
-
-impl From<FontError> for ApplicationError {
-    fn from(e: FontError) -> Self {
-        ApplicationError::FontCreationFailed(e)
-    }
-}
+use roe_examples::*;
 
 #[derive(Debug)]
 struct ApplicationImpl {
     window: CanvasWindow,
     instance: Instance,
     projection_transform: Projective<f32>,
-    pipeline: text::RenderPipeline,
-    font_lib: text::FontLibrary,
-    face: text::Face,
-    font: text::Font,
+    pipeline: roe_text::RenderPipeline,
+    font_lib: roe_text::FontLibrary,
+    face: roe_text::Face,
+    font: roe_text::Font,
 }
 
 impl ApplicationImpl {
@@ -139,21 +73,21 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         )
         .to_projective();
 
-        let pipeline = text::RenderPipeline::new(
+        let pipeline = roe_text::RenderPipeline::new(
             &instance,
-            &text::RenderPipelineDescriptor {
+            &roe_text::RenderPipelineDescriptor {
                 sample_count: Self::SAMPLE_COUNT,
-                ..text::RenderPipelineDescriptor::default()
+                ..roe_text::RenderPipelineDescriptor::default()
             },
         );
 
-        let font_lib = text::FontLibrary::new()?;
-        let face = text::Face::from_file(&font_lib, Self::FONT_PATH, 0)?;
-        let font = text::Font::new(
+        let font_lib = roe_text::FontLibrary::new()?;
+        let face = roe_text::Face::from_file(&font_lib, Self::FONT_PATH, 0)?;
+        let font = roe_text::Font::new(
             &instance,
             &face,
             10.,
-            text::character_set::english().as_slice(),
+            roe_text::character_set::english().as_slice(),
         )?;
 
         Ok(Self {
