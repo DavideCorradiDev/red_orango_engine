@@ -3,7 +3,7 @@ extern crate harfbuzz_rs as hb;
 
 use std::{collections::HashMap, fmt::Debug};
 
-use roe_gfx::core as gfx;
+use roe_graphics as gfx;
 use roe_math::geometry2;
 
 use super::{Mesh, MeshIndex, MeshIndexRange, UniformConstants, Vertex};
@@ -122,7 +122,12 @@ struct GlyphSet {
 }
 
 impl GlyphSet {
-    fn new(face: &Face, characters: &[char], size: FontSize, resolution: FontResolution) -> Result<Self, FontError> {
+    fn new(
+        face: &Face,
+        characters: &[char],
+        size: FontSize,
+        resolution: FontResolution,
+    ) -> Result<Self, FontError> {
         face.ft_face
             .set_char_size(0, fsize_to_i26dot6(size) as isize, 0, resolution)?;
         let mut glyphs = Vec::with_capacity(characters.len());
@@ -158,7 +163,12 @@ pub struct Font {
 impl Font {
     const RESOLUTION: FontResolution = 300;
 
-    pub fn new(instance: &gfx::Instance, face: &Face, size: FontSize, characters: &[char]) -> Result<Self, FontError> {
+    pub fn new(
+        instance: &gfx::Instance,
+        face: &Face,
+        size: FontSize,
+        characters: &[char],
+    ) -> Result<Self, FontError> {
         assert!(!characters.is_empty());
         assert!(size > 0.);
 
@@ -312,16 +322,16 @@ impl Font {
 #[derive(Debug)]
 pub enum FontError {
     FontCreationFailed(ft::Error),
-    ShaperCreationFailed(std::io::Error)
+    ShaperCreationFailed(std::io::Error),
 }
 
 impl std::fmt::Display for FontError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            FontError::FontCreationFailed(e)=> {
+            FontError::FontCreationFailed(e) => {
                 write!(f, "Font creation failed ({})", e)
             }
-            FontError::ShaperCreationFailed(e)=> {
+            FontError::ShaperCreationFailed(e) => {
                 write!(f, "Shaper creation failed ({})", e)
             }
         }
@@ -332,7 +342,7 @@ impl std::error::Error for FontError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             FontError::FontCreationFailed(e) => Some(e),
-            FontError::ShaperCreationFailed(e) => Some(e)
+            FontError::ShaperCreationFailed(e) => Some(e),
         }
     }
 }
@@ -349,8 +359,7 @@ impl From<std::io::Error> for FontError {
     }
 }
 
-pub mod character_set
-{
+pub mod character_set {
     pub fn english() -> Vec<char> {
         (0x0000u32..0x007fu32)
             .map(|x| std::char::from_u32(x).expect("Invalid Unicode codepoint"))

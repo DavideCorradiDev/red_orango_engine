@@ -1,0 +1,34 @@
+[package]
+authors = ["Davide Corradi <davide.corradi.dev@gmail.com>"]
+edition = "2018"
+name = "roe_examples"
+version = "0.1.0"
+
+[dependencies]
+roe_app = {path = "../roe_app"}
+roe_math = {path = "../roe_math", features = [
+  "serde-serialize",
+]}
+roe_graphics = {path = "../roe_graphics"}
+roe_shape2 = {path = "../roe_shape2"}
+roe_sprite = {path = "../roe_sprite"}
+roe_text = {path = "../roe_text"}
+rand = "0.7"
+image = {version = "0.23"}
+num = {version = "0.3"}
+
+[[example]]
+name = "triangles"
+path = "examples/triangles.rs"
+
+[[example]]
+name = "gioconda"
+path = "examples/gioconda.rs"
+
+[[example]]
+name = "offscreen_rendering"
+path = "examples/offscreen_rendering.rs"
+
+[[example]]
+name = "text_rendering"
+path = "examples/text_rendering.rs"
