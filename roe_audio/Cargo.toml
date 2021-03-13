@@ -1,0 +1,10 @@
+[package]
+authors = ["Davide Corradi <davide.corradi.dev@gmail.com>"]
+edition = "2018"
+name = "roe_audio"
+version = "0.1.0"
+
+[dependencies]
+
+[dev-dependencies]
+galvanic-assert = "0.8"
