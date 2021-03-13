@@ -67,16 +67,11 @@ struct ApplicationImpl {
     processed_redraw_events_cleared_events: u64,
 }
 
-impl EventHandler<ApplicationError, CustomEvent, ()> for ApplicationImpl {
+impl EventHandler<ApplicationError, CustomEvent> for ApplicationImpl {
     type Error = ApplicationError;
     type CustomEvent = CustomEvent;
-    type StartupData = ();
 
-    fn create_startup_data() -> Result<(), Self::Error> {
-        Ok(())
-    }
-
-    fn new(event_loop: &EventLoop<Self::CustomEvent>, _: ()) -> Result<Self, Self::Error> {
+    fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
         let window = WindowBuilder::new()
             .with_title("Example application")
             .with_inner_size(Size::Physical(PhysicalSize {
@@ -560,6 +555,5 @@ impl EventHandler<ApplicationError, CustomEvent, ()> for ApplicationImpl {
 fn main() {
     const FIXED_FRAMERATE: u64 = 30;
     const VARIABLE_FRAMERATE_CAP: u64 = 60;
-    Application::<ApplicationImpl, _, _, _>::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP))
-        .run();
+    Application::<ApplicationImpl, _, _>::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP)).run();
 }

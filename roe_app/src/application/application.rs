@@ -11,12 +11,11 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub struct Application<EventHandlerType, Error, CustomEvent, StartupData>
+pub struct Application<EventHandlerType, Error, CustomEvent>
 where
-    EventHandlerType: EventHandler<Error, CustomEvent, StartupData> + 'static,
+    EventHandlerType: EventHandler<Error, CustomEvent> + 'static,
     Error: std::fmt::Display + std::error::Error + 'static,
     CustomEvent: 'static,
-    StartupData: 'static,
 {
     keyboard_state: KeyboardState,
     fixed_update_period: std::time::Duration,
@@ -25,17 +24,14 @@ where
     last_variable_update_time: std::time::Instant,
     p0: std::marker::PhantomData<Error>,
     p1: std::marker::PhantomData<CustomEvent>,
-    p2: std::marker::PhantomData<StartupData>,
-    p3: std::marker::PhantomData<EventHandlerType>,
+    p2: std::marker::PhantomData<EventHandlerType>,
 }
 
-impl<EventHandlerType, Error, CustomEvent, StartupData>
-    Application<EventHandlerType, Error, CustomEvent, StartupData>
+impl<EventHandlerType, Error, CustomEvent> Application<EventHandlerType, Error, CustomEvent>
 where
-    EventHandlerType: EventHandler<Error, CustomEvent, StartupData> + 'static,
+    EventHandlerType: EventHandler<Error, CustomEvent> + 'static,
     Error: std::fmt::Display + std::error::Error + 'static,
     CustomEvent: 'static,
-    StartupData: 'static,
 {
     pub fn new(
         fixed_update_frequency_hz: u64,
@@ -66,15 +62,12 @@ where
             p0: std::marker::PhantomData,
             p1: std::marker::PhantomData,
             p2: std::marker::PhantomData,
-            p3: std::marker::PhantomData,
         }
     }
 
     pub fn run(mut self) {
-        let startup_data = EventHandlerType::create_startup_data()
-            .expect("Failed to initialize the application event handler");
         let event_loop = EventLoop::<EventHandlerType::CustomEvent>::new_test_safe();
-        let mut event_handler = EventHandlerType::new(&event_loop, startup_data)
+        let mut event_handler = EventHandlerType::new(&event_loop)
             .expect("Failed to initialize the application event handler");
 
         let current_time = std::time::Instant::now();
@@ -370,16 +363,11 @@ mod tests {
     #[derive(Debug)]
     struct MyEventHandler {}
 
-    impl EventHandler<MyError, (), ()> for MyEventHandler {
+    impl EventHandler<MyError, ()> for MyEventHandler {
         type Error = MyError;
         type CustomEvent = ();
-        type StartupData = ();
 
-        fn create_startup_data() -> Result<(), Self::Error> {
-            Ok(())
-        }
-
-        fn new(_: &EventLoop<()>, _: ()) -> Result<Self, Self::Error> {
+        fn new(_: &EventLoop<()>) -> Result<Self, Self::Error> {
             Ok(Self {})
         }
 
@@ -390,11 +378,11 @@ mod tests {
 
     #[test]
     fn application_creation() {
-        let _app = Application::<MyEventHandler, _, _, _>::new(10, Some(10));
+        let _app = Application::<MyEventHandler, _, _>::new(10, Some(10));
     }
 
     #[test]
     fn run() {
-        Application::<MyEventHandler, _, _, _>::new(10, Some(10)).run();
+        Application::<MyEventHandler, _, _>::new(10, Some(10)).run();
     }
 }

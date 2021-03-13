@@ -11,23 +11,16 @@ pub enum ControlFlow {
     Exit,
 }
 
-pub trait EventHandler<ErrorType, CustomEventType, StartupData>
+pub trait EventHandler<ErrorType, CustomEventType>
 where
     Self: std::marker::Sized,
     ErrorType: std::fmt::Display + std::error::Error + 'static,
     CustomEventType: 'static,
-    StartupData: 'static,
 {
     type Error: std::fmt::Display + std::error::Error + 'static;
     type CustomEvent: 'static;
-    type StartupData: 'static;
 
-    fn create_startup_data() -> Result<Self::StartupData, Self::Error>;
-
-    fn new(
-        event_loop: &EventLoop<Self::CustomEvent>,
-        startup_data: Self::StartupData,
-    ) -> Result<Self, Self::Error>;
+    fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error>;
 
     fn on_close_requested(&mut self, _wid: WindowId) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Exit)

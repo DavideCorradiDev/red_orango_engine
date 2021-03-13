@@ -11,11 +11,6 @@ use roe_graphics::{
 
 use roe_examples::*;
 
-struct ApplicationImplStartupData {
-    stream: roe_audio::OutputStream,
-    stream_handle: roe_audio::OutputStreamHandle,
-}
-
 struct ApplicationImpl {
     window: CanvasWindow,
     instance: Instance,
@@ -27,25 +22,12 @@ impl ApplicationImpl {
     const SAMPLE_COUNT: SampleCount = 8;
 }
 
-impl EventHandler<ApplicationError, ApplicationEvent, ApplicationImplStartupData>
-    for ApplicationImpl
-{
+impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
     type Error = ApplicationError;
     type CustomEvent = ApplicationEvent;
-    type StartupData = ApplicationImplStartupData;
 
-    fn create_startup_data() -> Result<Self::StartupData, Self::Error> {
+    fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
         let (stream, stream_handle) = roe_audio::OutputStream::try_default()?;
-        Ok(Self::StartupData {
-            stream,
-            stream_handle,
-        })
-    }
-
-    fn new(
-        event_loop: &EventLoop<Self::CustomEvent>,
-        startup_data: Self::StartupData,
-    ) -> Result<Self, Self::Error> {
         let window = WindowBuilder::new()
             .with_inner_size(window::Size::Physical(window::PhysicalSize {
                 width: 800,
@@ -71,8 +53,8 @@ impl EventHandler<ApplicationError, ApplicationEvent, ApplicationImplStartupData
         Ok(Self {
             window,
             instance,
-            stream: startup_data.stream,
-            stream_handle: startup_data.stream_handle,
+            stream,
+            stream_handle,
         })
     }
 }
@@ -80,6 +62,5 @@ impl EventHandler<ApplicationError, ApplicationEvent, ApplicationImplStartupData
 fn main() {
     const FIXED_FRAMERATE: u64 = 30;
     const VARIABLE_FRAMERATE_CAP: u64 = 60;
-    Application::<ApplicationImpl, _, _, _>::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP))
-        .run();
+    Application::<ApplicationImpl, _, _>::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP)).run();
 }
