@@ -27,7 +27,6 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
     type CustomEvent = ApplicationEvent;
 
     fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
-        let (stream, stream_handle) = roe_audio::OutputStream::try_default()?;
         let window = WindowBuilder::new()
             .with_inner_size(window::Size::Physical(window::PhysicalSize {
                 width: 800,
@@ -50,6 +49,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             );
             (window, instance)
         };
+        let (stream, stream_handle) = roe_audio::OutputStream::try_default()?;
         Ok(Self {
             window,
             instance,

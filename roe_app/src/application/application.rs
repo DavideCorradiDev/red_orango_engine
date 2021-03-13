@@ -66,8 +66,11 @@ where
     }
 
     pub fn run(mut self) {
+        let mut event_handler =
+            EventHandlerType::new().expect("Failed to create the application event handler");
         let event_loop = EventLoop::<EventHandlerType::CustomEvent>::new_test_safe();
-        let mut event_handler = EventHandlerType::new(&event_loop)
+        event_handler
+            .initialize(&event_loop)
             .expect("Failed to initialize the application event handler");
 
         let current_time = std::time::Instant::now();
@@ -367,7 +370,11 @@ mod tests {
         type Error = MyError;
         type CustomEvent = ();
 
-        fn new(_: &EventLoop<()>) -> Result<Self, Self::Error> {
+        fn new() -> Result<Self, Self::Error> {
+            Ok(Self {})
+        }
+
+        fn initialize(&mut self, _: &EventLoop<()>) -> Result<Self, Self::Error> {
             Ok(Self {})
         }
 

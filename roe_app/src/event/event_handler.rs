@@ -20,7 +20,12 @@ where
     type Error: std::fmt::Display + std::error::Error + 'static;
     type CustomEvent: 'static;
 
-    fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error>;
+    fn new() -> Result<Self, Self::Error>;
+
+    fn initialize(
+        &mut self,
+        event_loop: &EventLoop<Self::CustomEvent>,
+    ) -> Result<Self, Self::Error>;
 
     fn on_close_requested(&mut self, _wid: WindowId) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Exit)
