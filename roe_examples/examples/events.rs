@@ -1,51 +1,13 @@
-use roe_app::*;
-
-use application::Application;
-use event::{
-    controller, keyboard, mouse, touch, ControlFlow, DeviceId, EventHandler, EventLoop,
-    EventLoopClosed, EventLoopProxy, EventLoopStartCause, ScrollDelta,
+use roe_app::{
+    application::Application,
+    event::{
+        controller, keyboard, mouse, touch, ControlFlow, DeviceId, EventHandler, EventLoop,
+        EventLoopProxy, EventLoopStartCause, ScrollDelta,
+    },
+    window::{PhysicalPosition, PhysicalSize, Size, Window, WindowBuilder, WindowId},
 };
-use window::{PhysicalPosition, PhysicalSize, Size, Window, WindowBuilder, WindowId};
 
-#[derive(Debug)]
-enum ApplicationError {
-    WindowCreationError(window::OsError),
-    CustomEventSendingError(EventLoopClosed<CustomEvent>),
-}
-
-impl std::fmt::Display for ApplicationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ApplicationError::WindowCreationError(e) => {
-                write!(f, "Failed to create window ({})", e)
-            }
-            ApplicationError::CustomEventSendingError(e) => {
-                write!(f, "Failed to send a custom event ({})", e)
-            }
-        }
-    }
-}
-
-impl std::error::Error for ApplicationError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            ApplicationError::WindowCreationError(e) => Some(e),
-            ApplicationError::CustomEventSendingError(e) => Some(e),
-        }
-    }
-}
-
-impl From<window::OsError> for ApplicationError {
-    fn from(e: window::OsError) -> Self {
-        ApplicationError::WindowCreationError(e)
-    }
-}
-
-impl From<EventLoopClosed<CustomEvent>> for ApplicationError {
-    fn from(e: EventLoopClosed<CustomEvent>) -> Self {
-        ApplicationError::CustomEventSendingError(e)
-    }
-}
+use roe_examples::*;
 
 #[derive(Debug, Clone, Copy)]
 enum CustomEvent {
@@ -73,7 +35,7 @@ impl EventHandler<ApplicationError, CustomEvent> for ApplicationImpl {
 
     fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
         let window = WindowBuilder::new()
-            .with_title("Example application")
+            .with_title("Events")
             .with_inner_size(Size::Physical(PhysicalSize {
                 width: 800,
                 height: 600,

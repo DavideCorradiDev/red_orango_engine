@@ -4,6 +4,8 @@ use rand::Rng;
 
 use roe_app::window;
 
+use roe_app::event::EventLoopClosed;
+
 use roe_math::geometry3;
 
 use roe_graphics::{ColorF32, InstanceCreationError, SwapChainError};
@@ -18,6 +20,7 @@ pub enum ApplicationError {
     InstanceCreationFailed(InstanceCreationError),
     RenderFrameCreationFailed(SwapChainError),
     FontCreationFailed(FontError),
+    CustomEventSendingError,
 }
 
 impl std::fmt::Display for ApplicationError {
@@ -35,6 +38,9 @@ impl std::fmt::Display for ApplicationError {
             ApplicationError::FontCreationFailed(e) => {
                 write!(f, "Font creation failed ({})", e)
             }
+            ApplicationError::CustomEventSendingError => {
+                write!(f, "Failed to send custom event")
+            }
         }
     }
 }
@@ -46,6 +52,7 @@ impl std::error::Error for ApplicationError {
             ApplicationError::InstanceCreationFailed(e) => Some(e),
             ApplicationError::RenderFrameCreationFailed(e) => Some(e),
             ApplicationError::FontCreationFailed(e) => Some(e),
+            ApplicationError::CustomEventSendingError => None,
         }
     }
 }
@@ -71,6 +78,12 @@ impl From<SwapChainError> for ApplicationError {
 impl From<FontError> for ApplicationError {
     fn from(e: FontError) -> Self {
         ApplicationError::FontCreationFailed(e)
+    }
+}
+
+impl<T> From<EventLoopClosed<T>> for ApplicationError {
+    fn from(_: EventLoopClosed<T>) -> Self {
+        ApplicationError::CustomEventSendingError
     }
 }
 

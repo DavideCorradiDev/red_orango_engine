@@ -5,17 +5,21 @@ name = "roe_examples"
 version = "0.1.0"
 
 [dependencies]
+image = {version = "0.23"}
+num = {version = "0.3"}
+rand = "0.7"
 roe_app = {path = "../roe_app"}
+roe_graphics = {path = "../roe_graphics"}
 roe_math = {path = "../roe_math", features = [
   "serde-serialize",
 ]}
-roe_graphics = {path = "../roe_graphics"}
 roe_shape2 = {path = "../roe_shape2"}
 roe_sprite = {path = "../roe_sprite"}
 roe_text = {path = "../roe_text"}
-rand = "0.7"
-image = {version = "0.23"}
-num = {version = "0.3"}
+
+[[example]]
+name = "events"
+path = "examples/events.rs"
 
 [[example]]
 name = "triangles"

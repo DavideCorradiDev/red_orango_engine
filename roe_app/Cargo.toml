@@ -1,16 +1,8 @@
 [package]
-name = "roe_app"
-version = "0.1.0"
 authors = ["Davide Corradi <davide.corradi.dev@gmail.com>"]
 edition = "2018"
+name = "roe_app"
+version = "0.1.0"
 
 [dependencies]
 winit = "0.22"
-
-[[example]]
-name = "example-application"
-path = "examples/example_application.rs"
-test = false
-doctest = false
-bench = false
-doc = false
