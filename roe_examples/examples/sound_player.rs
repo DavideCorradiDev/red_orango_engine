@@ -5,28 +5,17 @@ use roe_app::{
     window::{WindowBuilder, WindowId},
 };
 
-use roe_math::{
-    conversion::convert,
-    geometry2::{OrthographicProjection, Similarity, Translation, UnitComplex},
-};
-
 use roe_graphics::{
-    AddressMode, Canvas, CanvasColorBufferFormat, CanvasColorBufferUsage, CanvasTexture,
-    CanvasTextureColorBufferDescriptor, CanvasTextureDescriptor, CanvasWindow,
-    CanvasWindowDescriptor, ColorF32, ColorF64, ColorOperations, CommandSequence, Instance,
-    InstanceDescriptor, LoadOp, RenderPassOperations, SampleCount, Sampler, SamplerDescriptor,
-    Size,
+    CanvasWindow, CanvasWindowDescriptor, Instance, InstanceDescriptor, SampleCount,
 };
-
-use roe_shape2::Renderer as Shape2Renderer;
-use roe_sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer};
 
 use roe_examples::*;
 
-#[derive(Debug)]
 struct ApplicationImpl {
     window: CanvasWindow,
     instance: Instance,
+    stream: roe_audio::OutputStream,
+    stream_handle: roe_audio::OutputStreamHandle,
 }
 
 impl ApplicationImpl {
@@ -38,6 +27,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
     type CustomEvent = ApplicationEvent;
 
     fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
+        let (stream, stream_handle) = roe_audio::OutputStream::try_default()?;
         let window = WindowBuilder::new()
             .with_inner_size(window::Size::Physical(window::PhysicalSize {
                 width: 800,
@@ -60,7 +50,12 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             );
             (window, instance)
         };
-        Ok(Self { window, instance })
+        Ok(Self {
+            window,
+            instance,
+            stream,
+            stream_handle,
+        })
     }
 }
 
