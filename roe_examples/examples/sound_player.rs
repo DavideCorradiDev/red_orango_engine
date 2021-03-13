@@ -9,6 +9,8 @@ use roe_graphics::{
     CanvasWindow, CanvasWindowDescriptor, Instance, InstanceDescriptor, SampleCount,
 };
 
+use roe_audio::Source;
+
 use roe_examples::*;
 
 struct ApplicationImpl {
@@ -67,6 +69,31 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             stream,
             stream_handle,
         })
+    }
+
+    fn on_key_released(
+        &mut self,
+        wid: WindowId,
+        _device_id: DeviceId,
+        _scan_code: keyboard::ScanCode,
+        key_code: Option<keyboard::KeyCode>,
+        _is_synthetic: bool,
+    ) -> Result<ControlFlow, Self::Error> {
+        if wid == self.window.id() {
+            if let Some(key) = key_code {
+                if key == keyboard::KeyCode::Key1 {
+                    // TODO: replace unwrap().
+                    let wav_file =
+                        std::fs::File::open("roe_examples/data/audio/stereo-8-44100.wav").unwrap();
+                    let wav_audio =
+                        roe_audio::Decoder::new(std::io::BufReader::new(wav_file)).unwrap();
+                    self.stream_handle
+                        .play_raw(wav_audio.convert_samples())
+                        .unwrap();
+                }
+            }
+        }
+        Ok(ControlFlow::Continue)
     }
 }
 
