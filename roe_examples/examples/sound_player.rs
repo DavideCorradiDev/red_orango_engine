@@ -22,19 +22,29 @@ impl ApplicationImpl {
     const SAMPLE_COUNT: SampleCount = 8;
 }
 
+#[cfg(target_os = "windows")]
+fn fix_window_builder(window_builder: WindowBuilder) -> WindowBuilder {
+    window_builder.with_drag_and_drop(false)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn fix_window_builder(window_builder: WindowBuilder) -> WindowBuilder {
+    window_builder
+}
+
 impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
     type Error = ApplicationError;
     type CustomEvent = ApplicationEvent;
 
     fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
         let (stream, stream_handle) = roe_audio::OutputStream::try_default()?;
-        let window = WindowBuilder::new()
-            .with_inner_size(window::Size::Physical(window::PhysicalSize {
+        let mut window_builder =
+            WindowBuilder::new().with_inner_size(window::Size::Physical(window::PhysicalSize {
                 width: 800,
                 height: 800,
-            }))
-            .with_drag_and_drop(false)
-            .build(event_loop)?;
+            }));
+        window_builder = fix_window_builder(window_builder);
+        let window = window_builder.build(event_loop)?;
         let (window, instance) = unsafe {
             let (instance, surface) = Instance::new_with_compatible_window(
                 &InstanceDescriptor::high_performance(),
