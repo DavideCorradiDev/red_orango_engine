@@ -82,7 +82,6 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         if wid == self.window.id() {
             if let Some(key) = key_code {
                 if key == keyboard::KeyCode::Key1 {
-                    // TODO: replace unwrap().
                     let wav_file =
                         std::fs::File::open("roe_examples/data/audio/stereo-8-44100.wav").unwrap();
                     let wav_audio =
