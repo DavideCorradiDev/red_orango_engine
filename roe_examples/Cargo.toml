@@ -13,6 +13,7 @@ roe_graphics = {path = "../roe_graphics"}
 roe_shape2 = {path = "../roe_shape2"}
 roe_sprite = {path = "../roe_sprite"}
 roe_text = {path = "../roe_text"}
+roe_audio = {path = "../roe_audio"}
 rand = "0.7"
 image = {version = "0.23"}
 num = {version = "0.3"}
