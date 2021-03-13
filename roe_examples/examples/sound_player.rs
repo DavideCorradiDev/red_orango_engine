@@ -2,7 +2,7 @@ use roe_app::{
     application::Application,
     event::{keyboard, ControlFlow, DeviceId, EventHandler, EventLoop},
     window,
-    window::{WindowBuilder, WindowId},
+    window::{WindowBuilder, WindowBuilderExt, WindowId},
 };
 
 use roe_graphics::{
@@ -33,6 +33,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                 width: 800,
                 height: 800,
             }))
+            .with_drag_and_drop(false)
             .build(event_loop)?;
         let (window, instance) = unsafe {
             let (instance, surface) = Instance::new_with_compatible_window(
