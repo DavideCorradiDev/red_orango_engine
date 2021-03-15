@@ -13,17 +13,23 @@ pub struct Instance {
 }
 
 impl Instance {
+    pub fn enumerate_devices() -> Vec<String> {
+        ALTO.enumerate_outputs()
+            .into_iter()
+            .map(|x| x.into_string().unwrap())
+            .collect()
+    }
+
     pub fn new() -> Result<Self, AudioError> {
         let device = ALTO.open(None)?;
         let context = device.new_context(None)?;
         Ok(Self { device, context })
     }
 
-    pub fn enumerate_outputs(&self) -> Vec<String> {
-        ALTO.enumerate_outputs()
-            .into_iter()
-            .map(|x| x.into_string().unwrap())
-            .collect()
+    pub fn with_device(device_name: &str) -> Result<Self, AudioError> {
+        let device = ALTO.open(Some(&std::ffi::CString::new(device_name).unwrap()))?;
+        let context = device.new_context(None)?;
+        Ok(Self { device, context })
     }
 }
 
@@ -33,8 +39,23 @@ mod tests {
     use galvanic_assert::{matchers::*, *};
 
     #[test]
-    fn instance_creation() {
-        let instance = Instance::new().unwrap();
-        println!("Outputs: {:?}.", instance.enumerate_outputs())
+    #[serial_test::serial]
+    fn enumerate_outputs() {
+        let devices = Instance::enumerate_devices();
+        expect_that!(&devices.len(), gt(0));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn default_instance_creation() {
+        let _ = Instance::new().unwrap();
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn specific_instance_creation() {
+        for device in Instance::enumerate_devices() {
+            let _ = Instance::with_device(&device).unwrap();
+        }
     }
 }
