@@ -1,27 +1,26 @@
 use super::AudioError;
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref ALTO: alto::Alto =
+        alto::Alto::load_default().expect("Failed to load the audio library");
+}
 
 // TODO: should move alto to a separate struct, to allow querying devices before creating the device.
 pub struct Instance {
-    alto: alto::Alto,
     device: alto::OutputDevice,
     context: alto::Context,
 }
 
 impl Instance {
     pub fn new() -> Result<Self, AudioError> {
-        let alto = alto::Alto::load_default()?;
-        let device = alto.open(None)?;
+        let device = ALTO.open(None)?;
         let context = device.new_context(None)?;
-        Ok(Self {
-            alto,
-            device,
-            context,
-        })
+        Ok(Self { device, context })
     }
 
     pub fn enumerate_outputs(&self) -> Vec<String> {
-        self.alto
-            .enumerate_outputs()
+        ALTO.enumerate_outputs()
             .into_iter()
             .map(|x| x.into_string().unwrap())
             .collect()
