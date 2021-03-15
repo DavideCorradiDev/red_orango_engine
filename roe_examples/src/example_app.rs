@@ -12,6 +12,8 @@ use roe_graphics::{ColorF32, InstanceCreationError, SwapChainError};
 
 use roe_text::FontError;
 
+use roe_audio::AudioError;
+
 pub type ApplicationEvent = ();
 
 #[derive(Debug)]
@@ -20,6 +22,7 @@ pub enum ApplicationError {
     InstanceCreationFailed(InstanceCreationError),
     RenderFrameCreationFailed(SwapChainError),
     FontCreationFailed(FontError),
+    AudioError(AudioError),
     CustomEventSendingError,
 }
 
@@ -38,6 +41,9 @@ impl std::fmt::Display for ApplicationError {
             ApplicationError::FontCreationFailed(e) => {
                 write!(f, "Font creation failed ({})", e)
             }
+            ApplicationError::AudioError(e) => {
+                write!(f, "Audio error ({})", e)
+            }
             ApplicationError::CustomEventSendingError => {
                 write!(f, "Failed to send custom event")
             }
@@ -52,6 +58,7 @@ impl std::error::Error for ApplicationError {
             ApplicationError::InstanceCreationFailed(e) => Some(e),
             ApplicationError::RenderFrameCreationFailed(e) => Some(e),
             ApplicationError::FontCreationFailed(e) => Some(e),
+            ApplicationError::AudioError(e) => Some(e),
             ApplicationError::CustomEventSendingError => None,
         }
     }
@@ -78,6 +85,12 @@ impl From<SwapChainError> for ApplicationError {
 impl From<FontError> for ApplicationError {
     fn from(e: FontError) -> Self {
         ApplicationError::FontCreationFailed(e)
+    }
+}
+
+impl From<AudioError> for ApplicationError {
+    fn from(e: AudioError) -> Self {
+        ApplicationError::AudioError(e)
     }
 }
 

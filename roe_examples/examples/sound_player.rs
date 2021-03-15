@@ -24,8 +24,7 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
                 height: 600,
             }))
             .build(event_loop)?;
-        // TODO: replace unwrap call.
-        let audio_instance = roe_audio::Instance::new().unwrap();
+        let audio_instance = roe_audio::Instance::new()?;
         Ok(Self {
             _window: window,
             _audio_instance: audio_instance,
