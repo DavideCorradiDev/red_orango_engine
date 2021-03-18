@@ -19,6 +19,7 @@ fn as_push_constants_slice<T>(value: &T) -> &[u32] {
     bytemuck::cast_slice(&data)
 }
 
+#[repr(C, packed)]
 #[derive(Debug, PartialEq, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Vertex {
     position: [f32; 2],

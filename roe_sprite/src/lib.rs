@@ -4,6 +4,7 @@ use num_traits::Zero;
 
 use roe_math::{conversion::ToHomogeneousMatrix3, geometry2, geometry3};
 
+#[repr(C, packed)]
 #[derive(Debug, PartialEq, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct Vertex {
     pub position: [f32; 2],
@@ -105,6 +106,7 @@ impl MeshTemplates for Mesh {
     }
 }
 
+#[repr(C, packed)]
 #[derive(Debug, PartialEq, Clone, Copy, serde::Serialize, serde::Deserialize)]
 pub struct PushConstants {
     transform: geometry3::HomogeneousMatrix<f32>,
