@@ -1,4 +1,4 @@
-use super::{AudioFormat, Decoder};
+use super::{AudioFormat, Decoder, DecoderError};
 
 use bytemuck::Zeroable;
 
@@ -30,10 +30,10 @@ impl WavHeader {
 unsafe impl bytemuck::Zeroable for WavHeader {
     fn zeroed() -> Self {
         Self {
-            id: [0, 0, 0, 0],
+            id: [0; 4],
             size: 0,
-            form: [0, 0, 0, 0],
-            chunk_id: [0, 0, 0, 0],
+            form: [0; 4],
+            chunk_id: [0; 4],
             chunk_size: 0,
             format: 0,
             channels: 0,
@@ -57,9 +57,12 @@ impl<T> WavDecoder<T>
 where
     T: std::io::Read + std::io::Seek,
 {
+    const HEADER_SIZE: usize = std::mem::size_of::<WavHeader>();
+
     pub fn new(mut input: T) -> Self {
         let mut header = WavHeader::zeroed();
         // TODO check channels and byte count for validity, return error otherwise.
+        // TODO also check bits per sample for validity... everything.
         // TODO replace unwrap.
         input.seek(std::io::SeekFrom::Start(0)).unwrap();
         input.read_exact(header.as_slice_mut()).unwrap();
@@ -77,25 +80,45 @@ where
     }
 }
 
-// impl<T> Decoder for WavDecoder<T>
-// where
-//     T: std::io::Read + std::io::Seek,
-// {
-//     fn audio_format(&self) -> AudioFormat {
-//         self.format
-//     }
-//
-//     fn sample_rate(&self) -> u32 {
-//         self.header.sample_rate
-//     }
-//
-//     fn sample_count(&self) -> usize {
-//         self.header.sample_count
-//     }
-//
-//     fn read_to_end(&mut self, buf: &mut Vec<u8>) -> std::io::Result<usize>;
-//     fn read(&mut self, bug: &mut [u8]) -> std::io::Result<usize>;
-// }
+impl<T> Decoder for WavDecoder<T>
+where
+    T: std::io::Read + std::io::Seek,
+{
+    fn audio_format(&self) -> AudioFormat {
+        self.format
+    }
+
+    fn byte_stream_position(&mut self) -> Result<u64, DecoderError> {
+        let input_pos = self.input.stream_position()?;
+        assert!(input_pos >= Self::HEADER_SIZE as u64);
+        Ok(input_pos - Self::HEADER_SIZE as u64)
+    }
+
+    fn byte_count(&self) -> usize {
+        self.header.size as usize - Self::HEADER_SIZE
+    }
+
+    fn byte_rate(&self) -> u32 {
+        self.header.byte_rate
+    }
+
+    fn byte_seek(&mut self, pos: std::io::SeekFrom) -> Result<u64, DecoderError> {
+        let pos = match pos {
+            std::io::SeekFrom::Start(v) => std::io::SeekFrom::Start(v + Self::HEADER_SIZE as u64),
+            std::io::SeekFrom::End(v) => std::io::SeekFrom::End(v + Self::HEADER_SIZE as i64),
+            std::io::SeekFrom::Current(v) => {
+                std::io::SeekFrom::Current(v + Self::HEADER_SIZE as i64)
+            }
+        };
+        let count = self.input.seek(pos)?;
+        Ok(count)
+    }
+
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, DecoderError> {
+        let count = self.input.read(buf)?;
+        Ok(count)
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -103,9 +126,14 @@ mod tests {
     use galvanic_assert::{matchers::*, *};
 
     #[test]
-    fn load_mono8() {
+    fn mono8_loading() {
         let file = std::fs::File::open("data/audio/mono-8-44100.wav").unwrap();
         let buf = std::io::BufReader::new(file);
-        let _ = WavDecoder::new(buf);
+        let decoder = WavDecoder::new(buf);
+        expect_that!(&decoder.audio_format(), eq(AudioFormat::Mono8));
+        expect_that!(&decoder.byte_count(), eq(21231));
+        expect_that!(&decoder.sample_count(), eq(21231));
+        expect_that!(&decoder.byte_rate(), eq(44100));
+        expect_that!(&decoder.sample_rate(), eq(44100));
     }
 }

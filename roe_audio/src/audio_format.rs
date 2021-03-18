@@ -6,6 +6,7 @@ pub enum AudioFormat {
     Stereo16,
 }
 
+// TODO: add unit tests for audio format.
 impl AudioFormat {
     pub fn new(channel_count: u32, bytes_per_sample: u32) -> Self {
         assert!(
