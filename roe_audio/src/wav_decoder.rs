@@ -284,6 +284,13 @@ mod tests {
     use galvanic_assert::{matchers::*, *};
 
     #[test]
+    fn invalid_input_file() {
+        let file = std::fs::File::open("data/audio/not-an-audio-file.txt").unwrap();
+        let buf = std::io::BufReader::new(file);
+        expect_that!(&WavDecoder::new(buf), is_variant!(Result::Err));
+    }
+
+    #[test]
     fn mono8_loading() {
         let file = std::fs::File::open("data/audio/mono-8-44100.wav").unwrap();
         let buf = std::io::BufReader::new(file);
