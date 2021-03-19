@@ -19,6 +19,7 @@ pub trait Decoder {
         let byte_pos = self.byte_stream_position()?;
         let tbps = self.audio_format().total_bytes_per_sample() as u64;
         if byte_pos % tbps != 0 {
+            // TMP_TODO: change with an assertion: simply shouldn't happen.
             return Err(DecoderError::CursorBetweenSamples);
         }
         Ok(byte_pos / tbps)
@@ -31,7 +32,8 @@ pub trait Decoder {
             std::io::SeekFrom::End(v) => std::io::SeekFrom::End(v * tbps as i64),
             std::io::SeekFrom::Current(v) => std::io::SeekFrom::Current(v * tbps as i64),
         };
-        self.byte_seek(pos)
+        let byte_count = self.byte_seek(pos)?;
+        Ok(byte_count / tbps as u64)
     }
 }
 

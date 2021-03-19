@@ -352,6 +352,127 @@ mod tests {
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
 
-    // TMP_TODO: tests with different formats.
-    // TMP_TODO: tests for seeking and reading.
+    #[test]
+    fn stereo16_byte_seek() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.wav").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = WavDecoder::new(buf);
+
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+
+        // From start.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Start(12)).unwrap(),
+            eq(12)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(12));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(3));
+
+        // From current positive.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Current(4)).unwrap(),
+            eq(16)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(16));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(4));
+
+        // From current negative.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Current(-8)).unwrap(),
+            eq(8)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(8));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(2));
+
+        // From end.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::End(-12)).unwrap(),
+            eq(84912)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(84912));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(21228));
+
+        // Beyond end.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::End(40)).unwrap(),
+            eq(84924)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(84924));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(21231));
+
+        // Before start.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Start(0)).unwrap(),
+            eq(0)
+        );
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Current(-3)).unwrap(),
+            eq(0)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+    }
+
+    #[test]
+    fn stereo16_sample_seek() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.wav").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = WavDecoder::new(buf);
+
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+
+        // From start.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Start(3)).unwrap(),
+            eq(3)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(12));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(3));
+
+        // From current positive.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Current(1)).unwrap(),
+            eq(4)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(16));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(4));
+
+        // From current negative.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Current(-2)).unwrap(),
+            eq(2)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(8));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(2));
+
+        // From end.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::End(-3)).unwrap(),
+            eq(21228)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(84912));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(21228));
+
+        // Beyond end.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::End(10)).unwrap(),
+            eq(21231)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(84924));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(21231));
+
+        // Before start.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Start(0)).unwrap(),
+            eq(0)
+        );
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Current(-3)).unwrap(),
+            eq(0)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+    }
 }
