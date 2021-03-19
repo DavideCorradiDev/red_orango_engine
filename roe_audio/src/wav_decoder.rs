@@ -1,4 +1,4 @@
-use super::{AudioFormat, Decoder, DecoderError};
+use super::{AudioFormat, Decoder};
 
 use bytemuck::Zeroable;
 
@@ -110,38 +110,74 @@ impl<T> WavDecoder<T>
 where
     T: std::io::Read + std::io::Seek,
 {
-    pub fn new(mut input: T) -> Self {
+    pub fn new(mut input: T) -> Result<Self, WavDecoderError> {
         input.seek(std::io::SeekFrom::Start(0)).unwrap();
-        // TODO check channels and byte count for validity, return error otherwise.
-        // TODO also check bits per sample for validity... everything.
-        // TODO replace unwrap.
+
         let mut signature = WavSignature::zeroed();
-        input.read_exact(signature.as_slice_mut()).unwrap();
+        input.read_exact(signature.as_slice_mut())?;
+        {
+            let id_str = std::str::from_utf8(&signature.id).unwrap();
+            if id_str != "RIFF" {
+                return Err(WavDecoderError::InvalidId(String::from(id_str)));
+            }
+            let form_str = std::str::from_utf8(&signature.form).unwrap();
+            if form_str != "WAVE" {
+                return Err(WavDecoderError::InvalidForm(String::from(form_str)));
+            }
+        }
+
         let mut format_chunk = WavFormatChunk::zeroed();
-        input.read_exact(format_chunk.as_slice_mut()).unwrap();
+        input.read_exact(format_chunk.as_slice_mut())?;
+        {
+            let id_str = std::str::from_utf8(&format_chunk.signature.id).unwrap();
+            if id_str != "fmt " {
+                return Err(WavDecoderError::InvalidFormatChunkId(String::from(id_str)));
+            }
+            if format_chunk.channels != 1 && format_chunk.channels != 2 {
+                return Err(WavDecoderError::InvalidChannelCount(format_chunk.channels));
+            }
+            if format_chunk.bits_per_sample != 8 && format_chunk.bits_per_sample != 16 {
+                return Err(WavDecoderError::InvalidBitsPerSample(
+                    format_chunk.bits_per_sample,
+                ));
+            }
+            if format_chunk.byte_rate
+                != format_chunk.sample_rate
+                    * format_chunk.channels as u32
+                    * (format_chunk.bits_per_sample / 8) as u32
+            {
+                return Err(WavDecoderError::InvalidByteRate(format_chunk.byte_rate));
+            }
+            if format_chunk.block_align
+                != format_chunk.channels * (format_chunk.bits_per_sample / 8)
+            {
+                return Err(WavDecoderError::InvalidBlockAlignment(
+                    format_chunk.block_align,
+                ));
+            }
+        }
+
         let byte_count = loop {
             let mut chunk_signature = WavChunkSignature::zeroed();
-            input.read_exact(chunk_signature.as_slice_mut()).unwrap();
+            input.read_exact(chunk_signature.as_slice_mut())?;
             let chunk_id = std::str::from_utf8(&chunk_signature.id).unwrap();
             if chunk_id == "data" {
                 break chunk_signature.size;
             }
-            input
-                .seek(std::io::SeekFrom::Current(chunk_signature.size as i64))
-                .unwrap();
+            input.seek(std::io::SeekFrom::Current(chunk_signature.size as i64))?;
         };
         let bytes_per_sample = format_chunk.bits_per_sample / 8;
         let format = AudioFormat::new(format_chunk.channels as u32, bytes_per_sample as u32);
         let sample_rate = format_chunk.sample_rate;
         let sample_count = (byte_count / format.total_bytes_per_sample()) as usize;
-        let byte_data_offset = input.stream_position().unwrap();
-        Self {
+        let byte_data_offset = input.stream_position()?;
+        Ok(Self {
             input,
             format,
             sample_rate,
             sample_count,
             byte_data_offset,
-        }
+        })
     }
 }
 
@@ -200,6 +236,48 @@ where
     }
 }
 
+#[derive(Debug)]
+pub enum WavDecoderError {
+    IoError(std::io::Error),
+    InvalidId(String),
+    InvalidForm(String),
+    InvalidFormatChunkId(String),
+    InvalidChannelCount(u16),
+    InvalidBitsPerSample(u16),
+    InvalidByteRate(u32),
+    InvalidBlockAlignment(u16),
+}
+
+impl std::fmt::Display for WavDecoderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::IoError(e) => write!(f, "Input / Output error ({})", e),
+            Self::InvalidId(e) => write!(f, "Invalid id ({})", e),
+            Self::InvalidForm(e) => write!(f, "Invalid form ({})", e),
+            Self::InvalidFormatChunkId(e) => write!(f, "Invalid format chunk id ({})", e),
+            Self::InvalidChannelCount(e) => write!(f, "Invalid channel count ({})", e),
+            Self::InvalidBitsPerSample(e) => write!(f, "Invalid bits per sample ({})", e),
+            Self::InvalidByteRate(e) => write!(f, "Invalid byte rate ({})", e),
+            Self::InvalidBlockAlignment(e) => write!(f, "Invalid block alignment ({})", e),
+        }
+    }
+}
+
+impl std::error::Error for WavDecoderError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::IoError(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
+impl From<std::io::Error> for WavDecoderError {
+    fn from(e: std::io::Error) -> Self {
+        Self::IoError(e)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -209,7 +287,7 @@ mod tests {
     fn mono8_loading() {
         let file = std::fs::File::open("data/audio/mono-8-44100.wav").unwrap();
         let buf = std::io::BufReader::new(file);
-        let decoder = WavDecoder::new(buf);
+        let decoder = WavDecoder::new(buf).unwrap();
         expect_that!(&decoder.audio_format(), eq(AudioFormat::Mono8));
         expect_that!(&decoder.byte_count(), eq(21231));
         expect_that!(&decoder.sample_count(), eq(21231));
@@ -221,7 +299,7 @@ mod tests {
     fn mono8_byte_seek() {
         let file = std::fs::File::open("data/audio/mono-8-44100.wav").unwrap();
         let buf = std::io::BufReader::new(file);
-        let mut decoder = WavDecoder::new(buf);
+        let mut decoder = WavDecoder::new(buf).unwrap();
 
         expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
         expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
@@ -283,7 +361,7 @@ mod tests {
     fn mono8_sample_seek() {
         let file = std::fs::File::open("data/audio/mono-8-44100.wav").unwrap();
         let buf = std::io::BufReader::new(file);
-        let mut decoder = WavDecoder::new(buf);
+        let mut decoder = WavDecoder::new(buf).unwrap();
 
         expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
         expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
@@ -345,7 +423,7 @@ mod tests {
     fn stereo16_loading() {
         let file = std::fs::File::open("data/audio/stereo-16-44100.wav").unwrap();
         let buf = std::io::BufReader::new(file);
-        let decoder = WavDecoder::new(buf);
+        let decoder = WavDecoder::new(buf).unwrap();
         expect_that!(&decoder.audio_format(), eq(AudioFormat::Stereo16));
         expect_that!(&decoder.byte_count(), eq(21231 * 4));
         expect_that!(&decoder.sample_count(), eq(21231));
@@ -357,7 +435,7 @@ mod tests {
     fn stereo16_byte_seek() {
         let file = std::fs::File::open("data/audio/stereo-16-44100.wav").unwrap();
         let buf = std::io::BufReader::new(file);
-        let mut decoder = WavDecoder::new(buf);
+        let mut decoder = WavDecoder::new(buf).unwrap();
 
         expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
         expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
@@ -419,7 +497,7 @@ mod tests {
     fn stereo16_sample_seek() {
         let file = std::fs::File::open("data/audio/stereo-16-44100.wav").unwrap();
         let buf = std::io::BufReader::new(file);
-        let mut decoder = WavDecoder::new(buf);
+        let mut decoder = WavDecoder::new(buf).unwrap();
 
         expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
         expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
