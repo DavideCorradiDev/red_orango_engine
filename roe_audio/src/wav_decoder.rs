@@ -169,13 +169,13 @@ where
         self.sample_count
     }
 
-    fn byte_stream_position(&mut self) -> Result<u64, DecoderError> {
+    fn byte_stream_position(&mut self) -> std::io::Result<u64> {
         let input_pos = self.input.stream_position()?;
         assert!(input_pos >= self.byte_data_offset);
         Ok(input_pos - self.byte_data_offset)
     }
 
-    fn byte_seek(&mut self, pos: std::io::SeekFrom) -> Result<u64, DecoderError> {
+    fn byte_seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
         let byte_count = self.byte_count() as i64;
         let target_pos = match pos {
             std::io::SeekFrom::Start(v) => v as i64,
@@ -183,8 +183,9 @@ where
             std::io::SeekFrom::Current(v) => self.byte_stream_position()? as i64 + v,
         };
         let target_pos = std::cmp::max(0, std::cmp::min(target_pos, byte_count)) as u64;
+
         if target_pos % self.audio_format().total_bytes_per_sample() as u64 != 0 {
-            return Err(DecoderError::CursorBetweenSamples);
+            return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput));
         }
 
         let count = self
@@ -193,7 +194,7 @@ where
         Ok(count - self.byte_data_offset)
     }
 
-    fn read(&mut self, buf: &mut [u8]) -> Result<usize, DecoderError> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let count = self.input.read(buf)?;
         Ok(count)
     }
