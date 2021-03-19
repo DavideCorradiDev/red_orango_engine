@@ -2,8 +2,10 @@ use super::AudioFormat;
 
 pub trait Decoder {
     fn audio_format(&self) -> AudioFormat;
-    fn byte_count(&self) -> usize;
     fn byte_rate(&self) -> u32;
+    fn sample_rate(&self) -> u32;
+    fn byte_count(&self) -> usize;
+    fn sample_count(&self) -> usize;
     fn byte_stream_position(&mut self) -> Result<u64, DecoderError>;
     fn byte_seek(&mut self, pos: std::io::SeekFrom) -> Result<u64, DecoderError>;
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, DecoderError>;
@@ -11,14 +13,6 @@ pub trait Decoder {
     fn read_to_end(&mut self, buf: &mut Vec<u8>) -> Result<usize, DecoderError> {
         buf.resize(self.byte_count() - self.byte_stream_position()? as usize, 0);
         self.read(&mut buf[..])
-    }
-
-    fn sample_count(&self) -> usize {
-        self.byte_count() / self.audio_format().total_bytes_per_sample() as usize
-    }
-
-    fn sample_rate(&self) -> u32 {
-        self.byte_rate() / self.audio_format().total_bytes_per_sample()
     }
 
     fn sample_stream_position(&mut self) -> Result<u64, DecoderError> {
