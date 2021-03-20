@@ -80,8 +80,8 @@ impl Sound {
     }
 
     pub fn raw_data(&self) -> Vec<u8> {
-        let left_channel = Vec::from(bytemuck::cast_slice::<_, u8>(&self.left_channel[..]));
-        let right_channel = Vec::from(bytemuck::cast_slice::<_, u8>(&self.right_channel[..]));
+        let left_channel = Vec::from(bytemuck::cast_slice(&self.left_channel[..]));
+        let right_channel = Vec::from(bytemuck::cast_slice(&self.right_channel[..]));
         interleave(left_channel.into_iter(), right_channel.into_iter()).collect()
     }
 }
