@@ -5,7 +5,7 @@ use num_traits::Zero;
 use roe_math::{conversion::ToHomogeneousMatrix3, geometry2, geometry3};
 
 #[repr(C, packed)]
-#[derive(Debug, PartialEq, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Vertex {
     pub position: [f32; 2],
 }
@@ -35,7 +35,7 @@ pub type MeshIndex = roe_graphics::MeshIndex;
 pub type Mesh = roe_graphics::IndexedMesh<Vertex>;
 
 #[repr(C, packed)]
-#[derive(Debug, PartialEq, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct PushConstants {
     transform: geometry3::HomogeneousMatrix<f32>,
     color: roe_graphics::ColorF32,
@@ -68,7 +68,7 @@ unsafe impl bytemuck::Zeroable for PushConstants {
 
 unsafe impl bytemuck::Pod for PushConstants {}
 
-#[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct RenderPipelineDescriptor {
     pub color_blend: roe_graphics::BlendDescriptor,
     pub alpha_blend: roe_graphics::BlendDescriptor,

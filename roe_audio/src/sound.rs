@@ -1,6 +1,6 @@
 use super::AudioFormat;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Sound {
     channels: Vec<Vec<u16>>,
     sample_rate: u32,

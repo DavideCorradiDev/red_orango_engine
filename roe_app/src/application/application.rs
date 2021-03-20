@@ -345,7 +345,7 @@ impl KeyboardState {
 mod tests {
     use super::*;
 
-    #[derive(Debug, PartialEq, Clone, Copy)]
+    #[derive(Debug, PartialEq, Clone)]
     enum MyError {}
 
     impl std::fmt::Display for MyError {

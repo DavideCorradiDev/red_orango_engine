@@ -2,7 +2,7 @@ use std::default::Default;
 
 pub use wgpu::Color as ColorF64;
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -82,7 +82,7 @@ impl as_slice::AsSlice for Color {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct ColorF32 {
     pub r: f32,
     pub g: f32,

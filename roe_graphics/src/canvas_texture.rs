@@ -8,7 +8,7 @@ use super::{
 
 pub type CanvasTextureColorBufferDescriptor = CanvasBufferColorBufferDescriptor;
 
-#[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct CanvasTextureDescriptor {
     pub size: Size<u32>,
     pub sample_count: SampleCount,
@@ -40,8 +40,8 @@ impl CanvasTexture {
                 size: desc.size,
                 sample_count: desc.sample_count,
                 swap_chain_descriptor: None,
-                color_buffer_descriptors: match desc.color_buffer_descriptor {
-                    Some(v) => vec![v],
+                color_buffer_descriptors: match &desc.color_buffer_descriptor {
+                    Some(v) => vec![v.clone()],
                     None => Vec::new(),
                 },
                 depth_stencil_buffer_format: desc.depth_stencil_buffer_format,

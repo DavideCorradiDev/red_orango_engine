@@ -12,7 +12,7 @@ use super::{
     SampleCount, Surface, SwapChainError,
 };
 
-#[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct CanvasWindowDescriptor {
     pub sample_count: SampleCount,
     pub color_buffer_format: CanvasColorBufferFormat,
