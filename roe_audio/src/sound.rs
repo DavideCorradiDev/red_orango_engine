@@ -55,7 +55,27 @@ impl Sound {
         }
     }
 
-    pub fn stereo16_raw_data(&self) -> Vec<u8> {
+    pub fn left_channel(&self) -> &[i16] {
+        &self.left_channel[..]
+    }
+
+    pub fn right_channel(&self) -> &[i16] {
+        &self.right_channel[..]
+    }
+
+    pub fn sample_count(&self) -> usize {
+        self.left_channel().len()
+    }
+
+    pub fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    pub fn format(&self) -> AudioFormat {
+        AudioFormat::Stereo16
+    }
+
+    pub fn raw_data(&self) -> Vec<u8> {
         let left_channel = Vec::from(bytemuck::cast_slice::<_, u8>(&self.left_channel[..]));
         let right_channel = Vec::from(bytemuck::cast_slice::<_, u8>(&self.right_channel[..]));
         interleave(left_channel.into_iter(), right_channel.into_iter()).collect()
