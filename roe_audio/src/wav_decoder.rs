@@ -3,7 +3,7 @@ use super::{AudioFormat, Decoder};
 use bytemuck::Zeroable;
 
 #[repr(C, packed)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 struct WavSignature {
     id: [u8; 4],
     size: u32,
@@ -23,7 +23,7 @@ unsafe impl bytemuck::Zeroable for WavSignature {
 unsafe impl bytemuck::Pod for WavSignature {}
 
 #[repr(C, packed)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 struct WavChunkSignature {
     id: [u8; 4],
     size: u32,
@@ -41,7 +41,7 @@ unsafe impl bytemuck::Zeroable for WavChunkSignature {
 unsafe impl bytemuck::Pod for WavChunkSignature {}
 
 #[repr(C, packed)]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 struct WavFormatChunk {
     signature: WavChunkSignature,
     format: u16,
@@ -68,6 +68,7 @@ unsafe impl bytemuck::Zeroable for WavFormatChunk {
 
 unsafe impl bytemuck::Pod for WavFormatChunk {}
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct WavDecoder<T: std::io::Read + std::io::Seek> {
     input: T,
     format: AudioFormat,
