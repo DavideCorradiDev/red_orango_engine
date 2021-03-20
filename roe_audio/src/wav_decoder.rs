@@ -10,16 +10,6 @@ struct WavSignature {
     form: [u8; 4],
 }
 
-impl WavSignature {
-    fn as_slice_mut(&mut self) -> &mut [u8] {
-        let h: *mut WavSignature = self;
-        let h: *mut u8 = h as *mut u8;
-        let data =
-            unsafe { std::slice::from_raw_parts_mut(h, std::mem::size_of::<WavSignature>()) };
-        bytemuck::cast_slice_mut(data)
-    }
-}
-
 unsafe impl bytemuck::Zeroable for WavSignature {
     fn zeroed() -> Self {
         Self {
@@ -37,16 +27,6 @@ unsafe impl bytemuck::Pod for WavSignature {}
 struct WavChunkSignature {
     id: [u8; 4],
     size: u32,
-}
-
-impl WavChunkSignature {
-    fn as_slice_mut(&mut self) -> &mut [u8] {
-        let h: *mut WavChunkSignature = self;
-        let h: *mut u8 = h as *mut u8;
-        let data =
-            unsafe { std::slice::from_raw_parts_mut(h, std::mem::size_of::<WavChunkSignature>()) };
-        bytemuck::cast_slice_mut(data)
-    }
 }
 
 unsafe impl bytemuck::Zeroable for WavChunkSignature {
@@ -70,16 +50,6 @@ struct WavFormatChunk {
     byte_rate: u32,
     block_align: u16,
     bits_per_sample: u16,
-}
-
-impl WavFormatChunk {
-    fn as_slice_mut(&mut self) -> &mut [u8] {
-        let h: *mut WavFormatChunk = self;
-        let h: *mut u8 = h as *mut u8;
-        let data =
-            unsafe { std::slice::from_raw_parts_mut(h, std::mem::size_of::<WavFormatChunk>()) };
-        bytemuck::cast_slice_mut(data)
-    }
 }
 
 unsafe impl bytemuck::Zeroable for WavFormatChunk {
@@ -114,7 +84,7 @@ where
         input.seek(std::io::SeekFrom::Start(0)).unwrap();
 
         let mut signature = WavSignature::zeroed();
-        input.read_exact(signature.as_slice_mut())?;
+        input.read_exact(bytemuck::bytes_of_mut(&mut signature))?;
         {
             let id_str = std::str::from_utf8(&signature.id).unwrap();
             if id_str != "RIFF" {
@@ -127,7 +97,7 @@ where
         }
 
         let mut format_chunk = WavFormatChunk::zeroed();
-        input.read_exact(format_chunk.as_slice_mut())?;
+        input.read_exact(bytemuck::bytes_of_mut(&mut format_chunk))?;
         {
             let id_str = std::str::from_utf8(&format_chunk.signature.id).unwrap();
             if id_str != "fmt " {
@@ -159,7 +129,7 @@ where
 
         let byte_count = loop {
             let mut chunk_signature = WavChunkSignature::zeroed();
-            input.read_exact(chunk_signature.as_slice_mut())?;
+            input.read_exact(bytemuck::bytes_of_mut(&mut chunk_signature))?;
             let chunk_id = std::str::from_utf8(&chunk_signature.id).unwrap();
             if chunk_id == "data" {
                 break chunk_signature.size;
