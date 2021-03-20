@@ -2,6 +2,10 @@ use super::AudioFormat;
 
 use itertools::interleave;
 
+fn sample8_to_sample16(sample: u8) -> i16 {
+    (sample - 128) as i16 * 2
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Sound {
     left_channel: Vec<i16>,
@@ -16,7 +20,7 @@ impl Sound {
             AudioFormat::Mono8 => {
                 let channel: Vec<i16> = data
                     .into_iter()
-                    .map(|sample| (*sample as i16 - 128) * 2)
+                    .map(|sample| sample8_to_sample16(*sample))
                     .collect();
                 (channel.clone(), channel)
             }
@@ -30,8 +34,8 @@ impl Sound {
                 let mut right_channel =
                     Vec::with_capacity(data.len() / format.channel_count() as usize);
                 for i in (0..data.len()).step_by(2) {
-                    left_channel.push((data[i] as i16 - 128) * 2);
-                    right_channel.push((data[i + 1] as i16 - 128) * 2);
+                    left_channel.push(sample8_to_sample16(data[i]));
+                    right_channel.push(sample8_to_sample16(data[i + 1]));
                 }
                 (left_channel, right_channel)
             }
