@@ -157,6 +157,36 @@ impl std::fmt::Debug for Buffer {
     }
 }
 
+pub struct StaticSource {
+    value: alto::StaticSource,
+}
+
+impl StaticSource {
+    pub fn new(instance: &Instance) -> Result<Self, AudioError> {
+        let source = instance.context.new_static_source()?;
+        Ok(Self { value: source })
+    }
+}
+
+impl std::ops::Deref for StaticSource {
+    type Target = alto::StaticSource;
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl std::ops::DerefMut for StaticSource {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
+impl std::fmt::Debug for StaticSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "StaticSource {{ }}")
+    }
+}
+
 pub struct StreamingSource {
     value: alto::StreamingSource,
 }
@@ -303,6 +333,13 @@ mod tests {
         expect_that!(&buffer.sample_count(), eq(15));
         expect_that!(&buffer.byte_count(), eq(60));
         expect_that!(&buffer.size(), eq(60));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn static_source_creation() {
+        let instance = Instance::new().unwrap();
+        let _ = StaticSource::new(&instance).unwrap();
     }
 
     #[test]
