@@ -172,6 +172,75 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
+    fn mono8_buffer_creation() {
+        let instance = Instance::new().unwrap();
+        let buffer = Buffer::new(
+            &instance,
+            &BufferDescriptor {
+                format: AudioFormat::Mono8,
+                sample_rate: 110,
+                sample_count: 13,
+            },
+        )
+        .unwrap();
+        expect_that!(&buffer.format(), eq(AudioFormat::Mono8));
+        expect_that!(&buffer.channels(), eq(1));
+        expect_that!(&buffer.bits(), eq(8));
+        expect_that!(&buffer.sample_rate(), eq(110));
+        expect_that!(&buffer.byte_rate(), eq(110));
+        expect_that!(&buffer.sample_count(), eq(13));
+        expect_that!(&buffer.byte_count(), eq(13));
+        expect_that!(&buffer.size(), eq(13));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn mono16_buffer_creation() {
+        let instance = Instance::new().unwrap();
+        let buffer = Buffer::new(
+            &instance,
+            &BufferDescriptor {
+                format: AudioFormat::Mono16,
+                sample_rate: 80,
+                sample_count: 23,
+            },
+        )
+        .unwrap();
+        expect_that!(&buffer.format(), eq(AudioFormat::Mono16));
+        expect_that!(&buffer.channels(), eq(1));
+        expect_that!(&buffer.bits(), eq(16));
+        expect_that!(&buffer.sample_rate(), eq(80));
+        expect_that!(&buffer.byte_rate(), eq(160));
+        expect_that!(&buffer.sample_count(), eq(23));
+        expect_that!(&buffer.byte_count(), eq(46));
+        expect_that!(&buffer.size(), eq(46));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn stereo8_buffer_creation() {
+        let instance = Instance::new().unwrap();
+        let buffer = Buffer::new(
+            &instance,
+            &BufferDescriptor {
+                format: AudioFormat::Stereo8,
+                sample_rate: 123,
+                sample_count: 5,
+            },
+        )
+        .unwrap();
+        expect_that!(&buffer.format(), eq(AudioFormat::Stereo8));
+        expect_that!(&buffer.channels(), eq(2));
+        expect_that!(&buffer.bits(), eq(8));
+        expect_that!(&buffer.sample_rate(), eq(123));
+        expect_that!(&buffer.byte_rate(), eq(246));
+        expect_that!(&buffer.sample_count(), eq(5));
+        expect_that!(&buffer.byte_count(), eq(10));
+        expect_that!(&buffer.size(), eq(10));
+    }
+
+    #[test]
+    #[serial_test::serial]
     fn stereo16_buffer_creation() {
         let instance = Instance::new().unwrap();
         let buffer = Buffer::new(
