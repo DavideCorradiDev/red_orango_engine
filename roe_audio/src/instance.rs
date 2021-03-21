@@ -1,7 +1,5 @@
 use lazy_static::lazy_static;
 
-use std::ops::{Deref, DerefMut};
-
 use super::AudioFormat;
 
 pub use alto::AltoError as AudioError;
@@ -131,16 +129,28 @@ impl Buffer {
     }
 }
 
-impl Deref for Buffer {
+impl std::ops::Deref for Buffer {
     type Target = alto::Buffer;
     fn deref(&self) -> &Self::Target {
         &self.value
     }
 }
 
-impl DerefMut for Buffer {
+impl std::ops::DerefMut for Buffer {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.value
+    }
+}
+
+impl std::fmt::Debug for Buffer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Buffer {{format: {:?}, sample_rate: {:?}, sample_count: {:?}}}",
+            self.format(),
+            self.sample_rate(),
+            self.sample_count()
+        )
     }
 }
 
@@ -214,6 +224,9 @@ mod tests {
         expect_that!(&buffer.sample_count(), eq(23));
         expect_that!(&buffer.byte_count(), eq(46));
         expect_that!(&buffer.size(), eq(46));
+
+        println!("");
+        println!("{:?}", buffer);
     }
 
     #[test]
