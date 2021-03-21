@@ -1,5 +1,6 @@
-use super::AudioError;
 use lazy_static::lazy_static;
+
+pub use alto::AltoError as AudioError;
 
 lazy_static! {
     static ref ALTO: alto::Alto =
