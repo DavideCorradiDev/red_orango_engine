@@ -1,5 +1,7 @@
 use lazy_static::lazy_static;
 
+use std::ops::{Deref, DerefMut};
+
 use super::AudioFormat;
 
 pub use alto::AltoError as AudioError;
@@ -37,6 +39,12 @@ impl Instance {
     }
 }
 
+impl std::fmt::Debug for Instance {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Instance {{ }}")
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct BufferDescriptor {
     pub format: AudioFormat,
@@ -44,9 +52,20 @@ pub struct BufferDescriptor {
     pub sample_count: usize,
 }
 
+impl Default for BufferDescriptor {
+    fn default() -> Self {
+        Self {
+            format: AudioFormat::Stereo16,
+            sample_rate: 44100,
+            sample_count: 1024,
+        }
+    }
+}
+
 // TODO: derive debug.
 pub struct Buffer {
     value: alto::Buffer,
+    format: AudioFormat,
 }
 
 impl Buffer {
@@ -85,7 +104,43 @@ impl Buffer {
                 )?
             }
         };
-        Ok(Self { value: buffer })
+        Ok(Self {
+            value: buffer,
+            format: desc.format,
+        })
+    }
+
+    pub fn format(&self) -> AudioFormat {
+        self.format
+    }
+
+    pub fn sample_rate(&self) -> u32 {
+        self.frequency() as u32
+    }
+
+    pub fn byte_rate(&self) -> u32 {
+        self.frequency() as u32 * self.format.total_bytes_per_sample()
+    }
+
+    pub fn sample_count(&self) -> usize {
+        self.value.size() as usize / self.format.total_bytes_per_sample() as usize
+    }
+
+    pub fn byte_count(&self) -> usize {
+        self.value.size() as usize
+    }
+}
+
+impl Deref for Buffer {
+    type Target = alto::Buffer;
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl DerefMut for Buffer {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
     }
 }
 
@@ -114,10 +169,27 @@ mod tests {
             let _ = Instance::with_device(&device).unwrap();
         }
     }
-}
 
-impl std::fmt::Debug for Instance {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Instance {{ }}")
+    #[test]
+    #[serial_test::serial]
+    fn stereo16_buffer_creation() {
+        let instance = Instance::new().unwrap();
+        let buffer = Buffer::new(
+            &instance,
+            &BufferDescriptor {
+                format: AudioFormat::Stereo16,
+                sample_rate: 100,
+                sample_count: 15,
+            },
+        )
+        .unwrap();
+        expect_that!(&buffer.format(), eq(AudioFormat::Stereo16));
+        expect_that!(&buffer.channels(), eq(2));
+        expect_that!(&buffer.bits(), eq(16));
+        expect_that!(&buffer.sample_rate(), eq(100));
+        expect_that!(&buffer.byte_rate(), eq(400));
+        expect_that!(&buffer.sample_count(), eq(15));
+        expect_that!(&buffer.byte_count(), eq(60));
+        expect_that!(&buffer.size(), eq(60));
     }
 }
