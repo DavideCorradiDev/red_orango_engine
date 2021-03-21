@@ -157,6 +157,36 @@ impl std::fmt::Debug for Buffer {
     }
 }
 
+pub struct StreamingSource {
+    value: alto::StreamingSource,
+}
+
+impl StreamingSource {
+    pub fn new(instance: &Instance) -> Result<Self, AudioError> {
+        let source = instance.context.new_streaming_source()?;
+        Ok(Self { value: source })
+    }
+}
+
+impl std::ops::Deref for StreamingSource {
+    type Target = alto::StreamingSource;
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl std::ops::DerefMut for StreamingSource {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
+impl std::fmt::Debug for StreamingSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "StreamingSource {{ }}")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -273,5 +303,12 @@ mod tests {
         expect_that!(&buffer.sample_count(), eq(15));
         expect_that!(&buffer.byte_count(), eq(60));
         expect_that!(&buffer.size(), eq(60));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn streaming_source_creation() {
+        let instance = Instance::new().unwrap();
+        let _ = StreamingSource::new(&instance).unwrap();
     }
 }
