@@ -1,5 +1,7 @@
 use lazy_static::lazy_static;
 
+use super::AudioFormat;
+
 pub use alto::AltoError as AudioError;
 
 lazy_static! {
@@ -8,6 +10,7 @@ lazy_static! {
 }
 
 // TODO: should move alto to a separate struct, to allow querying devices before creating the device.
+// TODO: add Debug derivation.
 pub struct Instance {
     device: alto::OutputDevice,
     context: alto::Context,
@@ -31,6 +34,58 @@ impl Instance {
         let device = ALTO.open(Some(&std::ffi::CString::new(device_name).unwrap()))?;
         let context = device.new_context(None)?;
         Ok(Self { device, context })
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct BufferDescriptor {
+    pub format: AudioFormat,
+    pub sample_rate: u32,
+    pub sample_count: usize,
+}
+
+// TODO: derive debug.
+pub struct Buffer {
+    value: alto::Buffer,
+}
+
+impl Buffer {
+    pub fn new(instance: &Instance, desc: &BufferDescriptor) -> Result<Self, AudioError> {
+        let buffer = match desc.format {
+            AudioFormat::Mono8 => {
+                let mut dummy_data = Vec::new();
+                dummy_data.resize(desc.sample_count, 0);
+                instance.context.new_buffer::<alto::Mono<u8>, _>(
+                    dummy_data.as_slice(),
+                    desc.sample_rate as i32,
+                )?
+            }
+            AudioFormat::Mono16 => {
+                let mut dummy_data = Vec::new();
+                dummy_data.resize(desc.sample_count, 0);
+                instance.context.new_buffer::<alto::Mono<i16>, _>(
+                    dummy_data.as_slice(),
+                    desc.sample_rate as i32,
+                )?
+            }
+            AudioFormat::Stereo8 => {
+                let mut dummy_data = Vec::new();
+                dummy_data.resize(desc.sample_count * 2, 0);
+                instance.context.new_buffer::<alto::Stereo<u8>, _>(
+                    dummy_data.as_slice(),
+                    desc.sample_rate as i32,
+                )?
+            }
+            AudioFormat::Stereo16 => {
+                let mut dummy_data = Vec::new();
+                dummy_data.resize(desc.sample_count * 2, 0);
+                instance.context.new_buffer::<alto::Stereo<i16>, _>(
+                    dummy_data.as_slice(),
+                    desc.sample_rate as i32,
+                )?
+            }
+        };
+        Ok(Self { value: buffer })
     }
 }
 
