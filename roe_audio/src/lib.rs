@@ -12,3 +12,6 @@ pub use wav_decoder::*;
 
 mod sound;
 pub use sound::*;
+
+mod mixer;
+pub use mixer::*;

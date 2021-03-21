@@ -1,8 +1,6 @@
 use lazy_static::lazy_static;
 
-use super::AudioFormat;
-
-pub use alto::AltoError as AudioError;
+pub use alto::{AltoError as AudioError, AsBufferData, Mono, SampleFrame, Stereo};
 
 lazy_static! {
     static ref ALTO: alto::Alto =
@@ -47,88 +45,18 @@ impl std::fmt::Debug for Instance {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct BufferDescriptor {
-    pub format: AudioFormat,
-    pub sample_rate: u32,
-    pub sample_count: usize,
-}
-
-impl Default for BufferDescriptor {
-    fn default() -> Self {
-        Self {
-            format: AudioFormat::Stereo16,
-            sample_rate: 44100,
-            sample_count: 1024,
-        }
-    }
-}
-
 pub struct Buffer {
     value: alto::Buffer,
-    format: AudioFormat,
 }
 
 impl Buffer {
-    pub fn new(instance: &Instance, desc: &BufferDescriptor) -> Result<Self, AudioError> {
-        let buffer = match desc.format {
-            AudioFormat::Mono8 => {
-                let mut dummy_data = Vec::new();
-                dummy_data.resize(desc.sample_count, 0);
-                instance.context.new_buffer::<alto::Mono<u8>, _>(
-                    dummy_data.as_slice(),
-                    desc.sample_rate as i32,
-                )?
-            }
-            AudioFormat::Mono16 => {
-                let mut dummy_data = Vec::new();
-                dummy_data.resize(desc.sample_count, 0);
-                instance.context.new_buffer::<alto::Mono<i16>, _>(
-                    dummy_data.as_slice(),
-                    desc.sample_rate as i32,
-                )?
-            }
-            AudioFormat::Stereo8 => {
-                let mut dummy_data = Vec::new();
-                dummy_data.resize(desc.sample_count * 2, 0);
-                instance.context.new_buffer::<alto::Stereo<u8>, _>(
-                    dummy_data.as_slice(),
-                    desc.sample_rate as i32,
-                )?
-            }
-            AudioFormat::Stereo16 => {
-                let mut dummy_data = Vec::new();
-                dummy_data.resize(desc.sample_count * 2, 0);
-                instance.context.new_buffer::<alto::Stereo<i16>, _>(
-                    dummy_data.as_slice(),
-                    desc.sample_rate as i32,
-                )?
-            }
-        };
-        Ok(Self {
-            value: buffer,
-            format: desc.format,
-        })
-    }
-
-    pub fn format(&self) -> AudioFormat {
-        self.format
-    }
-
-    pub fn sample_rate(&self) -> u32 {
-        self.frequency() as u32
-    }
-
-    pub fn byte_rate(&self) -> u32 {
-        self.frequency() as u32 * self.format.total_bytes_per_sample()
-    }
-
-    pub fn sample_count(&self) -> usize {
-        self.value.size() as usize / self.format.total_bytes_per_sample() as usize
-    }
-
-    pub fn byte_count(&self) -> usize {
-        self.value.size() as usize
+    pub fn new<F: SampleFrame, B: AsBufferData<F>>(
+        instance: &Instance,
+        data: B,
+        freq: i32,
+    ) -> Result<Self, AudioError> {
+        let buffer = instance.context.new_buffer::<F, B>(data, freq)?;
+        Ok(Self { value: buffer })
     }
 }
 
@@ -149,10 +77,11 @@ impl std::fmt::Debug for Buffer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Buffer {{format: {:?}, sample_rate: {:?}, sample_count: {:?}}}",
-            self.format(),
-            self.sample_rate(),
-            self.sample_count()
+            "Buffer {{channels: {:?}, bits: {:?}, frequency: {:?}, size: {:?}}}",
+            self.value.channels(),
+            self.value.bits(),
+            self.value.frequency(),
+            self.value.size(),
         )
     }
 }
@@ -247,22 +176,10 @@ mod tests {
     #[serial_test::serial]
     fn mono8_buffer_creation() {
         let instance = Instance::new().unwrap();
-        let buffer = Buffer::new(
-            &instance,
-            &BufferDescriptor {
-                format: AudioFormat::Mono8,
-                sample_rate: 110,
-                sample_count: 13,
-            },
-        )
-        .unwrap();
-        expect_that!(&buffer.format(), eq(AudioFormat::Mono8));
+        let buffer = Buffer::new::<Mono<u8>, _>(&instance, vec![0; 13], 110).unwrap();
         expect_that!(&buffer.channels(), eq(1));
         expect_that!(&buffer.bits(), eq(8));
-        expect_that!(&buffer.sample_rate(), eq(110));
-        expect_that!(&buffer.byte_rate(), eq(110));
-        expect_that!(&buffer.sample_count(), eq(13));
-        expect_that!(&buffer.byte_count(), eq(13));
+        expect_that!(&buffer.frequency(), eq(110));
         expect_that!(&buffer.size(), eq(13));
     }
 
@@ -270,22 +187,10 @@ mod tests {
     #[serial_test::serial]
     fn mono16_buffer_creation() {
         let instance = Instance::new().unwrap();
-        let buffer = Buffer::new(
-            &instance,
-            &BufferDescriptor {
-                format: AudioFormat::Mono16,
-                sample_rate: 80,
-                sample_count: 23,
-            },
-        )
-        .unwrap();
-        expect_that!(&buffer.format(), eq(AudioFormat::Mono16));
+        let buffer = Buffer::new::<Mono<i16>, _>(&instance, vec![0; 23], 80).unwrap();
         expect_that!(&buffer.channels(), eq(1));
         expect_that!(&buffer.bits(), eq(16));
-        expect_that!(&buffer.sample_rate(), eq(80));
-        expect_that!(&buffer.byte_rate(), eq(160));
-        expect_that!(&buffer.sample_count(), eq(23));
-        expect_that!(&buffer.byte_count(), eq(46));
+        expect_that!(&buffer.frequency(), eq(80));
         expect_that!(&buffer.size(), eq(46));
     }
 
@@ -293,22 +198,10 @@ mod tests {
     #[serial_test::serial]
     fn stereo8_buffer_creation() {
         let instance = Instance::new().unwrap();
-        let buffer = Buffer::new(
-            &instance,
-            &BufferDescriptor {
-                format: AudioFormat::Stereo8,
-                sample_rate: 123,
-                sample_count: 5,
-            },
-        )
-        .unwrap();
-        expect_that!(&buffer.format(), eq(AudioFormat::Stereo8));
+        let buffer = Buffer::new::<Stereo<u8>, _>(&instance, vec![0; 10], 123).unwrap();
         expect_that!(&buffer.channels(), eq(2));
         expect_that!(&buffer.bits(), eq(8));
-        expect_that!(&buffer.sample_rate(), eq(123));
-        expect_that!(&buffer.byte_rate(), eq(246));
-        expect_that!(&buffer.sample_count(), eq(5));
-        expect_that!(&buffer.byte_count(), eq(10));
+        expect_that!(&buffer.frequency(), eq(123));
         expect_that!(&buffer.size(), eq(10));
     }
 
@@ -316,22 +209,10 @@ mod tests {
     #[serial_test::serial]
     fn stereo16_buffer_creation() {
         let instance = Instance::new().unwrap();
-        let buffer = Buffer::new(
-            &instance,
-            &BufferDescriptor {
-                format: AudioFormat::Stereo16,
-                sample_rate: 100,
-                sample_count: 15,
-            },
-        )
-        .unwrap();
-        expect_that!(&buffer.format(), eq(AudioFormat::Stereo16));
+        let buffer = Buffer::new::<Stereo<i16>, _>(&instance, vec![0; 30], 100).unwrap();
         expect_that!(&buffer.channels(), eq(2));
         expect_that!(&buffer.bits(), eq(16));
-        expect_that!(&buffer.sample_rate(), eq(100));
-        expect_that!(&buffer.byte_rate(), eq(400));
-        expect_that!(&buffer.sample_count(), eq(15));
-        expect_that!(&buffer.byte_count(), eq(60));
+        expect_that!(&buffer.frequency(), eq(100));
         expect_that!(&buffer.size(), eq(60));
     }
 
