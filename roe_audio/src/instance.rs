@@ -9,10 +9,8 @@ lazy_static! {
         alto::Alto::load_default().expect("Failed to load the audio library");
 }
 
-// TODO: should move alto to a separate struct, to allow querying devices before creating the device.
-// TODO: add Debug derivation.
 pub struct Instance {
-    device: alto::OutputDevice,
+    _device: alto::OutputDevice,
     context: alto::Context,
 }
 
@@ -27,13 +25,19 @@ impl Instance {
     pub fn new() -> Result<Self, AudioError> {
         let device = ALTO.open(None)?;
         let context = device.new_context(None)?;
-        Ok(Self { device, context })
+        Ok(Self {
+            _device: device,
+            context,
+        })
     }
 
     pub fn with_device(device_name: &str) -> Result<Self, AudioError> {
         let device = ALTO.open(Some(&std::ffi::CString::new(device_name).unwrap()))?;
         let context = device.new_context(None)?;
-        Ok(Self { device, context })
+        Ok(Self {
+            _device: device,
+            context,
+        })
     }
 }
 
@@ -60,7 +64,6 @@ impl Default for BufferDescriptor {
     }
 }
 
-// TODO: derive debug.
 pub struct Buffer {
     value: alto::Buffer,
     format: AudioFormat,
@@ -224,9 +227,6 @@ mod tests {
         expect_that!(&buffer.sample_count(), eq(23));
         expect_that!(&buffer.byte_count(), eq(46));
         expect_that!(&buffer.size(), eq(46));
-
-        println!("");
-        println!("{:?}", buffer);
     }
 
     #[test]
