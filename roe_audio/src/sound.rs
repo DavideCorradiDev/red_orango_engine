@@ -84,4 +84,12 @@ impl Sound {
         let right_channel = Vec::from(bytemuck::cast_slice(&self.right_channel[..]));
         interleave(left_channel.into_iter(), right_channel.into_iter()).collect()
     }
+
+    pub fn interleaved_channels(&self) -> Vec<i16> {
+        interleave(
+            self.left_channel.clone().into_iter(),
+            self.right_channel.clone().into_iter(),
+        )
+        .collect()
+    }
 }

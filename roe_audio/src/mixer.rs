@@ -1,31 +1,31 @@
-use super::{AudioError, Buffer, Instance, Sound, StaticSource};
+use super::{AudioError, Context, Sound};
+use alto::Source;
+use std::sync::Arc;
 
-#[derive(Debug)]
+// TODO: Debug
 pub struct Mixer {
-    buffer: Option<Buffer>,
-    source: StaticSource,
+    source: alto::StaticSource,
 }
 
 impl Mixer {
-    pub fn new(instance: &Instance) -> Result<Self, AudioError> {
-        let source = StaticSource::new(instance)?;
-        Ok(Self {
-            buffer: None,
-            source,
-        })
+    pub fn new(context: &Context) -> Result<Self, AudioError> {
+        let source = context.new_static_source()?;
+        Ok(Self { source })
     }
 
-    // pub fn play(&mut self, instance: &Instance, sound: &Sound) -> Result<Self, AudioError> {
-    //     let mut buffer = Buffer::new(
-    //         instance,
-    //         &BufferDescriptor {
-    //             format: sound.format(),
-    //             sample_rate: sound.sample_rate(),
-    //             sample_count: sound.sample_count(),
-    //         },
-    //     )?;
-    //     buffer.set_data()
-    // }
+    pub fn play(&mut self, context: &Context, sound: &Sound) -> Result<(), AudioError> {
+        if self.source.state() != alto::SourceState::Stopped {
+            return Ok(());
+        }
+
+        let buffer = Arc::new(context.new_buffer::<alto::Stereo<i16>, _>(
+            sound.interleaved_channels(),
+            sound.sample_rate() as i32,
+        )?);
+        self.source.set_buffer(buffer)?;
+        self.source.play();
+        Ok(())
+    }
 }
 
 // TODO: add tests
