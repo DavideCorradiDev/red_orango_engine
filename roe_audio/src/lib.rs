@@ -15,3 +15,5 @@ pub use sound::*;
 
 mod mixer;
 pub use mixer::*;
+
+pub use alto::{AltoError as BackendError, ContextAttrs as ContextDesc};

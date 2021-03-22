@@ -1,4 +1,4 @@
-use super::{AudioError, Context, Sound};
+use super::{BackendError, Context, Sound};
 use alto::Source;
 use std::sync::Arc;
 
@@ -8,12 +8,12 @@ pub struct Mixer {
 }
 
 impl Mixer {
-    pub fn new(context: &Context) -> Result<Self, AudioError> {
+    pub fn new(context: &Context) -> Result<Self, BackendError> {
         let source = context.new_static_source()?;
         Ok(Self { source })
     }
 
-    pub fn play(&mut self, context: &Context, sound: &Sound) -> Result<(), AudioError> {
+    pub fn play(&mut self, context: &Context, sound: &Sound) -> Result<(), BackendError> {
         if self.source.state() != alto::SourceState::Stopped {
             return Ok(());
         }

@@ -1,6 +1,8 @@
+use super::BackendError;
+
 use lazy_static::lazy_static;
 
-pub use alto::{AltoError as AudioError, ContextAttrs as ContextDesc};
+pub use alto::ContextAttrs as ContextDesc;
 
 lazy_static! {
     static ref ALTO: alto::Alto =
@@ -19,12 +21,12 @@ impl Device {
             .collect()
     }
 
-    pub fn default() -> Result<Self, AudioError> {
+    pub fn default() -> Result<Self, BackendError> {
         let device = ALTO.open(None)?;
         Ok(Self { value: device })
     }
 
-    pub fn new(device_name: &str) -> Result<Self, AudioError> {
+    pub fn new(device_name: &str) -> Result<Self, BackendError> {
         let device = ALTO.open(Some(&std::ffi::CString::new(device_name).unwrap()))?;
         Ok(Self { value: device })
     }
@@ -41,12 +43,12 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn default(device: &Device) -> Result<Self, AudioError> {
+    pub fn default(device: &Device) -> Result<Self, BackendError> {
         let context = device.value.new_context(None)?;
         Ok(Self { value: context })
     }
 
-    pub fn new(device: &Device, desc: &ContextDesc) -> Result<Self, AudioError> {
+    pub fn new(device: &Device, desc: &ContextDesc) -> Result<Self, BackendError> {
         let context = device.value.new_context(Some(desc.clone()))?;
         Ok(Self { value: context })
     }
