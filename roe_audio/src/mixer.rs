@@ -14,7 +14,7 @@ impl Mixer {
     }
 
     pub fn play(&mut self, context: &Context, sound: &Sound) -> Result<(), BackendError> {
-        if self.source.state() != alto::SourceState::Stopped {
+        if self.source.state() == alto::SourceState::Playing {
             return Ok(());
         }
 
