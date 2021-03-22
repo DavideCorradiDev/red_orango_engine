@@ -1,4 +1,4 @@
-use super::AudioFormat;
+use super::{AudioFormat, Decoder};
 
 use itertools::interleave;
 
@@ -57,6 +57,15 @@ impl Sound {
             right_channel,
             sample_rate,
         }
+    }
+
+    pub fn from_decoder<D: Decoder>(decoder: &mut D) -> std::io::Result<Self> {
+        let data = decoder.read_all()?;
+        Ok(Self::from_raw_data(
+            &data[..],
+            decoder.audio_format(),
+            decoder.sample_rate(),
+        ))
     }
 
     pub fn left_channel(&self) -> &[i16] {

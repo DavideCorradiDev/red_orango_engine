@@ -2,27 +2,21 @@
 
 use rand::Rng;
 
-use roe_app::window;
-
 use roe_app::event::EventLoopClosed;
 
 use roe_math::geometry3;
 
-use roe_graphics::{ColorF32, InstanceCreationError, SwapChainError};
-
-use roe_text::FontError;
-
-use roe_audio::AudioError;
+use roe_graphics::ColorF32;
 
 pub type ApplicationEvent = ();
 
 #[derive(Debug)]
 pub enum ApplicationError {
-    WindowCreationFailed(window::OsError),
-    InstanceCreationFailed(InstanceCreationError),
-    RenderFrameCreationFailed(SwapChainError),
-    FontCreationFailed(FontError),
-    AudioError(AudioError),
+    WindowCreationFailed(roe_app::window::OsError),
+    InstanceCreationFailed(roe_graphics::InstanceCreationError),
+    RenderFrameCreationFailed(roe_graphics::SwapChainError),
+    FontCreationFailed(roe_text::FontError),
+    AudioBackendError(roe_audio::BackendError),
     CustomEventSendingError,
 }
 
@@ -41,8 +35,8 @@ impl std::fmt::Display for ApplicationError {
             ApplicationError::FontCreationFailed(e) => {
                 write!(f, "Font creation failed ({})", e)
             }
-            ApplicationError::AudioError(e) => {
-                write!(f, "Audio error ({})", e)
+            ApplicationError::AudioBackendError(e) => {
+                write!(f, "Audio backend error ({})", e)
             }
             ApplicationError::CustomEventSendingError => {
                 write!(f, "Failed to send custom event")
@@ -58,39 +52,39 @@ impl std::error::Error for ApplicationError {
             ApplicationError::InstanceCreationFailed(e) => Some(e),
             ApplicationError::RenderFrameCreationFailed(e) => Some(e),
             ApplicationError::FontCreationFailed(e) => Some(e),
-            ApplicationError::AudioError(e) => Some(e),
+            ApplicationError::AudioBackendError(e) => Some(e),
             ApplicationError::CustomEventSendingError => None,
         }
     }
 }
 
-impl From<window::OsError> for ApplicationError {
-    fn from(e: window::OsError) -> Self {
+impl From<roe_app::window::OsError> for ApplicationError {
+    fn from(e: roe_app::window::OsError) -> Self {
         ApplicationError::WindowCreationFailed(e)
     }
 }
 
-impl From<InstanceCreationError> for ApplicationError {
-    fn from(e: InstanceCreationError) -> Self {
+impl From<roe_graphics::InstanceCreationError> for ApplicationError {
+    fn from(e: roe_graphics::InstanceCreationError) -> Self {
         ApplicationError::InstanceCreationFailed(e)
     }
 }
 
-impl From<SwapChainError> for ApplicationError {
-    fn from(e: SwapChainError) -> Self {
+impl From<roe_graphics::SwapChainError> for ApplicationError {
+    fn from(e: roe_graphics::SwapChainError) -> Self {
         ApplicationError::RenderFrameCreationFailed(e)
     }
 }
 
-impl From<FontError> for ApplicationError {
-    fn from(e: FontError) -> Self {
+impl From<roe_text::FontError> for ApplicationError {
+    fn from(e: roe_text::FontError) -> Self {
         ApplicationError::FontCreationFailed(e)
     }
 }
 
-impl From<AudioError> for ApplicationError {
-    fn from(e: AudioError) -> Self {
-        ApplicationError::AudioError(e)
+impl From<roe_audio::BackendError> for ApplicationError {
+    fn from(e: roe_audio::BackendError) -> Self {
+        ApplicationError::AudioBackendError(e)
     }
 }
 

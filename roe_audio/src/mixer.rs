@@ -28,4 +28,10 @@ impl Mixer {
     }
 }
 
+impl std::fmt::Debug for Mixer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Mixer {{ }}")
+    }
+}
+
 // TODO: add tests

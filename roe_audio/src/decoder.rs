@@ -15,6 +15,13 @@ pub trait Decoder {
         self.read(&mut buf[..])
     }
 
+    fn read_all(&mut self) -> std::io::Result<Vec<u8>> {
+        self.byte_seek(std::io::SeekFrom::Start(0))?;
+        let mut vec = Vec::new();
+        self.read_to_end(&mut vec)?;
+        Ok(vec)
+    }
+
     fn sample_stream_position(&mut self) -> std::io::Result<u64> {
         let byte_pos = self.byte_stream_position()?;
         let tbps = self.audio_format().total_bytes_per_sample() as u64;
