@@ -249,6 +249,8 @@ impl From<std::io::Error> for WavDecoderError {
     }
 }
 
+// TODO: add tests for read.
+
 #[cfg(test)]
 mod tests {
     use super::*;
