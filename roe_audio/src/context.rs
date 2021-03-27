@@ -1,8 +1,10 @@
-use super::BackendError;
-
 use lazy_static::lazy_static;
 
-pub use alto::ContextAttrs as ContextDesc;
+use std::sync::Arc;
+
+pub use alto::{
+    AltoError as BackendError, AsBufferData, ContextAttrs as ContextDesc, Mono, SampleFrame, Stereo,
+};
 
 lazy_static! {
     static ref ALTO: alto::Alto =
@@ -54,22 +56,26 @@ impl Context {
     }
 }
 
-impl std::ops::Deref for Context {
-    type Target = alto::Context;
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl std::ops::DerefMut for Context {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
-    }
-}
-
 impl std::fmt::Debug for Context {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Context {{ }}")
+    }
+}
+
+pub struct Buffer {
+    value: Arc<alto::Buffer>,
+}
+
+impl Buffer {
+    pub fn new<F: SampleFrame, B: AsBufferData<F>>(
+        context: &Context,
+        data: B,
+        sample_rate: i32,
+    ) -> Result<Self, BackendError> {
+        let buffer = context.value.new_buffer::<F, B>(data, sample_rate)?;
+        Ok(Self {
+            value: Arc::new(buffer),
+        })
     }
 }
 
