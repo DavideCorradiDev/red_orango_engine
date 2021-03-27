@@ -81,6 +81,9 @@ impl Buffer {
         })
     }
 
+    // TODO: rename this file to something other than context.
+    // TODO: remove the "sound" class.
+    // TODO: think if the Decoder should have a better interface. Or maybe separate this ufnction into another constructor accepting raw data.
     // TODO: test this function
     // TODO: must be able to propagate the errors coming from the decoder -> Need an encompassing error type.
     pub fn from_decoder<D: Decoder>(
