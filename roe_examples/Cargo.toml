@@ -9,6 +9,7 @@ image = {version = "0.23"}
 num = {version = "0.3"}
 rand = "0.7"
 roe_app = {path = "../roe_app"}
+roe_audio = {path = "../roe_audio"}
 roe_graphics = {path = "../roe_graphics"}
 roe_math = {path = "../roe_math", features = [
   "serde-serialize",
@@ -36,3 +37,7 @@ path = "examples/offscreen_rendering.rs"
 [[example]]
 name = "text_rendering"
 path = "examples/text_rendering.rs"
+
+[[example]]
+name = "sound_player"
+path = "examples/sound_player.rs"

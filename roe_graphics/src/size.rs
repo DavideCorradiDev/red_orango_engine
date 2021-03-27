@@ -1,7 +1,7 @@
 use num_traits::identities::Zero;
 use std::cmp::PartialOrd;
 
-#[derive(Debug, PartialEq, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Size<T: Copy + Zero + PartialOrd> {
     width: T,
     height: T,

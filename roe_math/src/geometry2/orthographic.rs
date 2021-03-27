@@ -1,6 +1,3 @@
-#[cfg(feature = "serde-serialize")]
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
 use nalgebra::base::helper;
 
 use rand::{
@@ -159,20 +156,22 @@ impl<N: RealField> OrthographicProjection<N> {
 }
 
 #[cfg(feature = "serde-serialize")]
-impl<N: RealField + Serialize> Serialize for OrthographicProjection<N> {
+impl<N: RealField + serde::Serialize> serde::Serialize for OrthographicProjection<N> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer,
+        S: serde::Serializer,
     {
         self.matrix.serialize(serializer)
     }
 }
 
 #[cfg(feature = "serde-serialize")]
-impl<'a, N: RealField + Deserialize<'a>> Deserialize<'a> for OrthographicProjection<N> {
+impl<'a, N: RealField + serde::Deserialize<'a>> serde::Deserialize<'a>
+    for OrthographicProjection<N>
+{
     fn deserialize<Des>(deserializer: Des) -> Result<Self, Des::Error>
     where
-        Des: Deserializer<'a>,
+        Des: serde::Deserializer<'a>,
     {
         let matrix = HomogeneousMatrix::<N>::deserialize(deserializer)?;
         Ok(Self::from_matrix_unchecked(matrix))

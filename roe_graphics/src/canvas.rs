@@ -4,7 +4,7 @@ use super::{
     TextureUsage, TextureView, TextureViewDescriptor,
 };
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum CanvasColorBufferFormat {
     Rgba8Unorm,
     Rgba8UnormSrgb,
@@ -35,7 +35,7 @@ impl From<CanvasColorBufferFormat> for TextureFormat {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum CanvasDepthStencilBufferFormat {
     Depth32Float,
     Depth24Plus,
@@ -88,7 +88,7 @@ impl<'a> CanvasSwapChainRef<'a> {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct CanvasSwapChainDescriptor {
     pub size: CanvasSize,
     pub sample_count: SampleCount,
@@ -211,7 +211,6 @@ impl<'a> CanvasColorBufferRef<'a> {
 }
 
 bitflags::bitflags! {
-    #[derive(serde::Serialize, serde::Deserialize)]
     pub struct CanvasColorBufferUsage : u32 {
         const COPY_SRC = TextureUsage::COPY_SRC.bits();
         const COPY_DST = TextureUsage::COPY_DST.bits();
@@ -225,7 +224,7 @@ impl From<CanvasColorBufferUsage> for TextureUsage {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct CanvasColorBufferDescriptor {
     pub size: CanvasSize,
     pub sample_count: SampleCount,
@@ -334,7 +333,7 @@ impl<'a> CanvasDepthStencilBufferRef<'a> {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct CanvasDepthStencilBufferDescriptor {
     pub size: CanvasSize,
     pub sample_count: SampleCount,
@@ -434,7 +433,7 @@ pub struct CanvasBufferSwapChainDescriptor<'a> {
     pub format: CanvasColorBufferFormat,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct CanvasBufferColorBufferDescriptor {
     pub format: CanvasColorBufferFormat,
     pub usage: CanvasColorBufferUsage,

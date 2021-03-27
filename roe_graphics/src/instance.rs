@@ -24,7 +24,7 @@ pub type ColorOperations = Operations<ColorF64>;
 pub type DepthOperations = Operations<f32>;
 pub type StencilOperations = Operations<u32>;
 
-#[derive(Debug, PartialEq, Eq, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct InstanceDescriptor {
     pub backend: Backend,
     pub power_preference: PowerPreference,
@@ -418,7 +418,7 @@ impl DerefMut for BindGroup {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 struct TextureBufferSize {
     width: u64,
     height: u64,

@@ -19,7 +19,8 @@ fn as_push_constants_slice<T>(value: &T) -> &[u32] {
     bytemuck::cast_slice(&data)
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[repr(C, packed)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Vertex {
     position: [f32; 2],
     texture_coordinates: [f32; 3],
@@ -104,7 +105,7 @@ impl UniformConstants {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct RenderPipelineDescriptor {
     pub color_blend: gfx::BlendDescriptor,
     pub alpha_blend: gfx::BlendDescriptor,
