@@ -4,6 +4,8 @@ use roe_app::{
     window::{PhysicalSize, Size, Window, WindowBuilder, WindowId},
 };
 
+use roe_audio::Source;
+
 use roe_examples::*;
 
 #[derive(Debug)]
@@ -11,8 +13,7 @@ struct ApplicationImpl {
     window: Window,
     audio_device: roe_audio::Device,
     audio_context: roe_audio::Context,
-    audio_mixer: roe_audio::Mixer,
-    sound: roe_audio::Sound,
+    static_source: roe_audio::StaticSource,
 }
 
 impl EventHandler<ApplicationError, ()> for ApplicationImpl {
@@ -29,22 +30,23 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
             .build(event_loop)?;
         let audio_device = roe_audio::Device::default()?;
         let audio_context = roe_audio::Context::default(&audio_device)?;
-        let audio_mixer = roe_audio::Mixer::new(&audio_context)?;
         // TODO: replace unwrap
-        let sound = roe_audio::Sound::from_decoder(
+        let audio_buffer = roe_audio::Buffer::from_decoder(
+            &audio_context,
             &mut roe_audio::WavDecoder::new(std::io::BufReader::new(
                 std::fs::File::open("roe_examples/data/audio/stereo-16-44100.wav").unwrap(),
             ))
             .unwrap(),
         )
         .unwrap();
+        let mut static_source = roe_audio::StaticSource::new(&audio_context)?;
+        static_source.set_buffer(&audio_buffer)?;
 
         Ok(Self {
             window,
             audio_device,
             audio_context,
-            audio_mixer,
-            sound,
+            static_source,
         })
     }
 
@@ -60,7 +62,7 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
         if !is_repeat && wid == self.window.id() {
             if let Some(key_code) = key_code {
                 if key_code == keyboard::KeyCode::Key1 {
-                    self.audio_mixer.play(&self.audio_context, &self.sound)?;
+                    self.static_source.play();
                 }
             }
         }

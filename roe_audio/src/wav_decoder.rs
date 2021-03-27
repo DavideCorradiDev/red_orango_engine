@@ -68,7 +68,7 @@ unsafe impl bytemuck::Zeroable for WavFormatChunk {
 
 unsafe impl bytemuck::Pod for WavFormatChunk {}
 
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct WavDecoder<T: std::io::Read + std::io::Seek> {
     input: T,
     format: AudioFormat,

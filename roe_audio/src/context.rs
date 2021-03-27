@@ -1,3 +1,5 @@
+use super::{AudioFormat, Decoder};
+
 use lazy_static::lazy_static;
 
 use std::sync::Arc;
@@ -77,6 +79,35 @@ impl Buffer {
         Ok(Self {
             value: Arc::new(buffer),
         })
+    }
+
+    // TODO: test this function
+    // TODO: must be able to propagate the errors coming from the decoder -> Need an encompassing error type.
+    pub fn from_decoder<D: Decoder>(
+        context: &Context,
+        decoder: &mut D,
+    ) -> Result<Self, BackendError> {
+        // TODO: replace unwrap call.
+        let data = decoder.read_all().unwrap();
+        let buffer = match decoder.audio_format() {
+            AudioFormat::Mono8 => {
+                Self::new::<Mono<u8>, _>(context, data, decoder.sample_rate() as i32)
+            }
+            AudioFormat::Stereo8 => {
+                Self::new::<Stereo<u8>, _>(context, data, decoder.sample_rate() as i32)
+            }
+            AudioFormat::Mono16 => Self::new::<Mono<i16>, _>(
+                context,
+                bytemuck::cast_slice::<u8, i16>(&data),
+                decoder.sample_rate() as i32,
+            ),
+            AudioFormat::Stereo16 => Self::new::<Stereo<i16>, _>(
+                context,
+                bytemuck::cast_slice::<u8, i16>(&data),
+                decoder.sample_rate() as i32,
+            ),
+        }?;
+        Ok(buffer)
     }
 }
 
