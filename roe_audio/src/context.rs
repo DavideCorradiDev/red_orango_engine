@@ -163,6 +163,29 @@ impl std::fmt::Debug for StaticSource {
     }
 }
 
+pub struct StreamingSource {
+    value: alto::StreamingSource,
+}
+
+impl StreamingSource {
+    pub fn new(context: &Context) -> Result<Self, BackendError> {
+        let streaming_source = context.value.new_streaming_source()?;
+        Ok(Self {
+            value: streaming_source,
+        })
+    }
+
+    pub fn update(&mut self) -> Result<(), BackendError> {
+        Ok(())
+    }
+}
+
+impl std::fmt::Debug for StreamingSource {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "StreamingSource {{ }}")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
