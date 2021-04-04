@@ -163,16 +163,44 @@ impl std::fmt::Debug for StaticSource {
     }
 }
 
-pub struct StreamingSource {
-    value: alto::StreamingSource,
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct StreamingSourceDescriptor {
+    buffer_count: usize,
+    buffer_sample_count: usize,
+    looping: bool,
 }
 
-impl StreamingSource {
-    pub fn new(context: &Context) -> Result<Self, BackendError> {
+impl std::default::Default for StreamingSourceDescriptor {
+    fn default() -> Self {
+        Self {
+            buffer_count: 3,
+            buffer_sample_count: 2048,
+            looping: false,
+        }
+    }
+}
+
+pub struct StreamingSource<D: Decoder> {
+    value: alto::StreamingSource,
+    decoder: D,
+}
+
+impl<D: Decoder> StreamingSource<D> {
+    pub fn new(
+        context: &Context,
+        decoder: D,
+        desc: &StreamingSourceDescriptor,
+    ) -> Result<Self, BackendError> {
+        // let buffer_byte_count = desc.buffer_sample_count * decoder.audio_format().total_bytes_per_sample();
         let streaming_source = context.value.new_streaming_source()?;
-        Ok(Self {
+        let mut streaming_source = Self {
             value: streaming_source,
-        })
+            decoder,
+        };
+        // for i in 0..desc.buffer_count {
+        //     let buffer = context.new_buffer([0; ]);
+        // }
+        Ok(streaming_source)
     }
 
     pub fn update(&mut self) -> Result<(), BackendError> {
@@ -180,7 +208,7 @@ impl StreamingSource {
     }
 }
 
-impl std::fmt::Debug for StreamingSource {
+impl<D: Decoder> std::fmt::Debug for StreamingSource<D> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "StreamingSource {{ }}")
     }
