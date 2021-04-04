@@ -65,6 +65,44 @@ impl std::fmt::Debug for Context {
     }
 }
 
+fn buffer_with_format(
+    context: &Context,
+    data: &[u8],
+    format: AudioFormat,
+    frequency: i32,
+) -> Result<alto::Buffer, BackendError> {
+    let buffer = match format {
+        AudioFormat::Mono8 => context.value.new_buffer::<Mono<u8>, _>(data, frequency),
+        AudioFormat::Stereo8 => context.value.new_buffer::<Stereo<u8>, _>(data, frequency),
+        AudioFormat::Mono16 => context
+            .value
+            .new_buffer::<Mono<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency),
+        AudioFormat::Stereo16 => context
+            .value
+            .new_buffer::<Stereo<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency),
+    }?;
+    Ok(buffer)
+}
+
+fn set_buffer_data_with_format(
+    buffer: &mut alto::Buffer,
+    data: &[u8],
+    format: AudioFormat,
+    frequency: i32,
+) -> Result<(), BackendError> {
+    match format {
+        AudioFormat::Mono8 => buffer.set_data::<Mono<u8>, _>(data, frequency),
+        AudioFormat::Stereo8 => buffer.set_data::<Stereo<u8>, _>(data, frequency),
+        AudioFormat::Mono16 => {
+            buffer.set_data::<Mono<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency)
+        }
+        AudioFormat::Stereo16 => {
+            buffer.set_data::<Stereo<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency)
+        }
+    }?;
+    Ok(())
+}
+
 pub struct Buffer {
     value: Arc<alto::Buffer>,
 }
@@ -86,6 +124,8 @@ impl Buffer {
     // TODO: think if the Decoder should have a better interface. Or maybe separate this ufnction into another constructor accepting raw data.
     // TODO: test this function
     // TODO: must be able to propagate the errors coming from the decoder -> Need an encompassing error type.
+    // TODO: test with different formats.
+    // TODO: change to use buffer_With_format.
     pub fn from_decoder<D: Decoder>(
         context: &Context,
         decoder: &mut D,
@@ -112,6 +152,8 @@ impl Buffer {
         }?;
         Ok(buffer)
     }
+
+    // TODO: add a set_data function determining at runtime what AudioFormat to use.
 }
 
 impl std::ops::Deref for Buffer {
@@ -191,19 +233,47 @@ impl<D: Decoder> StreamingSource<D> {
         decoder: D,
         desc: &StreamingSourceDescriptor,
     ) -> Result<Self, BackendError> {
-        // let buffer_byte_count = desc.buffer_sample_count * decoder.audio_format().total_bytes_per_sample();
-        let streaming_source = context.value.new_streaming_source()?;
-        let mut streaming_source = Self {
-            value: streaming_source,
+        let source = context.value.new_streaming_source()?;
+        let mut source = Self {
+            value: source,
             decoder,
         };
-        // for i in 0..desc.buffer_count {
-        //     let buffer = context.new_buffer([0; ]);
-        // }
-        Ok(streaming_source)
+        // TODO: remove unwrap().
+        source
+            .decoder
+            .byte_seek(std::io::SeekFrom::Start(0))
+            .unwrap();
+        let buffer_byte_count = desc.buffer_sample_count
+            * source.decoder.audio_format().total_bytes_per_sample() as usize;
+        for _ in 0..desc.buffer_count {
+            let mut mem_buf = vec![0; buffer_byte_count];
+            // TODO: remove unwrap().
+            source.decoder.read(&mut mem_buf).unwrap();
+            let audio_buf = buffer_with_format(
+                context,
+                &mem_buf,
+                source.decoder.audio_format(),
+                source.decoder.sample_rate() as i32,
+            )?;
+            source.value.queue_buffer(audio_buf)?;
+        }
+        Ok(source)
     }
 
     pub fn update(&mut self) -> Result<(), BackendError> {
+        for _ in 0..self.value.buffers_processed() {
+            let mut audio_buf = self.value.unqueue_buffer()?;
+            let mut mem_buf = vec![0; audio_buf.size() as usize];
+            // TODO: remove unwrap();
+            self.decoder.read(&mut mem_buf).unwrap();
+            set_buffer_data_with_format(
+                &mut audio_buf,
+                &mem_buf,
+                self.decoder.audio_format(),
+                self.decoder.sample_rate() as i32,
+            )?;
+            self.value.queue_buffer(audio_buf)?;
+        }
         Ok(())
     }
 }
