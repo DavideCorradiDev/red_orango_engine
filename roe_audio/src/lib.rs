@@ -13,5 +13,4 @@ pub use wav_decoder::*;
 mod sound;
 pub use sound::*;
 
-mod new_impl;
-pub use new_impl::*;
+pub mod new_impl;
