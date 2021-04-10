@@ -1,10 +1,10 @@
 use super::AudioFormat;
 
-pub trait SoundData: std::io::Seek {
+pub trait Decoder {
     fn audio_format(&self) -> AudioFormat;
     fn byte_rate(&self) -> u32;
     fn byte_count(&self) -> usize;
-    fn byte_stream_position(&self) -> std::io::Result<u64>;
+    fn byte_stream_position(&mut self) -> std::io::Result<u64>;
     fn byte_seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64>;
 
     fn sample_rate(&self) -> u32 {
@@ -19,7 +19,7 @@ pub trait SoundData: std::io::Seek {
         self.byte_count() / tbps
     }
 
-    fn sample_stream_position(&self) -> std::io::Result<u64> {
+    fn sample_stream_position(&mut self) -> std::io::Result<u64> {
         let byte_pos = self.byte_stream_position()?;
         let tbps = self.audio_format().total_bytes_per_sample() as u64;
         assert!(byte_pos % tbps == 0);

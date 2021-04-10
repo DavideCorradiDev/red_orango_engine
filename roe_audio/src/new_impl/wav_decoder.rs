@@ -1,4 +1,4 @@
-use super::{AudioFormat, SoundData};
+use super::{AudioFormat, Decoder};
 
 use bytemuck::Zeroable;
 
@@ -152,60 +152,65 @@ where
     }
 }
 
-// impl<T> SoundData for WavDecoder<T>
-// where
-//     T: std::io::Read + std::io::Seek,
-// {
-//     fn audio_format(&self) -> AudioFormat {
-//         self.format
-//     }
-//
-//     fn byte_rate(&self) -> u32 {
-//         self.sample_rate * self.audio_format().total_bytes_per_sample()
-//     }
-//
-//     fn sample_rate(&self) -> u32 {
-//         self.sample_rate
-//     }
-//
-//     fn byte_count(&self) -> usize {
-//         self.sample_count * self.audio_format().total_bytes_per_sample() as usize
-//     }
-//
-//     fn sample_count(&self) -> usize {
-//         self.sample_count
-//     }
-//
-//     fn byte_stream_position(&mut self) -> std::io::Result<u64> {
-//         let input_pos = self.input.stream_position()?;
-//         assert!(input_pos >= self.byte_data_offset);
-//         Ok(input_pos - self.byte_data_offset)
-//     }
-//
-//     fn byte_seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
-//         let byte_count = self.byte_count() as i64;
-//         let target_pos = match pos {
-//             std::io::SeekFrom::Start(v) => v as i64,
-//             std::io::SeekFrom::End(v) => byte_count + v,
-//             std::io::SeekFrom::Current(v) => self.byte_stream_position()? as i64 + v,
-//         };
-//         let target_pos = std::cmp::max(0, std::cmp::min(target_pos, byte_count)) as u64;
-//
-//         if target_pos % self.audio_format().total_bytes_per_sample() as u64 != 0 {
-//             return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput));
-//         }
-//
-//         let count = self
-//             .input
-//             .seek(std::io::SeekFrom::Start(self.byte_data_offset + target_pos))?;
-//         Ok(count - self.byte_data_offset)
-//     }
-//
-//     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-//         let count = self.input.read(buf)?;
-//         Ok(count)
-//     }
-// }
+impl<T> Decoder for WavDecoder<T>
+where
+    T: std::io::Read + std::io::Seek,
+{
+    fn audio_format(&self) -> AudioFormat {
+        self.format
+    }
+
+    fn byte_rate(&self) -> u32 {
+        self.sample_rate * self.audio_format().total_bytes_per_sample()
+    }
+
+    fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    fn byte_count(&self) -> usize {
+        self.sample_count * self.audio_format().total_bytes_per_sample() as usize
+    }
+
+    fn sample_count(&self) -> usize {
+        self.sample_count
+    }
+
+    fn byte_stream_position(&mut self) -> std::io::Result<u64> {
+        let input_pos = self.input.stream_position()?;
+        assert!(input_pos >= self.byte_data_offset);
+        Ok(input_pos - self.byte_data_offset)
+    }
+
+    fn byte_seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
+        let byte_count = self.byte_count() as i64;
+        let target_pos = match pos {
+            std::io::SeekFrom::Start(v) => v as i64,
+            std::io::SeekFrom::End(v) => byte_count + v,
+            std::io::SeekFrom::Current(v) => self.byte_stream_position()? as i64 + v,
+        };
+        let target_pos = std::cmp::max(0, std::cmp::min(target_pos, byte_count)) as u64;
+
+        let tbps = self.audio_format().total_bytes_per_sample() as u64;
+        assert!(target_pos % tbps == 0);
+
+        let count = self
+            .input
+            .seek(std::io::SeekFrom::Start(self.byte_data_offset + target_pos))?;
+        Ok(count - self.byte_data_offset)
+    }
+
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let tbps = self.audio_format().total_bytes_per_sample() as usize;
+        assert!(buf.len() % tbps == 0);
+        let count = self.input.read(buf)?;
+        Ok(count)
+    }
+
+    fn read_exact(&mut self, buf: &mut [u8]) -> std::io::Result<()> {
+        self.input.read_exact(buf)
+    }
+}
 
 #[derive(Debug)]
 pub enum WavDecoderError {
