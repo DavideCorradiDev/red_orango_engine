@@ -202,7 +202,11 @@ where
 
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let tbps = self.audio_format().total_bytes_per_sample() as usize;
-        assert!(buf.len() % tbps == 0);
+        assert!(
+            buf.len() % tbps == 0,
+            "Invalid buffer length ({})",
+            buf.len()
+        );
         let count = self.input.read(buf)?;
         Ok(count)
     }
@@ -250,9 +254,7 @@ impl From<std::io::Error> for WavDecoderError {
     }
 }
 
-// TODO: add tests for read.
 // TODO: add tests for mono16 and stereo8.
-// TODO: test invalid read buffer size for stereo16.
 
 #[cfg(test)]
 mod tests {
@@ -576,5 +578,55 @@ mod tests {
         );
         expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
         expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+    }
+
+    #[test]
+    fn stereo16_read() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.wav").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = WavDecoder::new(buf).unwrap();
+        let mut buf = vec![0; 8];
+
+        expect_that!(&decoder.read(&mut buf).unwrap(), eq(8));
+        expect_that!(&buf, eq(vec![227, 34, 227, 34, 197, 34, 197, 34]));
+
+        expect_that!(&decoder.read(&mut buf).unwrap(), eq(8));
+        expect_that!(&buf, eq(vec![166, 34, 166, 34, 136, 34, 136, 34]));
+
+        decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
+
+        // Unable to read the whole buffer because at the end: the remaining elements aren't overwritten!
+        expect_that!(&decoder.read(&mut buf).unwrap(), eq(4));
+        expect_that!(&buf, eq(vec![0, 0, 0, 0, 136, 34, 136, 34]));
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid buffer length (7)")]
+    fn stereo16_read_invalid_buffer_length() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.wav").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = WavDecoder::new(buf).unwrap();
+        let mut buf = vec![0; 7];
+        decoder.read(&mut buf).unwrap();
+    }
+
+    #[test]
+    fn stereo16_read_to_end() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.wav").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = WavDecoder::new(buf).unwrap();
+        decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
+        let content = decoder.read_to_end().unwrap();
+        expect_that!(&content.len(), eq(decoder.byte_count() - 572));
+    }
+
+    #[test]
+    fn stereo16_read_all() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.wav").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = WavDecoder::new(buf).unwrap();
+        decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
+        let content = decoder.read_all().unwrap();
+        expect_that!(&content.len(), eq(decoder.byte_count()));
     }
 }
