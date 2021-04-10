@@ -38,21 +38,20 @@ pub trait Decoder {
     }
 
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize>;
-    fn read_exact(&mut self, buf: &mut [u8]) -> std::io::Result<()>;
 
-    fn read_to_end(&mut self, buf: &mut Vec<u8>) -> std::io::Result<usize> {
+    fn read_to_end(&mut self) -> std::io::Result<Vec<u8>> {
         let tbps = self.audio_format().total_bytes_per_sample() as usize;
-        buf.resize(self.byte_count() - self.byte_stream_position()? as usize, 0);
-        assert!(buf.len() % tbps == 0);
-        self.read(&mut buf[..])
+        let size = self.byte_count() - self.byte_stream_position()? as usize;
+        assert!(size % tbps == 0);
+        let mut buf = vec![0; size];
+        self.read(&mut buf[..])?;
+        Ok(buf)
     }
 
     fn read_all(&mut self) -> std::io::Result<Vec<u8>> {
         if self.byte_stream_position()? != 0 {
             self.byte_seek(std::io::SeekFrom::Start(0))?;
         }
-        let mut vec = Vec::new();
-        self.read_to_end(&mut vec)?;
-        Ok(vec)
+        self.read_to_end()
     }
 }

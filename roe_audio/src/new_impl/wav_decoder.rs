@@ -206,12 +206,6 @@ where
         let count = self.input.read(buf)?;
         Ok(count)
     }
-
-    fn read_exact(&mut self, buf: &mut [u8]) -> std::io::Result<()> {
-        let tbps = self.audio_format().total_bytes_per_sample() as usize;
-        assert!(buf.len() % tbps == 0);
-        self.input.read_exact(buf)
-    }
 }
 
 #[derive(Debug)]
@@ -258,6 +252,7 @@ impl From<std::io::Error> for WavDecoderError {
 
 // TODO: add tests for read.
 // TODO: add tests for mono16 and stereo8.
+// TODO: test invalid read buffer size for stereo16.
 
 #[cfg(test)]
 mod tests {
@@ -405,6 +400,46 @@ mod tests {
         );
         expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
         expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+    }
+
+    #[test]
+    fn mono8_read() {
+        let file = std::fs::File::open("data/audio/mono-8-44100.wav").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = WavDecoder::new(buf).unwrap();
+        let mut buf = vec![0; 7];
+
+        expect_that!(&decoder.read(&mut buf).unwrap(), eq(7));
+        expect_that!(&buf, eq(vec![178, 178, 178, 178, 177, 177, 177]));
+
+        expect_that!(&decoder.read(&mut buf).unwrap(), eq(7));
+        expect_that!(&buf, eq(vec![177, 177, 177, 176, 176, 128, 80]));
+
+        decoder.byte_seek(std::io::SeekFrom::End(-3)).unwrap();
+
+        // Unable to read the whole buffer because at the end: the remaining elements aren't overwritten!
+        expect_that!(&decoder.read(&mut buf).unwrap(), eq(3));
+        expect_that!(&buf, eq(vec![128, 128, 128, 176, 176, 128, 80]));
+    }
+
+    #[test]
+    fn mono8_read_to_end() {
+        let file = std::fs::File::open("data/audio/mono-8-44100.wav").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = WavDecoder::new(buf).unwrap();
+        decoder.byte_seek(std::io::SeekFrom::Start(573)).unwrap();
+        let content = decoder.read_to_end().unwrap();
+        expect_that!(&content.len(), eq(decoder.byte_count() - 573));
+    }
+
+    #[test]
+    fn mono8_read_all() {
+        let file = std::fs::File::open("data/audio/mono-8-44100.wav").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = WavDecoder::new(buf).unwrap();
+        decoder.byte_seek(std::io::SeekFrom::Start(573)).unwrap();
+        let content = decoder.read_all().unwrap();
+        expect_that!(&content.len(), eq(decoder.byte_count()));
     }
 
     #[test]
