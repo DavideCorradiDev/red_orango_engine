@@ -164,10 +164,6 @@ where
         self.sample_rate
     }
 
-    fn packet_sample_count(&self) -> usize {
-        1
-    }
-
     fn sample_count(&self) -> usize {
         self.sample_count
     }
@@ -215,6 +211,7 @@ where
     }
 }
 
+// TODO: rename to WavDecoderInitializationError.
 #[derive(Debug)]
 pub enum WavDecoderError {
     IoError(std::io::Error),
@@ -279,8 +276,6 @@ mod tests {
         expect_that!(&decoder.audio_format(), eq(AudioFormat::Mono8));
         expect_that!(&decoder.byte_count(), eq(21231));
         expect_that!(&decoder.sample_count(), eq(21231));
-        expect_that!(&decoder.packet_byte_count(), eq(1));
-        expect_that!(&decoder.packet_sample_count(), eq(1));
         expect_that!(&decoder.byte_rate(), eq(44100));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
@@ -457,8 +452,6 @@ mod tests {
         expect_that!(&decoder.audio_format(), eq(AudioFormat::Mono16));
         expect_that!(&decoder.byte_count(), eq(21231 * 2));
         expect_that!(&decoder.sample_count(), eq(21231));
-        expect_that!(&decoder.packet_byte_count(), eq(2));
-        expect_that!(&decoder.packet_sample_count(), eq(1));
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
@@ -654,8 +647,6 @@ mod tests {
         expect_that!(&decoder.audio_format(), eq(AudioFormat::Stereo8));
         expect_that!(&decoder.byte_count(), eq(21231 * 2));
         expect_that!(&decoder.sample_count(), eq(21231));
-        expect_that!(&decoder.packet_byte_count(), eq(2));
-        expect_that!(&decoder.packet_sample_count(), eq(1));
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
@@ -851,8 +842,6 @@ mod tests {
         expect_that!(&decoder.audio_format(), eq(AudioFormat::Stereo16));
         expect_that!(&decoder.byte_count(), eq(21231 * 4));
         expect_that!(&decoder.sample_count(), eq(21231));
-        expect_that!(&decoder.packet_byte_count(), eq(4));
-        expect_that!(&decoder.packet_sample_count(), eq(1));
         expect_that!(&decoder.byte_rate(), eq(44100 * 4));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
@@ -1005,6 +994,7 @@ mod tests {
 
         decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
 
+        // TODO: assert new stream position after reading.
         // Unable to read the whole buffer because at the end: the remaining elements aren't overwritten!
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(4));
         expect_that!(&buf, eq(vec![0, 0, 0, 0, 136, 34, 136, 34]));

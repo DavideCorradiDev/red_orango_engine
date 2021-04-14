@@ -7,10 +7,6 @@ pub trait Decoder {
         self.sample_rate() * self.audio_format().total_bytes_per_sample()
     }
 
-    fn packet_byte_count(&self) -> usize {
-        self.packet_sample_count() * self.audio_format().total_bytes_per_sample() as usize
-    }
-
     fn byte_count(&self) -> usize {
         self.sample_count() * self.audio_format().total_bytes_per_sample() as usize
     }
@@ -22,10 +18,12 @@ pub trait Decoder {
     fn byte_seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64>;
 
     fn sample_rate(&self) -> u32;
-    fn packet_sample_count(&self) -> usize;
     fn sample_count(&self) -> usize;
+
+    // TODO: probably no need to return a result here.
     fn sample_stream_position(&mut self) -> std::io::Result<u64>;
 
+    // TODO: probably no need to return a result here.
     fn sample_seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
         let tbps = self.audio_format().total_bytes_per_sample();
         let pos = match pos {

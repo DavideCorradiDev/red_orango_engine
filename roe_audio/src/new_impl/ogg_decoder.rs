@@ -2,12 +2,15 @@ use lewton::inside_ogg::OggStreamReader;
 
 use super::{AudioFormat, Decoder};
 
+use lewton::OggReadError;
+// TODO: rename to OggDecoderIhitializationError.
 pub use lewton::VorbisError as OggDecoderError;
 
 pub struct OggDecoder<T: std::io::Read + std::io::Seek> {
     input: OggStreamReader<T>,
     format: AudioFormat,
     sample_count: usize,
+    sample_stream_position: u64,
 }
 
 impl<T> OggDecoder<T>
@@ -23,6 +26,7 @@ where
             input,
             format,
             sample_count,
+            sample_stream_position: 0,
         })
     }
 
@@ -53,9 +57,6 @@ where
     }
 }
 
-// TODO: add packet sample / byte count to Decoder interface.
-// TODO: ogg decoder should store internally its actual sample position with the seek operation.
-
 impl<T> Decoder for OggDecoder<T>
 where
     T: std::io::Read + std::io::Seek,
@@ -68,53 +69,60 @@ where
         self.input.ident_hdr.audio_sample_rate
     }
 
-    fn packet_sample_count(&self) -> usize {
-        42
-    }
-
     fn sample_count(&self) -> usize {
         self.sample_count
     }
 
     fn sample_stream_position(&mut self) -> std::io::Result<u64> {
-        Ok(0)
-        // let input_pos = self.input.stream_position()?;
-        // assert!(input_pos >= self.byte_data_offset);
-        // Ok(input_pos - self.byte_data_offset)
+        Ok(self.sample_stream_position)
     }
 
     fn byte_seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
-        Ok(0)
-        // let byte_count = self.byte_count() as i64;
-        // let target_pos = match pos {
-        //     std::io::SeekFrom::Start(v) => v as i64,
-        //     std::io::SeekFrom::End(v) => byte_count + v,
-        //     std::io::SeekFrom::Current(v) => self.byte_stream_position()? as i64 + v,
-        // };
-        // let target_pos = std::cmp::max(0, std::cmp::min(target_pos, byte_count)) as u64;
+        let byte_count = self.byte_count() as i64;
+        let target_pos = match pos {
+            std::io::SeekFrom::Start(v) => v as i64,
+            std::io::SeekFrom::End(v) => byte_count + v,
+            std::io::SeekFrom::Current(v) => self.byte_stream_position()? as i64 + v,
+        };
+        let target_pos = std::cmp::max(0, std::cmp::min(target_pos, byte_count)) as u64;
 
-        // let tbps = self.audio_format().total_bytes_per_sample() as u64;
-        // assert!(
-        //     target_pos % tbps == 0,
-        //     "Invalid seek offset ({})",
-        //     target_pos
-        // );
+        let tbps = self.audio_format().total_bytes_per_sample() as u64;
+        assert!(
+            target_pos % tbps == 0,
+            "Invalid seek offset ({})",
+            target_pos
+        );
 
-        // let count = self
-        //     .input
-        //     .seek(std::io::SeekFrom::Start(self.byte_data_offset + target_pos))?;
-        // Ok(count - self.byte_data_offset)
+        self.input
+            .seek_absgp_pg(target_pos)
+            .expect("Failed to seek ogg file");
+        self.sample_stream_position = target_pos;
+        Ok(self.sample_stream_position)
     }
 
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        Ok(0)
-        // let tbps = self.audio_format().total_bytes_per_sample() as usize;
-        // assert!(
-        //     buf.len() % tbps == 0,
-        //     "Invalid buffer length ({})",
-        //     buf.len()
-        // );
-        // let count = self.input.read(buf)?;
-        // Ok(count)
+        let mut idx = 0;
+        while idx < buf.len() {
+            match self.input.read_dec_packet_itl() {
+                Err(e) => match e {
+                    OggDecoderError::OggError(e) => match e {
+                        OggReadError::ReadError(e) => return Err(e),
+                        _ => panic!("Unexpected error while reading from an ogg file ({})", e),
+                    },
+                    _ => panic!("Unexpected error while reading from an ogg file ({})", e),
+                },
+                Ok(v) => match v {
+                    None => break,
+                    Some(data) => {
+                        let byte_data = bytemuck::cast_slice::<_, u8>(&data[..]);
+                        let next_idx = idx + byte_data.len();
+                        buf[idx..next_idx].clone_from_slice(byte_data);
+                        idx = next_idx;
+                    }
+                },
+            }
+        }
+        self.sample_stream_position += idx as u64;
+        Ok(idx)
     }
 }
