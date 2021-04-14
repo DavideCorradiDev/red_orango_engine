@@ -53,6 +53,9 @@ where
     }
 }
 
+// TODO: add packet sample / byte count to Decoder interface.
+// TODO: ogg decoder should store internally its actual sample position with the seek operation.
+
 impl<T> Decoder for OggDecoder<T>
 where
     T: std::io::Read + std::io::Seek,

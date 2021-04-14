@@ -2,29 +2,29 @@ use super::AudioFormat;
 
 pub trait Decoder {
     fn audio_format(&self) -> AudioFormat;
-    fn byte_rate(&self) -> u32;
-    fn byte_count(&self) -> usize;
-    fn byte_stream_position(&mut self) -> std::io::Result<u64>;
+
+    fn byte_rate(&self) -> u32 {
+        self.sample_rate() * self.audio_format().total_bytes_per_sample()
+    }
+
+    fn packet_byte_count(&self) -> usize {
+        self.packet_sample_count() * self.audio_format().total_bytes_per_sample() as usize
+    }
+
+    fn byte_count(&self) -> usize {
+        self.sample_count() * self.audio_format().total_bytes_per_sample() as usize
+    }
+
+    fn byte_stream_position(&mut self) -> std::io::Result<u64> {
+        Ok(self.sample_stream_position()? * self.audio_format().total_bytes_per_sample() as u64)
+    }
+
     fn byte_seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64>;
 
-    fn sample_rate(&self) -> u32 {
-        let tbps = self.audio_format().total_bytes_per_sample();
-        assert!(self.byte_rate() % tbps == 0);
-        self.byte_rate() / tbps
-    }
-
-    fn sample_count(&self) -> usize {
-        let tbps = self.audio_format().total_bytes_per_sample() as usize;
-        assert!(self.byte_count() % tbps == 0);
-        self.byte_count() / tbps
-    }
-
-    fn sample_stream_position(&mut self) -> std::io::Result<u64> {
-        let byte_pos = self.byte_stream_position()?;
-        let tbps = self.audio_format().total_bytes_per_sample() as u64;
-        assert!(byte_pos % tbps == 0);
-        Ok(byte_pos / tbps)
-    }
+    fn sample_rate(&self) -> u32;
+    fn packet_sample_count(&self) -> usize;
+    fn sample_count(&self) -> usize;
+    fn sample_stream_position(&mut self) -> std::io::Result<u64>;
 
     fn sample_seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
         let tbps = self.audio_format().total_bytes_per_sample();

@@ -160,26 +160,25 @@ where
         self.format
     }
 
-    fn byte_rate(&self) -> u32 {
-        self.sample_rate * self.audio_format().total_bytes_per_sample()
-    }
-
     fn sample_rate(&self) -> u32 {
         self.sample_rate
     }
 
-    fn byte_count(&self) -> usize {
-        self.sample_count * self.audio_format().total_bytes_per_sample() as usize
+    fn packet_sample_count(&self) -> usize {
+        1
     }
 
     fn sample_count(&self) -> usize {
         self.sample_count
     }
 
-    fn byte_stream_position(&mut self) -> std::io::Result<u64> {
+    fn sample_stream_position(&mut self) -> std::io::Result<u64> {
         let input_pos = self.input.stream_position()?;
+        let tbps = self.audio_format().total_bytes_per_sample() as u64;
         assert!(input_pos >= self.byte_data_offset);
-        Ok(input_pos - self.byte_data_offset)
+        let input_pos = input_pos - self.byte_data_offset;
+        assert!(input_pos % tbps == 0);
+        Ok(input_pos / tbps)
     }
 
     fn byte_seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
@@ -280,6 +279,8 @@ mod tests {
         expect_that!(&decoder.audio_format(), eq(AudioFormat::Mono8));
         expect_that!(&decoder.byte_count(), eq(21231));
         expect_that!(&decoder.sample_count(), eq(21231));
+        expect_that!(&decoder.packet_byte_count(), eq(1));
+        expect_that!(&decoder.packet_sample_count(), eq(1));
         expect_that!(&decoder.byte_rate(), eq(44100));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
@@ -456,6 +457,8 @@ mod tests {
         expect_that!(&decoder.audio_format(), eq(AudioFormat::Mono16));
         expect_that!(&decoder.byte_count(), eq(21231 * 2));
         expect_that!(&decoder.sample_count(), eq(21231));
+        expect_that!(&decoder.packet_byte_count(), eq(2));
+        expect_that!(&decoder.packet_sample_count(), eq(1));
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
@@ -651,6 +654,8 @@ mod tests {
         expect_that!(&decoder.audio_format(), eq(AudioFormat::Stereo8));
         expect_that!(&decoder.byte_count(), eq(21231 * 2));
         expect_that!(&decoder.sample_count(), eq(21231));
+        expect_that!(&decoder.packet_byte_count(), eq(2));
+        expect_that!(&decoder.packet_sample_count(), eq(1));
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
@@ -846,6 +851,8 @@ mod tests {
         expect_that!(&decoder.audio_format(), eq(AudioFormat::Stereo16));
         expect_that!(&decoder.byte_count(), eq(21231 * 4));
         expect_that!(&decoder.sample_count(), eq(21231));
+        expect_that!(&decoder.packet_byte_count(), eq(4));
+        expect_that!(&decoder.packet_sample_count(), eq(1));
         expect_that!(&decoder.byte_rate(), eq(44100 * 4));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
