@@ -64,23 +64,19 @@ where
         self.format
     }
 
-    fn byte_rate(&self) -> u32 {
-        self.sample_rate() * self.audio_format().total_bytes_per_sample()
-    }
-
     fn sample_rate(&self) -> u32 {
         self.input.ident_hdr.audio_sample_rate
     }
 
-    fn byte_count(&self) -> usize {
-        self.sample_count() * self.audio_format().total_bytes_per_sample() as usize
+    fn packet_sample_count(&self) -> usize {
+        42
     }
 
     fn sample_count(&self) -> usize {
         self.sample_count
     }
 
-    fn byte_stream_position(&mut self) -> std::io::Result<u64> {
+    fn sample_stream_position(&mut self) -> std::io::Result<u64> {
         Ok(0)
         // let input_pos = self.input.stream_position()?;
         // assert!(input_pos >= self.byte_data_offset);
