@@ -6,8 +6,14 @@ use lewton::OggReadError;
 // TODO: rename to OggDecoderIhitializationError.
 pub use lewton::VorbisError as OggDecoderError;
 
+struct Packet {
+    data: Vec<i16>,
+    start_byte_stream_position: u64,
+}
+
 pub struct OggDecoder<T: std::io::Read + std::io::Seek> {
     input: OggStreamReader<T>,
+    last_packet: Option<Packet>,
     format: AudioFormat,
     sample_count: usize,
     sample_stream_position: u64,
@@ -24,6 +30,7 @@ where
 
         Ok(Self {
             input,
+            last_packet: None,
             format,
             sample_count,
             sample_stream_position: 0,
@@ -45,6 +52,59 @@ where
         }
         input.seek_absgp_pg(0)?;
         Ok(sample_count)
+    }
+
+    fn read_packet(&mut self) -> Result<Option<&Packet>, std::io::Error> {
+        if self.must_read_new_packet()? {
+            self.read_new_packet()?;
+        }
+        match &self.last_packet {
+            Some(packet) => Ok(Some(&packet)),
+            None => Ok(None),
+        }
+    }
+
+    fn must_read_new_packet(&mut self) -> std::io::Result<bool> {
+        let tbps = self.audio_format().total_bytes_per_sample() as u64;
+        let byte_stream_pos = self.byte_stream_position()?;
+        match &self.last_packet {
+            Some(packet) => {
+                let packet_end_byte_stream_pos =
+                    packet.start_byte_stream_position + packet.data.len() as u64 * tbps;
+                Ok(byte_stream_pos < packet.start_byte_stream_position
+                    || byte_stream_pos >= packet_end_byte_stream_pos)
+            }
+            None => Ok(true),
+        }
+    }
+
+    fn read_new_packet(&mut self) -> std::io::Result<()> {
+        self.last_packet = match self.input.read_dec_packet_itl() {
+            Ok(packet) => match packet {
+                Some(data) => {
+                    let tbps = self.audio_format().total_bytes_per_sample() as u64;
+                    let start_byte_stream_position = match self.input.get_last_absgp() {
+                        Some(v) => v * tbps,
+                        None => {
+                            panic!("Unexpected failure when reading ogg page start position")
+                        }
+                    };
+                    Some(Packet {
+                        data,
+                        start_byte_stream_position,
+                    })
+                }
+                None => None,
+            },
+            Err(e) => match e {
+                OggDecoderError::OggError(e) => match e {
+                    OggReadError::ReadError(e) => return Err(e),
+                    _ => panic!("Unexpected error while reading from an ogg file ({})", e),
+                },
+                _ => panic!("Unexpected error while reading from an ogg file ({})", e),
+            },
+        };
+        Ok(())
     }
 }
 
@@ -96,33 +156,53 @@ where
         self.input
             .seek_absgp_pg(target_pos)
             .expect("Failed to seek ogg file");
+        self.last_packet = None;
         self.sample_stream_position = target_pos;
         Ok(self.sample_stream_position)
     }
 
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        let mut idx = 0;
-        while idx < buf.len() {
-            match self.input.read_dec_packet_itl() {
-                Err(e) => match e {
-                    OggDecoderError::OggError(e) => match e {
-                        OggReadError::ReadError(e) => return Err(e),
-                        _ => panic!("Unexpected error while reading from an ogg file ({})", e),
-                    },
-                    _ => panic!("Unexpected error while reading from an ogg file ({})", e),
-                },
-                Ok(v) => match v {
-                    None => break,
-                    Some(data) => {
-                        let byte_data = bytemuck::cast_slice::<_, u8>(&data[..]);
-                        let next_idx = idx + byte_data.len();
-                        buf[idx..next_idx].clone_from_slice(byte_data);
-                        idx = next_idx;
-                    }
-                },
+        let tbps = self.audio_format().total_bytes_per_sample() as usize;
+        assert!(
+            buf.len() % tbps == 0,
+            "Invalid buffer length ({})",
+            buf.len()
+        );
+
+        let mut read_byte_count = 0;
+        let mut byte_stream_pos = self.byte_stream_position()?;
+
+        while read_byte_count < buf.len() {
+            match self.read_packet()? {
+                None => break,
+                Some(packet) => {
+                    let packet_data = bytemuck::cast_slice::<_, u8>(&packet.data[..]);
+
+                    // Note: read_packet is guaranteed to return the packet where the current stream
+                    // position falls into, this is why we can make the assertions in the following
+                    // lines.
+                    assert!(packet.start_byte_stream_position <= byte_stream_pos);
+                    let read_start = (byte_stream_pos - packet.start_byte_stream_position) as usize;
+                    assert!(read_start < packet_data.len());
+
+                    let write_start = read_byte_count;
+
+                    let byte_to_read_count =
+                        std::cmp::min(buf.len() - write_start, packet_data.len() - read_start);
+
+                    let read_end = read_start + byte_to_read_count;
+                    let write_end = write_start + byte_to_read_count;
+
+                    buf[write_start..write_end]
+                        .clone_from_slice(&packet_data[read_start..read_end]);
+
+                    byte_stream_pos += byte_to_read_count as u64;
+                    read_byte_count += byte_to_read_count;
+                }
             }
         }
-        self.sample_stream_position += idx as u64;
-        Ok(idx)
+
+        self.sample_stream_position += (read_byte_count / tbps) as u64;
+        Ok(read_byte_count)
     }
 }
