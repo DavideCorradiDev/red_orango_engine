@@ -212,6 +212,7 @@ where
 }
 
 // TODO: rename to WavDecoderInitializationError.
+// TODO: create a WavHeaderError class.
 #[derive(Debug)]
 pub enum WavDecoderError {
     IoError(std::io::Error),
@@ -419,7 +420,8 @@ mod tests {
 
         decoder.byte_seek(std::io::SeekFrom::End(-3)).unwrap();
 
-        // Unable to read the whole buffer because at the end: the remaining elements aren't overwritten!
+        // Unable to read the whole buffer because at the end: the remaining elements
+        // aren't overwritten!
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(3));
         expect_that!(&buf, eq(vec![128, 128, 128, 176, 176, 128, 80]));
     }
@@ -604,7 +606,8 @@ mod tests {
 
         decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
 
-        // Unable to read the whole buffer because at the end: the remaining elements aren't overwritten!
+        // Unable to read the whole buffer because at the end: the remaining elements
+        // aren't overwritten!
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(4));
         expect_that!(&buf, eq(vec![0, 0, 0, 0, 86, 48, 43, 48]));
     }
@@ -799,7 +802,8 @@ mod tests {
 
         decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
 
-        // Unable to read the whole buffer because at the end: the remaining elements aren't overwritten!
+        // Unable to read the whole buffer because at the end: the remaining elements
+        // aren't overwritten!
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(4));
         expect_that!(&buf, eq(vec![128, 128, 128, 128, 162, 162, 162, 162]));
     }
@@ -995,7 +999,8 @@ mod tests {
         decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
 
         // TODO: assert new stream position after reading.
-        // Unable to read the whole buffer because at the end: the remaining elements aren't overwritten!
+        // Unable to read the whole buffer because at the end: the remaining elements
+        // aren't overwritten!
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(4));
         expect_that!(&buf, eq(vec![0, 0, 0, 0, 136, 34, 136, 34]));
     }

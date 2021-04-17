@@ -2,10 +2,6 @@ use lewton::inside_ogg::OggStreamReader;
 
 use super::{AudioFormat, Decoder};
 
-use lewton::OggReadError;
-// TODO: rename to OggDecoderIhitializationError.
-pub use lewton::VorbisError as OggDecoderError;
-
 struct Packet {
     data: Vec<i16>,
     start_byte_stream_position: u64,
@@ -26,6 +22,9 @@ where
     pub fn new(input: T) -> Result<Self, OggDecoderError> {
         let mut input = OggStreamReader::new(input)?;
         let format = AudioFormat::new(input.ident_hdr.audio_channels as u32, 2);
+        if format.bytes_per_sample() != 2 {
+            return Err(OggDecoderError::UnsupportedFormat(format));
+        }
         let sample_count = Self::compute_sample_count(&mut input)?;
 
         Ok(Self {
@@ -65,12 +64,12 @@ where
     }
 
     fn must_read_new_packet(&mut self) -> std::io::Result<bool> {
-        let tbps = self.audio_format().total_bytes_per_sample() as u64;
+        let bps = self.audio_format().bytes_per_sample() as u64;
         let byte_stream_pos = self.byte_stream_position()?;
         match &self.last_packet {
             Some(packet) => {
                 let packet_end_byte_stream_pos =
-                    packet.start_byte_stream_position + packet.data.len() as u64 * tbps;
+                    packet.start_byte_stream_position + packet.data.len() as u64 * bps;
                 Ok(byte_stream_pos < packet.start_byte_stream_position
                     || byte_stream_pos >= packet_end_byte_stream_pos)
             }
@@ -82,9 +81,9 @@ where
         self.last_packet = match self.input.read_dec_packet_itl() {
             Ok(packet) => match packet {
                 Some(data) => {
-                    let tbps = self.audio_format().total_bytes_per_sample() as u64;
+                    let bps = self.audio_format().bytes_per_sample() as u64;
                     let start_byte_stream_position = match self.input.get_last_absgp() {
-                        Some(v) => v * tbps,
+                        Some(v) => v * bps,
                         None => {
                             panic!("Unexpected failure when reading ogg page start position")
                         }
@@ -97,7 +96,7 @@ where
                 None => None,
             },
             Err(e) => match e {
-                OggDecoderError::OggError(e) => match e {
+                lewton::VorbisError::OggError(e) => match e {
                     OggReadError::ReadError(e) => return Err(e),
                     _ => panic!("Unexpected error while reading from an ogg file ({})", e),
                 },
@@ -204,5 +203,50 @@ where
 
         self.sample_stream_position += (read_byte_count / tbps) as u64;
         Ok(read_byte_count)
+    }
+}
+
+// TODO: rename to OggDecoderCreationError.
+pub use lewton::{
+    audio::AudioReadError as OggDataError, header::HeaderReadError as OggHeaderError, OggReadError,
+};
+
+#[derive(Debug)]
+pub enum OggDecoderError {
+    ReadFailed(OggReadError),
+    InvalidHeader(OggHeaderError),
+    InvalidData(OggDataError),
+    UnsupportedFormat(AudioFormat),
+}
+
+impl std::fmt::Display for OggDecoderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::ReadFailed(e) => write!(f, "Failed to read data ({})", e),
+            Self::InvalidHeader(e) => write!(f, "Invalid header ({})", e),
+            Self::InvalidData(e) => write!(f, "Invalid data ({})", e),
+            Self::UnsupportedFormat(format) => write!(f, "Unsupported audio format ({:?})", format),
+        }
+    }
+}
+
+impl std::error::Error for OggDecoderError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::ReadFailed(e) => Some(e),
+            Self::InvalidHeader(e) => Some(e),
+            Self::InvalidData(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
+impl From<lewton::VorbisError> for OggDecoderError {
+    fn from(e: lewton::VorbisError) -> Self {
+        match e {
+            lewton::VorbisError::BadAudio(e) => Self::InvalidData(e),
+            lewton::VorbisError::BadHeader(e) => Self::InvalidHeader(e),
+            lewton::VorbisError::OggError(e) => Self::ReadFailed(e),
+        }
     }
 }
