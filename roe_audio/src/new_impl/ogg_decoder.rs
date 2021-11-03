@@ -19,11 +19,11 @@ impl<T> OggDecoder<T>
 where
     T: std::io::Read + std::io::Seek,
 {
-    pub fn new(input: T) -> Result<Self, OggDecoderError> {
+    pub fn new(input: T) -> Result<Self, OggDecoderCreationError> {
         let mut input = OggStreamReader::new(input)?;
         let format = AudioFormat::new(input.ident_hdr.audio_channels as u32, 2);
         if format.bytes_per_sample() != 2 {
-            return Err(OggDecoderError::UnsupportedFormat(format));
+            return Err(OggDecoderCreationError::UnsupportedFormat(format));
         }
         let sample_count = Self::compute_sample_count(&mut input)?;
 
@@ -36,7 +36,7 @@ where
         })
     }
 
-    fn compute_sample_count(input: &mut OggStreamReader<T>) -> Result<usize, OggDecoderError> {
+    fn compute_sample_count(input: &mut OggStreamReader<T>) -> Result<usize, OggDecoderCreationError> {
         input.seek_absgp_pg(0)?;
         let mut sample_count = 0;
         loop {
@@ -212,14 +212,14 @@ pub use lewton::{
 };
 
 #[derive(Debug)]
-pub enum OggDecoderError {
+pub enum OggDecoderCreationError {
     ReadFailed(OggReadError),
     InvalidHeader(OggHeaderError),
     InvalidData(OggDataError),
     UnsupportedFormat(AudioFormat),
 }
 
-impl std::fmt::Display for OggDecoderError {
+impl std::fmt::Display for OggDecoderCreationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ReadFailed(e) => write!(f, "Failed to read data ({})", e),
@@ -230,7 +230,7 @@ impl std::fmt::Display for OggDecoderError {
     }
 }
 
-impl std::error::Error for OggDecoderError {
+impl std::error::Error for OggDecoderCreationError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::ReadFailed(e) => Some(e),
@@ -241,7 +241,7 @@ impl std::error::Error for OggDecoderError {
     }
 }
 
-impl From<lewton::VorbisError> for OggDecoderError {
+impl From<lewton::VorbisError> for OggDecoderCreationError {
     fn from(e: lewton::VorbisError) -> Self {
         match e {
             lewton::VorbisError::BadAudio(e) => Self::InvalidData(e),
