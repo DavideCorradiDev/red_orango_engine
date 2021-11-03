@@ -601,7 +601,7 @@ mod tests {
                 height: 30,
             },
             &CanvasWindowDescriptor {
-                color_buffer_format: CanvasColorBufferFormat::Bgra8Unorm,
+                color_buffer_format: CanvasColorBufferFormat::Rgba8Unorm,
                 ..CanvasWindowDescriptor::default()
             },
         );
@@ -609,7 +609,7 @@ mod tests {
         expect_that!(&window.sample_count(), eq(1));
         expect_that!(
             &window.color_buffer_format(),
-            eq(CanvasColorBufferFormat::Bgra8Unorm)
+            eq(CanvasColorBufferFormat::Rgba8Unorm)
         );
         expect_that!(&window.depth_stencil_buffer_format(), eq(None));
 
@@ -622,7 +622,7 @@ mod tests {
         expect_that!(&swap_chain_ref.sample_count(), eq(1));
         expect_that!(
             &swap_chain_ref.format(),
-            eq(CanvasColorBufferFormat::Bgra8Unorm)
+            eq(CanvasColorBufferFormat::Rgba8Unorm)
         );
     }
 }
