@@ -106,7 +106,7 @@ pub struct CanvasSwapChain {
 
 impl CanvasSwapChain {
     pub fn new(instance: &Instance, surface: &Surface, desc: &CanvasSwapChainDescriptor) -> Self {
-        let usage = TextureUsage::RENDER_ATTACHMENT;
+        let usage = TextureUsage::OUTPUT_ATTACHMENT;
         let texture_format = TextureFormat::from(desc.format);
         let width = desc.size.width();
         let height = desc.size.height();
@@ -128,7 +128,7 @@ impl CanvasSwapChain {
                     size: Extent3d {
                         width,
                         height,
-                        depth_or_array_layers: 1,
+                        depth: 1,
                     },
                     mip_level_count: 1,
                     sample_count: desc.sample_count,
@@ -248,13 +248,13 @@ impl CanvasColorBuffer {
             size: Extent3d {
                 width: desc.size.width(),
                 height: desc.size.height(),
-                depth_or_array_layers: 1,
+                depth: 1,
             },
             mip_level_count: 1,
             sample_count: 1,
             dimension: TextureDimension::D2,
             format: TextureFormat::from(desc.format),
-            usage: TextureUsage::from(desc.usage) | TextureUsage::RENDER_ATTACHMENT,
+            usage: TextureUsage::from(desc.usage) | TextureUsage::OUTPUT_ATTACHMENT,
             label: None,
         };
 
@@ -357,13 +357,13 @@ impl CanvasDepthStencilBuffer {
                 size: Extent3d {
                     width: desc.size.width(),
                     height: desc.size.height(),
-                    depth_or_array_layers: 1,
+                    depth: 1,
                 },
                 mip_level_count: 1,
                 sample_count: desc.sample_count,
                 dimension: TextureDimension::D2,
                 format: TextureFormat::from(desc.format),
-                usage: TextureUsage::RENDER_ATTACHMENT,
+                usage: TextureUsage::OUTPUT_ATTACHMENT,
                 label: None,
             },
         );
