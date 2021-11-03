@@ -111,6 +111,7 @@ impl CommandSequence {
 
         // Begin the render pass.
         let render_pass_desc = RenderPassDescriptor {
+            label: Some("RoeRenderPass"),
             color_attachments: color_attachments.as_slice(),
             depth_stencil_attachment,
         };

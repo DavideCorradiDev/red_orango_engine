@@ -53,7 +53,7 @@ impl Default for InstanceDescriptor {
         required_limits.max_push_constant_size = 128;
         Self {
             backend: Backend::PRIMARY,
-            power_preference: PowerPreference::Default,
+            power_preference: PowerPreference::HighPerformance,
             required_features: Features::default() | Features::PUSH_CONSTANTS,
             optional_features: Features::empty(),
             required_limits,
@@ -170,9 +170,9 @@ impl Instance {
     ) -> Result<(wgpu::Device, wgpu::Queue), InstanceCreationError> {
         let (device, queue) = futures::executor::block_on(adapter.request_device(
             &wgpu::DeviceDescriptor {
+                label: Some("RoeDevice"),
                 features: (desc.optional_features & adapter.features()) | desc.required_features,
                 limits: desc.required_limits.clone(),
-                shader_validation: true,
             },
             None,
         ))?;
@@ -469,7 +469,7 @@ impl Texture {
         let size = Extent3d {
             width: img_dimensions.0,
             height: img_dimensions.1,
-            depth: 1,
+            depth_or_array_layers: 1,
         };
         let texture = Self::new(
             instance,
@@ -700,7 +700,7 @@ mod tests {
     fn new() {
         let instance = Instance::new(&InstanceDescriptor {
             backend: Backend::VULKAN,
-            power_preference: PowerPreference::Default,
+            power_preference: PowerPreference::HighPerformance,
             required_features: Features::default(),
             optional_features: Features::empty(),
             required_limits: Limits::default(),
