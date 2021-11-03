@@ -81,7 +81,7 @@ impl<T> WavDecoder<T>
 where
     T: std::io::Read + std::io::Seek,
 {
-    pub fn new(mut input: T) -> Result<Self, WavDecoderError> {
+    pub fn new(mut input: T) -> Result<Self, WavDecoderCreationError> {
         input.seek(std::io::SeekFrom::Start(0)).unwrap();
 
         let mut signature = WavSignature::zeroed();
@@ -89,11 +89,11 @@ where
         {
             let id_str = std::str::from_utf8(&signature.id).unwrap();
             if id_str != "RIFF" {
-                return Err(WavDecoderError::InvalidId(String::from(id_str)));
+                return Err(WavDecoderCreationError::InvalidId(String::from(id_str)));
             }
             let form_str = std::str::from_utf8(&signature.form).unwrap();
             if form_str != "WAVE" {
-                return Err(WavDecoderError::InvalidForm(String::from(form_str)));
+                return Err(WavDecoderCreationError::InvalidForm(String::from(form_str)));
             }
         }
 
@@ -102,13 +102,13 @@ where
         {
             let id_str = std::str::from_utf8(&format_chunk.signature.id).unwrap();
             if id_str != "fmt " {
-                return Err(WavDecoderError::InvalidFormatChunkId(String::from(id_str)));
+                return Err(WavDecoderCreationError::InvalidFormatChunkId(String::from(id_str)));
             }
             if format_chunk.channels != 1 && format_chunk.channels != 2 {
-                return Err(WavDecoderError::InvalidChannelCount(format_chunk.channels));
+                return Err(WavDecoderCreationError::InvalidChannelCount(format_chunk.channels));
             }
             if format_chunk.bits_per_sample != 8 && format_chunk.bits_per_sample != 16 {
-                return Err(WavDecoderError::InvalidBitsPerSample(
+                return Err(WavDecoderCreationError::InvalidBitsPerSample(
                     format_chunk.bits_per_sample,
                 ));
             }
@@ -117,12 +117,12 @@ where
                     * format_chunk.channels as u32
                     * (format_chunk.bits_per_sample / 8) as u32
             {
-                return Err(WavDecoderError::InvalidByteRate(format_chunk.byte_rate));
+                return Err(WavDecoderCreationError::InvalidByteRate(format_chunk.byte_rate));
             }
             if format_chunk.block_align
                 != format_chunk.channels * (format_chunk.bits_per_sample / 8)
             {
-                return Err(WavDecoderError::InvalidBlockAlignment(
+                return Err(WavDecoderCreationError::InvalidBlockAlignment(
                     format_chunk.block_align,
                 ));
             }
@@ -211,10 +211,8 @@ where
     }
 }
 
-// TODO: rename to WavDecoderInitializationError.
-// TODO: create a WavHeaderError class.
 #[derive(Debug)]
-pub enum WavDecoderError {
+pub enum WavDecoderCreationError {
     IoError(std::io::Error),
     InvalidId(String),
     InvalidForm(String),
@@ -225,7 +223,7 @@ pub enum WavDecoderError {
     InvalidBlockAlignment(u16),
 }
 
-impl std::fmt::Display for WavDecoderError {
+impl std::fmt::Display for WavDecoderCreationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::IoError(e) => write!(f, "Input / Output error ({})", e),
@@ -240,7 +238,7 @@ impl std::fmt::Display for WavDecoderError {
     }
 }
 
-impl std::error::Error for WavDecoderError {
+impl std::error::Error for WavDecoderCreationError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::IoError(e) => Some(e),
@@ -249,13 +247,11 @@ impl std::error::Error for WavDecoderError {
     }
 }
 
-impl From<std::io::Error> for WavDecoderError {
+impl From<std::io::Error> for WavDecoderCreationError {
     fn from(e: std::io::Error) -> Self {
         Self::IoError(e)
     }
 }
-
-// TODO: add tests for mono16 and stereo8.
 
 #[cfg(test)]
 mod tests {
@@ -419,6 +415,8 @@ mod tests {
         expect_that!(&buf, eq(vec![177, 177, 177, 176, 176, 128, 80]));
 
         decoder.byte_seek(std::io::SeekFrom::End(-3)).unwrap();
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(21228));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(21228));
 
         // Unable to read the whole buffer because at the end: the remaining elements
         // aren't overwritten!
@@ -605,6 +603,8 @@ mod tests {
         expect_that!(&buf, eq(vec![171, 48, 129, 48, 86, 48, 43, 48]));
 
         decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(42458));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(21229));
 
         // Unable to read the whole buffer because at the end: the remaining elements
         // aren't overwritten!
@@ -801,6 +801,8 @@ mod tests {
         expect_that!(&buf, eq(vec![162, 162, 162, 162, 162, 162, 162, 162]));
 
         decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(42458));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(21229));
 
         // Unable to read the whole buffer because at the end: the remaining elements
         // aren't overwritten!
@@ -997,8 +999,9 @@ mod tests {
         expect_that!(&buf, eq(vec![166, 34, 166, 34, 136, 34, 136, 34]));
 
         decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(84920));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(21230));
 
-        // TODO: assert new stream position after reading.
         // Unable to read the whole buffer because at the end: the remaining elements
         // aren't overwritten!
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(4));

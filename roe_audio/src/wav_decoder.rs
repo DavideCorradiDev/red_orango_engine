@@ -81,7 +81,7 @@ impl<T> WavDecoder<T>
 where
     T: std::io::Read + std::io::Seek,
 {
-    pub fn new(mut input: T) -> Result<Self, WavDecoderError> {
+    pub fn new(mut input: T) -> Result<Self, WavDecoderCreationError> {
         input.seek(std::io::SeekFrom::Start(0)).unwrap();
 
         let mut signature = WavSignature::zeroed();
@@ -89,11 +89,11 @@ where
         {
             let id_str = std::str::from_utf8(&signature.id).unwrap();
             if id_str != "RIFF" {
-                return Err(WavDecoderError::InvalidId(String::from(id_str)));
+                return Err(WavDecoderCreationError::InvalidId(String::from(id_str)));
             }
             let form_str = std::str::from_utf8(&signature.form).unwrap();
             if form_str != "WAVE" {
-                return Err(WavDecoderError::InvalidForm(String::from(form_str)));
+                return Err(WavDecoderCreationError::InvalidForm(String::from(form_str)));
             }
         }
 
@@ -102,13 +102,13 @@ where
         {
             let id_str = std::str::from_utf8(&format_chunk.signature.id).unwrap();
             if id_str != "fmt " {
-                return Err(WavDecoderError::InvalidFormatChunkId(String::from(id_str)));
+                return Err(WavDecoderCreationError::InvalidFormatChunkId(String::from(id_str)));
             }
             if format_chunk.channels != 1 && format_chunk.channels != 2 {
-                return Err(WavDecoderError::InvalidChannelCount(format_chunk.channels));
+                return Err(WavDecoderCreationError::InvalidChannelCount(format_chunk.channels));
             }
             if format_chunk.bits_per_sample != 8 && format_chunk.bits_per_sample != 16 {
-                return Err(WavDecoderError::InvalidBitsPerSample(
+                return Err(WavDecoderCreationError::InvalidBitsPerSample(
                     format_chunk.bits_per_sample,
                 ));
             }
@@ -117,12 +117,12 @@ where
                     * format_chunk.channels as u32
                     * (format_chunk.bits_per_sample / 8) as u32
             {
-                return Err(WavDecoderError::InvalidByteRate(format_chunk.byte_rate));
+                return Err(WavDecoderCreationError::InvalidByteRate(format_chunk.byte_rate));
             }
             if format_chunk.block_align
                 != format_chunk.channels * (format_chunk.bits_per_sample / 8)
             {
-                return Err(WavDecoderError::InvalidBlockAlignment(
+                return Err(WavDecoderCreationError::InvalidBlockAlignment(
                     format_chunk.block_align,
                 ));
             }
@@ -208,7 +208,7 @@ where
 }
 
 #[derive(Debug)]
-pub enum WavDecoderError {
+pub enum WavDecoderCreationError {
     IoError(std::io::Error),
     InvalidId(String),
     InvalidForm(String),
@@ -219,7 +219,7 @@ pub enum WavDecoderError {
     InvalidBlockAlignment(u16),
 }
 
-impl std::fmt::Display for WavDecoderError {
+impl std::fmt::Display for WavDecoderCreationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::IoError(e) => write!(f, "Input / Output error ({})", e),
@@ -234,7 +234,7 @@ impl std::fmt::Display for WavDecoderError {
     }
 }
 
-impl std::error::Error for WavDecoderError {
+impl std::error::Error for WavDecoderCreationError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::IoError(e) => Some(e),
@@ -243,7 +243,7 @@ impl std::error::Error for WavDecoderError {
     }
 }
 
-impl From<std::io::Error> for WavDecoderError {
+impl From<std::io::Error> for WavDecoderCreationError {
     fn from(e: std::io::Error) -> Self {
         Self::IoError(e)
     }
