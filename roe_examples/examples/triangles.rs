@@ -185,10 +185,10 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                 self.saved_triangle_constants
                     .push(self.generate_push_constant());
                 let mut rng = rand::thread_rng();
-                self.current_scaling = rng.gen_range(0.25, 4.);
-                self.current_color.r = rng.gen_range(0., 1.);
-                self.current_color.g = rng.gen_range(0., 1.);
-                self.current_color.b = rng.gen_range(0., 1.);
+                self.current_scaling = rng.gen_range(0.25..4.0);
+                self.current_color.r = rng.gen_range(0.0..1.0);
+                self.current_color.g = rng.gen_range(0.0..1.0);
+                self.current_color.b = rng.gen_range(0.0..1.0);
             }
         }
         Ok(ControlFlow::Continue)

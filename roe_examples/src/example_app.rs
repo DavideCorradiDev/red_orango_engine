@@ -147,7 +147,7 @@ impl ChangingColor {
             self.current_color.b = num::clamp(next_color[2], 0., 1.);
         } else {
             let mut rng = rand::thread_rng();
-            self.target_color = COLORS[rng.gen_range(0, COLORS.len())];
+            self.target_color = COLORS[rng.gen_range(0..COLORS.len())];
         }
     }
 }
