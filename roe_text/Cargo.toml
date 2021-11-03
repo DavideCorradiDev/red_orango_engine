@@ -5,15 +5,16 @@ name = "roe_text"
 version = "0.1.0"
 
 [dependencies]
-bytemuck = {version = "1.4"}
-freetype-rs = {version = "0.26"}
-harfbuzz_rs = {version = "1.2"}
-num-traits = {version = "0.2"}
-roe_graphics = {path = "../roe_graphics"}
+bytemuck = {version = "1.7.*"}
+freetype-rs = {version = "0.28.*"}
+harfbuzz_rs = {version = "2.0.*"}
+num-traits = {version = "0.2.*"}
+raw-window-handle = {version = "0.3.*"}
 roe_math = {path = "../roe_math", features = [
   "serde-serialize",
 ]}
-serde = {version = "1.0", features = ["derive"]}
+roe_graphics = {path = "../roe_graphics"}
+serde = {version = "1.0.*", features = ["derive"]}
 
 [dev-dependencies]
 galvanic-assert = "0.8"

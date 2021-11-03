@@ -5,9 +5,9 @@ name = "roe_examples"
 version = "0.1.0"
 
 [dependencies]
-image = {version = "0.23"}
-num = {version = "0.3"}
-rand = "0.7"
+image = {version = "0.23.*"}
+num = {version = "0.4.*"}
+rand = "0.8.*"
 roe_app = {path = "../roe_app"}
 roe_audio = {path = "../roe_audio"}
 roe_graphics = {path = "../roe_graphics"}

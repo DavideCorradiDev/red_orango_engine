@@ -8,9 +8,9 @@ edition = "2018"
 serde-serialize = ["serde", "nalgebra/serde-serialize"]
 
 [dependencies]
-nalgebra = "0.21"
-rand = "0.7"
-serde = { version = "1.0", features = ["derive"], optional = true }
+nalgebra = "0.29.*"
+rand = "0.8.*"
+serde = { version = "1.0.*", features = ["derive"], optional = true }
 
 [dev-dependencies]
-galvanic-assert = "0.8"
+galvanic-assert = "0.8.*"

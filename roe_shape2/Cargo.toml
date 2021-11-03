@@ -5,25 +5,25 @@ name = "roe_shape2"
 version = "0.1.0"
 
 [dependencies]
-as-slice = {version = "0.1"}
-bitflags = {version = "1.2"}
-bytemuck = {version = "1.4"}
-futures = {version = "0.3"}
-image = {version = "0.23"}
-num = {version = "0.3"}
-num-traits = {version = "0.2"}
-raw-window-handle = {version = "0.3"}
+as-slice = {version = "0.2.*"}
+bitflags = {version = "1.3.*"}
+bytemuck = {version = "1.7.*"}
+futures = {version = "0.3.*"}
+image = {version = "0.23.*"}
+num = {version = "0.4.*"}
+num-traits = {version = "0.2.*"}
+raw-window-handle = {version = "0.3.*"}
 roe_app = {path = "../roe_app"}
 roe_math = {path = "../roe_math", features = [
   "serde-serialize",
 ]}
 roe_graphics = {path = "../roe_graphics"}
-serde = {version = "1.0", features = ["derive"]}
-wgpu = {version = "0.6", features = ["trace", "replay"]}
+serde = {version = "1.0.*", features = ["derive"]}
+wgpu = {version = "0.11.*", features = ["trace", "replay"]}
 
 [dev-dependencies]
-galvanic-assert = "0.8"
-serial_test = "0.4"
+galvanic-assert = "0.8.*"
+serial_test = "0.5.*"
 
 [build-dependencies]
 roe_shader = {path = "../roe_shader"}

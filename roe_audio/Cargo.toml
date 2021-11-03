@@ -5,15 +5,15 @@ name = "roe_audio"
 version = "0.1.0"
 
 [dependencies]
-alto = "3.0"
-bytemuck = {version = "1.4"}
-itertools = "0.10"
-lazy_static = "1.4"
-lewton = "0.10"
+alto = "3.0.*"
+bytemuck = {version = "1.7.*"}
+itertools = "0.10.*"
+lazy_static = "1.4.*"
+lewton = "0.10.*"
 
 [dev-dependencies]
-galvanic-assert = "0.8"
-serial_test = "0.4"
+galvanic-assert = "0.8.*"
+serial_test = "0.5.*"
 
 [build-dependencies]
-cmake = "0.1.40"
+cmake = "0.1.*"
