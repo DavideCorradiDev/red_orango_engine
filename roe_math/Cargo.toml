@@ -2,7 +2,7 @@
 name = "roe_math"
 version = "0.1.0"
 authors = ["Davide Corradi <davide.corradi.dev@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [features]
 serde-serialize = ["serde", "nalgebra/serde-serialize"]
