@@ -36,17 +36,32 @@ where
         })
     }
 
+    // fn compute_byte_data_offset(input: &mut OggStreamReader<T>) -> Result<usize, OggDecoderCreationError> {
+    //     let mut byte_data_offset = None;
+    //     while byte_data_offset == 0 {
+    //         input.read_dec_packet()?;
+    //     }
+    // }
+
     fn compute_sample_count(input: &mut OggStreamReader<T>) -> Result<usize, OggDecoderCreationError> {
         let mut sample_count = 0;
+        println!("Position: {}", input.get_last_absgp().unwrap_or(7887907));
         loop {
-            let data = input.read_dec_packet()?;
+            let data = input.read_dec_packet_itl()?;
+            println!("Position: {}", input.get_last_absgp().unwrap_or(7887907));
             match data {
-                Some(data) => sample_count += data.len(),
+                Some(data) => {
+                    sample_count += data.len();
+                    println!("Read {} data", data.len());
+                }
                 None => break,
             }
         }
+        println!("Position: {}", input.get_last_absgp().unwrap_or(0));
         sample_count /= input.ident_hdr.audio_channels as usize;
-        input.seek_absgp_pg(0)?;
+        input.seek_absgp_pg(704)?;
+        let data = input.read_dec_packet().expect("FELL INTO A TRAP!");
+        println!("READ PACKET AGAIN!");
         Ok(sample_count)
     }
 
@@ -411,15 +426,21 @@ mod tests {
         let mut decoder = OggDecoder::new(buf).unwrap();
         let mut buf = vec![0; 8];
 
+        println!("");
+        println!("1");
+
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(8));
         expect_that!(&buf, eq(vec![87, 49, 44, 49, 1, 49, 214, 48]));
+        println!("2");
 
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(8));
         expect_that!(&buf, eq(vec![171, 48, 129, 48, 86, 48, 43, 48]));
+        println!("3");
 
         decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
         expect_that!(&decoder.byte_stream_position().unwrap(), eq(42458));
         expect_that!(&decoder.sample_stream_position().unwrap(), eq(21229));
+        println!("4");
 
         // Unable to read the whole buffer because at the end: the remaining elements
         // aren't overwritten!
@@ -427,35 +448,35 @@ mod tests {
         expect_that!(&buf, eq(vec![0, 0, 0, 0, 86, 48, 43, 48]));
     }
 
-    #[test]
-    #[should_panic(expected = "Invalid buffer length (7)")]
-    fn mono16_read_invalid_buffer_length() {
-        let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
-        let buf = std::io::BufReader::new(file);
-        let mut decoder = OggDecoder::new(buf).unwrap();
-        let mut buf = vec![0; 7];
-        decoder.read(&mut buf).unwrap();
-    }
+    // #[test]
+    // #[should_panic(expected = "Invalid buffer length (7)")]
+    // fn mono16_read_invalid_buffer_length() {
+    //     let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
+    //     let buf = std::io::BufReader::new(file);
+    //     let mut decoder = OggDecoder::new(buf).unwrap();
+    //     let mut buf = vec![0; 7];
+    //     decoder.read(&mut buf).unwrap();
+    // }
 
-    #[test]
-    fn mono16_read_to_end() {
-        let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
-        let buf = std::io::BufReader::new(file);
-        let mut decoder = OggDecoder::new(buf).unwrap();
-        decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
-        let content = decoder.read_to_end().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count() - 572));
-    }
+    // #[test]
+    // fn mono16_read_to_end() {
+    //     let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
+    //     let buf = std::io::BufReader::new(file);
+    //     let mut decoder = OggDecoder::new(buf).unwrap();
+    //     decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
+    //     let content = decoder.read_to_end().unwrap();
+    //     expect_that!(&content.len(), eq(decoder.byte_count() - 572));
+    // }
 
-    #[test]
-    fn mono16_read_all() {
-        let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
-        let buf = std::io::BufReader::new(file);
-        let mut decoder = OggDecoder::new(buf).unwrap();
-        decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
-        let content = decoder.read_all().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count()));
-    }
+    // #[test]
+    // fn mono16_read_all() {
+    //     let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
+    //     let buf = std::io::BufReader::new(file);
+    //     let mut decoder = OggDecoder::new(buf).unwrap();
+    //     decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
+    //     let content = decoder.read_all().unwrap();
+    //     expect_that!(&content.len(), eq(decoder.byte_count()));
+    // }
 
     #[test]
     fn stereo16_loading() {
