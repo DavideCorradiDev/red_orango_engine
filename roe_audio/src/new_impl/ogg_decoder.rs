@@ -304,33 +304,33 @@ mod tests {
         expect_that!(&decoder.byte_stream_position().unwrap(), eq(8));
         expect_that!(&decoder.sample_stream_position().unwrap(), eq(4));
 
-        // // From end.
-        // expect_that!(
-        //     &decoder.byte_seek(std::io::SeekFrom::End(-12)).unwrap(),
-        //     eq(42450)
-        // );
-        // expect_that!(&decoder.byte_stream_position().unwrap(), eq(42450));
-        // expect_that!(&decoder.sample_stream_position().unwrap(), eq(21225));
+        // From end.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::End(-12)).unwrap(),
+            eq(36)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(36));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(18));
 
-        // // Beyond end.
-        // expect_that!(
-        //     &decoder.byte_seek(std::io::SeekFrom::End(40)).unwrap(),
-        //     eq(42462)
-        // );
-        // expect_that!(&decoder.byte_stream_position().unwrap(), eq(42462));
-        // expect_that!(&decoder.sample_stream_position().unwrap(), eq(21231));
+        // Beyond end.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::End(40)).unwrap(),
+            eq(48)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(48));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(24));
 
-        // // Before start.
-        // expect_that!(
-        //     &decoder.byte_seek(std::io::SeekFrom::Start(0)).unwrap(),
-        //     eq(0)
-        // );
-        // expect_that!(
-        //     &decoder.byte_seek(std::io::SeekFrom::Current(-3)).unwrap(),
-        //     eq(0)
-        // );
-        // expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
-        // expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+        // Before start.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Start(0)).unwrap(),
+            eq(0)
+        );
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Current(-3)).unwrap(),
+            eq(0)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
     }
 
     #[test]
@@ -378,18 +378,18 @@ mod tests {
         // From end.
         expect_that!(
             &decoder.sample_seek(std::io::SeekFrom::End(-3)).unwrap(),
-            eq(21228)
+            eq(21)
         );
-        expect_that!(&decoder.byte_stream_position().unwrap(), eq(42456));
-        expect_that!(&decoder.sample_stream_position().unwrap(), eq(21228));
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(42));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(21));
 
         // Beyond end.
         expect_that!(
             &decoder.sample_seek(std::io::SeekFrom::End(10)).unwrap(),
-            eq(21231)
+            eq(24)
         );
-        expect_that!(&decoder.byte_stream_position().unwrap(), eq(42462));
-        expect_that!(&decoder.sample_stream_position().unwrap(), eq(21231));
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(48));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(24));
 
         // Before start.
         expect_that!(
