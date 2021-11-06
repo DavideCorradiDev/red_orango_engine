@@ -45,6 +45,11 @@ where
             byte_count += packet.data.len();
             maybe_packet = packet_reader.read_packet()?;
         }
+
+        // Reset to start of packet reader and re-read headers to make sure to be at the right offset.
+        packet_reader.seek_bytes(std::io::SeekFrom::Start(0))?;
+        lewton::inside_ogg::read_headers(packet_reader)?;
+
         Ok(byte_count)
     }
 }
