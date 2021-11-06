@@ -12,6 +12,7 @@ where
     setup_header: lewton::header::SetupHeader,
     stream_serial: u32,
     format: AudioFormat,
+    sample_count: usize,
 }
 
 impl<T> OggDecoder<T>
@@ -24,6 +25,7 @@ where
             lewton::inside_ogg::read_headers(&mut packet_reader)?;
         const BYTES_PER_SAMPLE: u32 = 2;
         let format = AudioFormat::new(ident_header.audio_channels as u32, BYTES_PER_SAMPLE);
+        let sample_count = Self::compute_byte_count(&mut packet_reader)? / format.bytes_per_sample() as usize;
         Ok(Self {
             packet_reader,
             ident_header,
@@ -31,7 +33,19 @@ where
             setup_header,
             stream_serial,
             format,
+            sample_count,
         })
+    }
+
+    fn compute_byte_count(packet_reader: &mut PacketReader<T>) -> Result<usize, DecoderError> {
+        let mut maybe_packet = packet_reader.read_packet()?;
+        let mut byte_count = 0;
+        while maybe_packet.is_some() {
+            let packet = maybe_packet.unwrap();
+            byte_count += packet.data.len();
+            maybe_packet = packet_reader.read_packet()?;
+        }
+        Ok(byte_count)
     }
 }
 
@@ -48,11 +62,11 @@ where
     }
 
     fn sample_rate(&self) -> u32 {
-        0
+        self.ident_header.audio_sample_rate
     }
 
     fn sample_count(&self) -> usize {
-        0
+        self.sample_count
     }
 
     fn sample_stream_position(&mut self) -> std::io::Result<u64> {
@@ -163,8 +177,8 @@ mod tests {
         let buf = std::io::BufReader::new(file);
         let decoder = OggDecoder::new(buf).unwrap();
         expect_that!(&decoder.audio_format(), eq(AudioFormat::Mono16));
-        expect_that!(&decoder.byte_count(), eq(24 * 2));
-        expect_that!(&decoder.sample_count(), eq(24));
+        expect_that!(&decoder.byte_count(), eq(1420 * 2));
+        expect_that!(&decoder.sample_count(), eq(1420));
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
