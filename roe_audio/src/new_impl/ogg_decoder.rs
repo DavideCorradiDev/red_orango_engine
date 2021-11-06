@@ -21,11 +21,17 @@ where
 {
     pub fn new(input: T) -> Result<Self, DecoderError> {
         let mut packet_reader = PacketReader::new(input);
+
         let ((ident_header, comment_header, setup_header), stream_serial) =
             lewton::inside_ogg::read_headers(&mut packet_reader)?;
+
+        let channel_count = ident_header.audio_channels as u32;
         const BYTES_PER_SAMPLE: u32 = 2;
-        let format = AudioFormat::new(ident_header.audio_channels as u32, BYTES_PER_SAMPLE);
-        let sample_count = Self::compute_byte_count(&mut packet_reader)? / format.bytes_per_sample() as usize;
+        let format = AudioFormat::new(channel_count, BYTES_PER_SAMPLE);
+
+        let sample_count =
+            Self::compute_sample_count(&ident_header, &setup_header, &mut packet_reader)?;
+
         Ok(Self {
             packet_reader,
             ident_header,
@@ -37,20 +43,42 @@ where
         })
     }
 
-    fn compute_byte_count(packet_reader: &mut PacketReader<T>) -> Result<usize, DecoderError> {
+    fn compute_sample_count(
+        ident_header: &lewton::header::IdentHeader,
+        setup_header: &lewton::header::SetupHeader,
+        packet_reader: &mut PacketReader<T>,
+    ) -> Result<usize, DecoderError> {
         let mut maybe_packet = packet_reader.read_packet()?;
-        let mut byte_count = 0;
+        let mut sample_count = 0;
+        let mut previous_window_right = lewton::audio::PreviousWindowRight::new();
         while maybe_packet.is_some() {
             let packet = maybe_packet.unwrap();
-            byte_count += packet.data.len();
+            let decoded_data = lewton::audio::read_audio_packet(
+                ident_header,
+                setup_header,
+                &packet.data,
+                &mut previous_window_right,
+            )?;
+            for channel in decoded_data {
+                sample_count += channel.len()
+            }
             maybe_packet = packet_reader.read_packet()?;
         }
+
+        // Divide by the number of channels.
+        let channel_count = ident_header.audio_channels as usize;
+        if sample_count % channel_count != 0 {
+            return Err(DecoderError::InvalidData(String::from(
+                "The number of samples is not a multiple of the number of channels",
+            )));
+        }
+        sample_count /= channel_count;
 
         // Reset to start of packet reader and re-read headers to make sure to be at the right offset.
         packet_reader.seek_bytes(std::io::SeekFrom::Start(0))?;
         lewton::inside_ogg::read_headers(packet_reader)?;
 
-        Ok(byte_count)
+        Ok(sample_count)
     }
 }
 
@@ -182,8 +210,8 @@ mod tests {
         let buf = std::io::BufReader::new(file);
         let decoder = OggDecoder::new(buf).unwrap();
         expect_that!(&decoder.audio_format(), eq(AudioFormat::Mono16));
-        expect_that!(&decoder.byte_count(), eq(1420 * 2));
-        expect_that!(&decoder.sample_count(), eq(1420));
+        expect_that!(&decoder.byte_count(), eq(22103 * 2));
+        expect_that!(&decoder.sample_count(), eq(22103));
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
