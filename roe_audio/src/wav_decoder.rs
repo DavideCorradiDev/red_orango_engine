@@ -102,10 +102,14 @@ where
         {
             let id_str = std::str::from_utf8(&format_chunk.signature.id).unwrap();
             if id_str != "fmt " {
-                return Err(WavDecoderCreationError::InvalidFormatChunkId(String::from(id_str)));
+                return Err(WavDecoderCreationError::InvalidFormatChunkId(String::from(
+                    id_str,
+                )));
             }
             if format_chunk.channels != 1 && format_chunk.channels != 2 {
-                return Err(WavDecoderCreationError::InvalidChannelCount(format_chunk.channels));
+                return Err(WavDecoderCreationError::InvalidChannelCount(
+                    format_chunk.channels,
+                ));
             }
             if format_chunk.bits_per_sample != 8 && format_chunk.bits_per_sample != 16 {
                 return Err(WavDecoderCreationError::InvalidBitsPerSample(
@@ -117,7 +121,9 @@ where
                     * format_chunk.channels as u32
                     * (format_chunk.bits_per_sample / 8) as u32
             {
-                return Err(WavDecoderCreationError::InvalidByteRate(format_chunk.byte_rate));
+                return Err(WavDecoderCreationError::InvalidByteRate(
+                    format_chunk.byte_rate,
+                ));
             }
             if format_chunk.block_align
                 != format_chunk.channels * (format_chunk.bits_per_sample / 8)
