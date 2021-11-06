@@ -10,6 +10,7 @@ bytemuck = {version = "1.7.*"}
 itertools = "0.10.*"
 lazy_static = "1.4.*"
 ogg = "0.8.*"
+vorbis = {path = "../vorbis"}
 
 [dev-dependencies]
 galvanic-assert = "0.8.*"

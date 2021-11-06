@@ -59,8 +59,8 @@ where
         }
         println!("Position: {}", input.get_last_absgp().unwrap_or(0));
         sample_count /= input.ident_hdr.audio_channels as usize;
-        input.seek_absgp_pg(704)?;
-        let data = input.read_dec_packet().expect("FELL INTO A TRAP!");
+        input.seek_absgp_pg(0)?;
+        let data = input.read_dec_packet_itl().expect("FELL INTO A TRAP!");
         println!("READ PACKET AGAIN!");
         Ok(sample_count)
     }

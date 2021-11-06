@@ -1,0 +1,14 @@
+[package]
+name = "vorbis"
+version = "0.1.0"
+authors = ["Pierre Krieger <pierre.krieger1708@gmail.com>"]
+description = "High-level bindings for the official libvorbis library."
+repository = "https://github.com/tomaka/vorbis-rs"
+license = "Apache-2.0"
+
+[dependencies]
+libc = "0.2"
+ogg-sys = "0.0.9"
+rand = "0.3"
+vorbis-sys = "0.1"
+vorbisfile-sys = "0.0.8"
