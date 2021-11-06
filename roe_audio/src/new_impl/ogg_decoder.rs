@@ -14,7 +14,6 @@ impl<T> OggDecoder<T>
 where
     T: std::io::Read + std::io::Seek,
 {
-    // TODO: return result.
     pub fn new(input: T) -> Result<Self, DecoderError> {
         let mut decoder = vorbis::Decoder::new(input)?;
         let mut channel_count = 0;
@@ -89,5 +88,17 @@ impl From<vorbis::VorbisError> for DecoderError {
             vorbis::VorbisError::InvalidSetup => DecoderError::InvalidData(String::from("Invalid vorbis setup")),
             vorbis::VorbisError::Unimplemented => DecoderError::Unimplemented,
         }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use galvanic_assert::{matchers::*, *};
+
+    #[test]
+    fn invalid_input_file() {
+        let file = std::fs::File::open("data/audio/not-an-audio-file.txt").unwrap();
+        let buf = std::io::BufReader::new(file);
+        expect_that!(&OggDecoder::new(buf), is_variant!(Result::Err));
     }
 }
