@@ -283,7 +283,29 @@ where
     }
 
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        Ok(0)
+        if let None = self.packet {
+            self.read_next_packet().unwrap();
+        }
+
+        let mut read_byte_count = 0;
+        while read_byte_count < buf.len() {
+            match &self.packet {
+                Some(p) => {
+                    let byte_data = bytemuck::cast_slice(p.as_slice());
+                    let byte_to_read_count =
+                        std::cmp::min(byte_data.len(), buf.len() - read_byte_count);
+                    buf[read_byte_count..read_byte_count + byte_to_read_count]
+                        .clone_from_slice(&byte_data[0..byte_to_read_count]);
+                    read_byte_count += byte_to_read_count;
+                    if byte_to_read_count == byte_data.len() {
+                        self.read_next_packet().unwrap();
+                    }
+                }
+                None => break,
+            }
+        }
+
+        Ok(read_byte_count)
     }
 }
 
@@ -475,4 +497,100 @@ mod tests {
         decoder.byte_seek(std::io::SeekFrom::Start(3)).unwrap();
     }
 
+    #[test]
+    fn mono16_sample_seek() {
+        let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
+
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+
+        // From start.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Start(3)).unwrap(),
+            eq(3)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(6));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(3));
+
+        // From current positive.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Current(1)).unwrap(),
+            eq(4)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(8));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(4));
+
+        // From current negative.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Current(-2)).unwrap(),
+            eq(2)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(4));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(2));
+
+        // From end.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::End(-3)).unwrap(),
+            eq(decoder.sample_count() as u64 - 3)
+        );
+        expect_that!(
+            &decoder.byte_stream_position().unwrap(),
+            eq(decoder.byte_count() as u64 - 6)
+        );
+        expect_that!(
+            &decoder.sample_stream_position().unwrap(),
+            eq(decoder.sample_count() as u64 - 3)
+        );
+
+        // Beyond end.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::End(10)).unwrap(),
+            eq(decoder.sample_count() as u64)
+        );
+        expect_that!(
+            &decoder.byte_stream_position().unwrap(),
+            eq(decoder.byte_count() as u64)
+        );
+        expect_that!(
+            &decoder.sample_stream_position().unwrap(),
+            eq(decoder.sample_count() as u64)
+        );
+
+        // Before start.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Start(0)).unwrap(),
+            eq(0)
+        );
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Current(-3)).unwrap(),
+            eq(0)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+    }
+
+    #[test]
+    fn mono16_read() {
+        let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
+        let mut buf = vec![0; 8];
+
+        expect_that!(&decoder.read(&mut buf).unwrap(), eq(8));
+        expect_that!(&buf, eq(vec![87, 49, 44, 49, 1, 49, 214, 48]));
+
+        expect_that!(&decoder.read(&mut buf).unwrap(), eq(8));
+        expect_that!(&buf, eq(vec![171, 48, 129, 48, 86, 48, 43, 48]));
+
+        decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(42458));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(21229));
+
+        // Unable to read the whole buffer because at the end: the remaining elements
+        // aren't overwritten!
+        expect_that!(&decoder.read(&mut buf).unwrap(), eq(4));
+        expect_that!(&buf, eq(vec![0, 0, 0, 0, 86, 48, 43, 48]));
+    }
 }
