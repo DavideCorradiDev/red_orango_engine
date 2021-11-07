@@ -3,6 +3,129 @@ use ogg::reading::PacketReader;
 
 use super::{AudioFormat, Decoder};
 
+struct OggContext {
+    ident_header: lewton::header::IdentHeader,
+    comment_header: lewton::header::CommentHeader,
+    setup_header: lewton::header::SetupHeader,
+    previous_window_right: lewton::audio::PreviousWindowRight,
+    cur_absgp: Option<u64>,
+    stream_serial: u32,
+}
+
+fn decode_ogg_packet_generic<S: Samples>(
+    packet: &ogg::Packet,
+    context: &mut OggContext,
+) -> Result<S, DecoderError> {
+    Ok(lewton::audio::read_audio_packet_generic(
+        &mut context.ident_header,
+        &mut context.setup_header,
+        &packet.data,
+        &mut context.previous_window_right,
+    )?)
+}
+
+fn decode_ogg_packet(
+    packet: &ogg::Packet,
+    context: &mut OggContext,
+) -> Result<Vec<Vec<i16>>, DecoderError> {
+    decode_ogg_packet_generic(packet, context)
+}
+
+fn read_next_ogg_packet<T: std::io::Read + std::io::Seek>(
+    packet_reader: &mut PacketReader<T>,
+    context: &mut OggContext,
+) -> Result<Option<ogg::Packet>, DecoderError> {
+    loop {
+        let packet = match packet_reader.read_packet()? {
+            Some(p) => p,
+            None => return Ok(None),
+        };
+
+        if packet.stream_serial() == context.stream_serial {
+            return Ok(Some(packet));
+        }
+
+        if packet.first_in_stream() {
+            // Re-initialize headers.
+            let ident_header = lewton::header::read_header_ident(&packet.data)?;
+
+            let packet = packet_reader.read_packet_expected()?;
+            let comment_header = lewton::header::read_header_comment(&packet.data)?;
+
+            let packet = packet_reader.read_packet_expected()?;
+            let setup_header = lewton::header::read_header_setup(
+                &packet.data,
+                ident_header.audio_channels,
+                (ident_header.blocksize_0, ident_header.blocksize_1),
+            )?;
+
+            context.ident_header = ident_header;
+            context.comment_header = comment_header;
+            context.setup_header = setup_header;
+            context.previous_window_right = lewton::audio::PreviousWindowRight::new();
+            context.cur_absgp = None;
+            context.stream_serial = packet.stream_serial();
+
+            // Read the first data packet to initialize the previous_window_right.
+            let packet = match packet_reader.read_packet()? {
+                Some(p) => p,
+                None => return Ok(None),
+            };
+            decode_ogg_packet(&packet, context)?;
+            context.cur_absgp = Some(packet.absgp_page());
+
+            return Ok(packet_reader.read_packet()?);
+        }
+    }
+}
+
+fn read_next_decoded_packet_generic<T: std::io::Read + std::io::Seek, S: Samples>(
+    packet_reader: &mut PacketReader<T>,
+    context: &mut OggContext,
+) -> Result<Option<S>, DecoderError> {
+    let packet = match read_next_ogg_packet(packet_reader, context)? {
+        Some(p) => p,
+        None => return Ok(None),
+    };
+    let mut decoded_packet: S = decode_ogg_packet_generic(&packet, context)?;
+
+    // If this is the last packet in the logical bitstream, it has to be truncated so
+    // that the end matches the absgp of the current page.
+    if let (Some(absgp), true) = (context.cur_absgp, packet.last_in_stream()) {
+        let target_length = packet.absgp_page().saturating_sub(absgp) as usize;
+        decoded_packet.truncate(target_length);
+    }
+
+    if packet.last_in_page() {
+        context.cur_absgp = Some(packet.absgp_page());
+    } else if let &mut Some(ref mut absgp) = &mut context.cur_absgp {
+        *absgp += decoded_packet.num_samples() as u64;
+    }
+
+    Ok(Some(decoded_packet))
+}
+
+fn read_next_decoded_packet<T: std::io::Read + std::io::Seek>(
+    packet_reader: &mut PacketReader<T>,
+    context: &mut OggContext,
+) -> Result<Option<Vec<Vec<i16>>>, DecoderError> {
+    read_next_decoded_packet(packet_reader, context)
+}
+
+fn read_next_decoded_packet_interleaved<T: std::io::Read + std::io::Seek>(
+    packet_reader: &mut PacketReader<T>,
+    context: &mut OggContext,
+) -> Result<Option<Vec<i16>>, DecoderError> {
+    let decoded_packet = match read_next_decoded_packet_generic::<
+        T, lewton::samples::InterleavedSamples<_>,
+    >(packet_reader, context)?
+    {
+        Some(p) => p,
+        None => return Ok(None),
+    };
+    Ok(Some(decoded_packet.samples))
+}
+
 pub struct OggDecoder<T>
 where
     T: std::io::Read + std::io::Seek,
