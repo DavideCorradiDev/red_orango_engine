@@ -465,4 +465,14 @@ mod tests {
         expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
         expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
     }
+
+    #[test]
+    #[should_panic(expected = "Invalid seek offset (3)")]
+    fn mono16_byte_seek_invalid_offset() {
+        let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
+        decoder.byte_seek(std::io::SeekFrom::Start(3)).unwrap();
+    }
+
 }
