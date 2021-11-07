@@ -49,12 +49,16 @@ where
     }
 
     fn decode_ogg_packet(&mut self, packet: &ogg::Packet) -> Result<Vec<Vec<i16>>, DecoderError> {
-        return Ok(lewton::audio::read_audio_packet(
+        self.decode_ogg_packet_generic(packet)
+    }
+
+    fn decode_ogg_packet_generic<S: Samples>(&mut self, packet: &ogg::Packet) -> Result<S, DecoderError> {
+        Ok(lewton::audio::read_audio_packet_generic(
             &mut self.ident_header,
             &mut self.setup_header,
             &packet.data,
             &mut self.previous_window_right,
-        )?);
+        )?)
     }
 
     fn read_next_ogg_packet(&mut self) -> Result<Option<ogg::Packet>, DecoderError> {
@@ -102,18 +106,17 @@ where
         }
     }
 
-    fn read_next_decoded_packet(&mut self) -> Result<Option<Vec<Vec<i16>>>, DecoderError> {
+    fn read_next_decoded_packet_generic<S: Samples>(&mut self) -> Result<Option<S>, DecoderError> {
         let packet = match self.read_next_ogg_packet()? {
             Some(p) => p,
             None => return Ok(None),
         };
-        let mut decoded_packet = self.decode_ogg_packet(&packet)?;
+        let mut decoded_packet: S = self.decode_ogg_packet_generic(&packet)?;
 
         // If this is the last packet in the logical bitstream, it has to be truncated so
         // that the end matches the absgp of the current page.
         if let (Some(absgp), true) = (self.cur_absgp, packet.last_in_stream()) {
             let target_length = packet.absgp_page().saturating_sub(absgp) as usize;
-            // TODO: is this truncation correct?
             decoded_packet.truncate(target_length);
         }
 
@@ -125,6 +128,20 @@ where
         }
 
         Ok(Some(decoded_packet))
+    }
+
+    fn read_next_decoded_packet(&mut self) -> Result<Option<Vec<Vec<i16>>>, DecoderError>
+    {
+        self.read_next_decoded_packet()
+    }
+
+    fn read_next_decoded_packet_interleaved(&mut self) -> Result<Option<Vec<i16>>, DecoderError>
+    {
+        let decoded_packet = match self.read_next_decoded_packet_generic::<lewton::samples::InterleavedSamples<_>>()? {
+            Some(p) => p,
+            None => return Ok(None),
+        };
+        Ok(Some(decoded_packet.samples))
     }
 
     // fn compute_sample_count(&mut self) -> Result<usize, DecoderError> {
