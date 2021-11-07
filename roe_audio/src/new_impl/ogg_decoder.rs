@@ -35,23 +35,31 @@ fn read_next_ogg_packet<T: std::io::Read + std::io::Seek>(
     packet_reader: &mut PacketReader<T>,
     context: &mut OggContext,
 ) -> Result<Option<ogg::Packet>, DecoderError> {
+    println!("READING OGG PACKET");
     loop {
+        println!("READING PACKET");
         let packet = match packet_reader.read_packet()? {
             Some(p) => p,
             None => return Ok(None),
         };
 
+        println!("CHECKING IF SERIAL MATCHES");
         if packet.stream_serial() == context.stream_serial {
+            println!("IT MATCHES");
             return Ok(Some(packet));
         }
 
+        println!("CHECKING IF THE PACKET IS FIRST IN STREAM");
         if packet.first_in_stream() {
+            println!("READING HEADER 1");
             // Re-initialize headers.
             let ident_header = lewton::header::read_header_ident(&packet.data)?;
 
+            println!("READING HEADER 2");
             let packet = packet_reader.read_packet_expected()?;
             let comment_header = lewton::header::read_header_comment(&packet.data)?;
 
+            println!("READING HEADER 3");
             let packet = packet_reader.read_packet_expected()?;
             let setup_header = lewton::header::read_header_setup(
                 &packet.data,
@@ -59,6 +67,7 @@ fn read_next_ogg_packet<T: std::io::Read + std::io::Seek>(
                 (ident_header.blocksize_0, ident_header.blocksize_1),
             )?;
 
+            println!("CONTEXT UPDATE");
             context.ident_header = ident_header;
             context.comment_header = comment_header;
             context.setup_header = setup_header;
@@ -67,13 +76,17 @@ fn read_next_ogg_packet<T: std::io::Read + std::io::Seek>(
             context.stream_serial = packet.stream_serial();
 
             // Read the first data packet to initialize the previous_window_right.
+            println!("READ NEW PACKET");
             let packet = match packet_reader.read_packet()? {
                 Some(p) => p,
                 None => return Ok(None),
             };
+            println!("DECODE_PACKET");
             decode_ogg_packet(&packet, context)?;
+            println!("UPDATE ABSGP");
             context.cur_absgp = Some(packet.absgp_page());
 
+            println!("DONE!");
             return Ok(packet_reader.read_packet()?);
         }
     }
@@ -109,7 +122,7 @@ fn read_next_decoded_packet<T: std::io::Read + std::io::Seek>(
     packet_reader: &mut PacketReader<T>,
     context: &mut OggContext,
 ) -> Result<Option<Vec<Vec<i16>>>, DecoderError> {
-    read_next_decoded_packet(packet_reader, context)
+    read_next_decoded_packet_generic(packet_reader, context)
 }
 
 fn read_next_decoded_packet_interleaved<T: std::io::Read + std::io::Seek>(
@@ -127,6 +140,43 @@ fn read_next_decoded_packet_interleaved<T: std::io::Read + std::io::Seek>(
     Ok(Some(decoded_packet.samples))
 }
 
+fn compute_sample_count<T: std::io::Read + std::io::Seek>(
+    packet_reader: &mut PacketReader<T>
+) -> Result<usize, DecoderError> {
+    let mut sample_count = 0;
+    println!("--SEEKING TO START");
+    packet_reader.seek_bytes(std::io::SeekFrom::Start(0))?;
+    println!("Creating context");
+    let ((ident_header, comment_header, setup_header), stream_serial) =
+        lewton::inside_ogg::read_headers(packet_reader)?;
+
+    let mut context = OggContext {
+        ident_header,
+        comment_header,
+        setup_header,
+        previous_window_right: lewton::audio::PreviousWindowRight::new(),
+        cur_absgp: None,
+        stream_serial,
+    };
+    println!("--STARTING LOOP");
+    loop {
+        println!("--READING PACKET");
+        let packet = match read_next_decoded_packet(packet_reader, &mut context)? {
+            Some(p) => p,
+            None => break,
+        };
+
+        println!("--COMPUTING NUMBER OF SAMPLES IN PACKET.");
+        for channel in packet {
+            sample_count += channel.len();
+        }
+    }
+    println!("--SEEKING TO START AGAIN");
+    packet_reader.seek_bytes(std::io::SeekFrom::Start(0))?;
+    println!("--COMPUTATION DONE!");
+    Ok(sample_count)
+}
+
 pub struct OggDecoder<T>
 where
     T: std::io::Read + std::io::Seek,
@@ -134,6 +184,7 @@ where
     packet_reader: PacketReader<T>,
     context: OggContext,
     format: AudioFormat,
+    sample_rate: u32,
     sample_count: usize,
 }
 
@@ -143,11 +194,12 @@ where
 {
     pub fn new(input: T) -> Result<Self, DecoderError> {
         let mut packet_reader = PacketReader::new(input);
+        let sample_count = compute_sample_count(&mut packet_reader)?;
 
         let ((ident_header, comment_header, setup_header), stream_serial) =
             lewton::inside_ogg::read_headers(&mut packet_reader)?;
 
-        let context = OggContext {
+        let mut context = OggContext {
             ident_header,
             comment_header,
             setup_header,
@@ -159,11 +211,14 @@ where
         const BYTES_PER_SAMPLE: u32 = 2;
         let format = AudioFormat::new(context.ident_header.audio_channels as u32, BYTES_PER_SAMPLE);
 
+        let sample_rate = context.ident_header.audio_sample_rate;
+
         Ok(Self {
             packet_reader,
             context,
             format,
-            sample_count: 0,
+            sample_rate,
+            sample_count,
         })
     }
 
@@ -189,7 +244,7 @@ where
     }
 
     fn sample_rate(&self) -> u32 {
-        self.context.ident_header.audio_sample_rate
+        self.sample_rate
     }
 
     fn sample_count(&self) -> usize {
