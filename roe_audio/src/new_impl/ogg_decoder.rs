@@ -12,185 +12,134 @@ struct OggContext {
     stream_serial: u32,
 }
 
-fn decode_ogg_packet_generic<S: Samples>(
-    packet: &ogg::Packet,
-    context: &mut OggContext,
-) -> Result<S, DecoderError> {
-    Ok(lewton::audio::read_audio_packet_generic(
-        &mut context.ident_header,
-        &mut context.setup_header,
-        &packet.data,
-        &mut context.previous_window_right,
-    )?)
-}
+impl OggContext {
+    fn new<T: std::io::Read + std::io::Seek>(
+        packet_reader: &mut PacketReader<T>,
+    ) -> Result<Self, DecoderError> {
+        packet_reader.seek_bytes(std::io::SeekFrom::Start(0))?;
+        let ((ident_header, comment_header, setup_header), stream_serial) =
+            lewton::inside_ogg::read_headers(packet_reader)?;
 
-fn decode_ogg_packet(
-    packet: &ogg::Packet,
-    context: &mut OggContext,
-) -> Result<Vec<Vec<i16>>, DecoderError> {
-    decode_ogg_packet_generic(packet, context)
-}
+        Ok(OggContext {
+            ident_header,
+            comment_header,
+            setup_header,
+            previous_window_right: lewton::audio::PreviousWindowRight::new(),
+            cur_absgp: None,
+            stream_serial,
+        })
+    }
 
-fn read_next_ogg_packet<T: std::io::Read + std::io::Seek>(
-    packet_reader: &mut PacketReader<T>,
-    context: &mut OggContext,
-) -> Result<Option<ogg::Packet>, DecoderError> {
-    loop {
-        let packet = match packet_reader.read_packet()? {
-            Some(p) => p,
-            None => return Ok(None),
-        };
+    fn decode_ogg_packet_generic<S: Samples>(
+        &mut self,
+        packet: &ogg::Packet,
+    ) -> Result<S, DecoderError> {
+        Ok(lewton::audio::read_audio_packet_generic(
+            &mut self.ident_header,
+            &mut self.setup_header,
+            &packet.data,
+            &mut self.previous_window_right,
+        )?)
+    }
 
-        if packet.stream_serial() == context.stream_serial {
-            return Ok(Some(packet));
-        }
+    fn decode_ogg_packet(&mut self, packet: &ogg::Packet) -> Result<Vec<Vec<i16>>, DecoderError> {
+        self.decode_ogg_packet_generic(packet)
+    }
 
-        if packet.first_in_stream() {
-            // Re-initialize context.
-            let ident_header = lewton::header::read_header_ident(&packet.data)?;
-
-            let packet = packet_reader.read_packet_expected()?;
-            let comment_header = lewton::header::read_header_comment(&packet.data)?;
-
-            let packet = packet_reader.read_packet_expected()?;
-            let setup_header = lewton::header::read_header_setup(
-                &packet.data,
-                ident_header.audio_channels,
-                (ident_header.blocksize_0, ident_header.blocksize_1),
-            )?;
-
-            context.ident_header = ident_header;
-            context.comment_header = comment_header;
-            context.setup_header = setup_header;
-            context.previous_window_right = lewton::audio::PreviousWindowRight::new();
-            context.cur_absgp = None;
-            context.stream_serial = packet.stream_serial();
-
-            // Read the first data packet to initialize the previous_window_right.
+    fn read_next_ogg_packet<T: std::io::Read + std::io::Seek>(
+        &mut self,
+        packet_reader: &mut PacketReader<T>,
+    ) -> Result<Option<ogg::Packet>, DecoderError> {
+        loop {
             let packet = match packet_reader.read_packet()? {
                 Some(p) => p,
                 None => return Ok(None),
             };
-            decode_ogg_packet(&packet, context)?;
-            context.cur_absgp = Some(packet.absgp_page());
 
-            return Ok(packet_reader.read_packet()?);
+            if packet.stream_serial() == self.stream_serial {
+                return Ok(Some(packet));
+            }
+
+            if packet.first_in_stream() {
+                // Re-initialize context.
+                let ident_header = lewton::header::read_header_ident(&packet.data)?;
+
+                let packet = packet_reader.read_packet_expected()?;
+                let comment_header = lewton::header::read_header_comment(&packet.data)?;
+
+                let packet = packet_reader.read_packet_expected()?;
+                let setup_header = lewton::header::read_header_setup(
+                    &packet.data,
+                    ident_header.audio_channels,
+                    (ident_header.blocksize_0, ident_header.blocksize_1),
+                )?;
+
+                self.ident_header = ident_header;
+                self.comment_header = comment_header;
+                self.setup_header = setup_header;
+                self.previous_window_right = lewton::audio::PreviousWindowRight::new();
+                self.cur_absgp = None;
+                self.stream_serial = packet.stream_serial();
+
+                // Read the first data packet to initialize the previous_window_right.
+                let packet = match packet_reader.read_packet()? {
+                    Some(p) => p,
+                    None => return Ok(None),
+                };
+                self.decode_ogg_packet(&packet)?;
+                self.cur_absgp = Some(packet.absgp_page());
+
+                return Ok(packet_reader.read_packet()?);
+            }
         }
     }
-}
 
-fn read_next_decoded_packet_generic<T: std::io::Read + std::io::Seek, S: Samples>(
-    packet_reader: &mut PacketReader<T>,
-    context: &mut OggContext,
-) -> Result<Option<S>, DecoderError> {
-    let packet = match read_next_ogg_packet(packet_reader, context)? {
-        Some(p) => p,
-        None => return Ok(None),
-    };
-    let mut decoded_packet: S = decode_ogg_packet_generic(&packet, context)?;
-
-    // If this is the last packet in the logical bitstream, it has to be truncated so
-    // that the end matches the absgp of the current page.
-    if let (Some(absgp), true) = (context.cur_absgp, packet.last_in_stream()) {
-        let target_length = packet.absgp_page().saturating_sub(absgp) as usize;
-        decoded_packet.truncate(target_length);
-    }
-
-    if packet.last_in_page() {
-        context.cur_absgp = Some(packet.absgp_page());
-    } else if let &mut Some(ref mut absgp) = &mut context.cur_absgp {
-        *absgp += decoded_packet.num_samples() as u64;
-    }
-
-    Ok(Some(decoded_packet))
-}
-
-fn read_next_decoded_packet<T: std::io::Read + std::io::Seek>(
-    packet_reader: &mut PacketReader<T>,
-    context: &mut OggContext,
-) -> Result<Option<Vec<Vec<i16>>>, DecoderError> {
-    read_next_decoded_packet_generic(packet_reader, context)
-}
-
-fn read_next_decoded_packet_interleaved<T: std::io::Read + std::io::Seek>(
-    packet_reader: &mut PacketReader<T>,
-    context: &mut OggContext,
-) -> Result<Option<Vec<i16>>, DecoderError> {
-    let decoded_packet = match read_next_decoded_packet_generic::<
-        T,
-        lewton::samples::InterleavedSamples<_>,
-    >(packet_reader, context)?
-    {
-        Some(p) => p,
-        None => return Ok(None),
-    };
-    Ok(Some(decoded_packet.samples))
-}
-
-// fn packet_reader_byte_seek<T: std::io::Read + std::io::Seek>(
-//     packet_reader: &mut PacketReader<T>,
-//     pos: std::io::SeekFrom,
-//     byte_count: usize,
-//     total_bytes_per_sample: u32,
-// ) -> std::io::Result<(u64, OggContext)> {
-//     let target_pos = match pos {
-//         std::io::SeekFrom::Start(v) => v as i64,
-//         std::io::SeekFrom::End(v) => byte_count + v,
-//         std::io::SeekFrom::Current(v) => self.byte_stream_position()? as i64 + v,
-//     };
-//     let target_pos = std::cmp::max(0, std::cmp::min(target_pos, byte_count)) as u64;
-// 
-//     let tbps = total_bytes_per_sample as u64;
-//     assert!(
-//         target_pos % tbps == 0,
-//         "Invalid seek offset ({})",
-//         target_pos
-//     );
-// 
-//     packet_reader.seek_bytes(0)?;
-//     let mut context = OggContext {
-//         ident_header,
-//         comment_header,
-//         setup_header,
-//         previous_window_right: lewton::audio::PreviousWindowRight::new(),
-//         cur_absgp: None,
-//         stream_serial,
-//     };
-// 
-//     //       let count = self
-//     //           .input
-//     //           .seek(std::io::SeekFrom::Start(self.byte_data_offset + target_pos))?;
-//     //       Ok(count - self.byte_data_offset)
-// }
-
-fn compute_sample_count<T: std::io::Read + std::io::Seek>(
-    packet_reader: &mut PacketReader<T>,
-) -> Result<usize, DecoderError> {
-    let mut sample_count = 0;
-    packet_reader.seek_bytes(std::io::SeekFrom::Start(0))?;
-    let ((ident_header, comment_header, setup_header), stream_serial) =
-        lewton::inside_ogg::read_headers(packet_reader)?;
-
-    let mut context = OggContext {
-        ident_header,
-        comment_header,
-        setup_header,
-        previous_window_right: lewton::audio::PreviousWindowRight::new(),
-        cur_absgp: None,
-        stream_serial,
-    };
-    loop {
-        let packet = match read_next_decoded_packet(packet_reader, &mut context)? {
+    fn read_next_decoded_packet_generic<T: std::io::Read + std::io::Seek, S: Samples>(
+        &mut self,
+        packet_reader: &mut PacketReader<T>,
+    ) -> Result<Option<S>, DecoderError> {
+        let packet = match self.read_next_ogg_packet(packet_reader)? {
             Some(p) => p,
-            None => break,
+            None => return Ok(None),
         };
+        let mut decoded_packet: S = self.decode_ogg_packet_generic(&packet)?;
 
-        for channel in packet {
-            sample_count += channel.len();
+        // If this is the last packet in the logical bitstream, it has to be truncated so
+        // that the end matches the absgp of the current page.
+        if let (Some(absgp), true) = (self.cur_absgp, packet.last_in_stream()) {
+            let target_length = packet.absgp_page().saturating_sub(absgp) as usize;
+            decoded_packet.truncate(target_length);
         }
+
+        if packet.last_in_page() {
+            self.cur_absgp = Some(packet.absgp_page());
+        } else if let &mut Some(ref mut absgp) = &mut self.cur_absgp {
+            *absgp += decoded_packet.num_samples() as u64;
+        }
+
+        Ok(Some(decoded_packet))
     }
-    packet_reader.seek_bytes(std::io::SeekFrom::Start(0))?;
-    Ok(sample_count)
+
+    fn read_next_decoded_packet<T: std::io::Read + std::io::Seek>(
+        &mut self,
+        packet_reader: &mut PacketReader<T>,
+    ) -> Result<Option<Vec<Vec<i16>>>, DecoderError> {
+        self.read_next_decoded_packet_generic(packet_reader)
+    }
+
+    fn read_next_decoded_packet_interleaved<T: std::io::Read + std::io::Seek>(
+        &mut self,
+        packet_reader: &mut PacketReader<T>,
+    ) -> Result<Option<Vec<i16>>, DecoderError> {
+        let decoded_packet = match self
+            .read_next_decoded_packet_generic::<T, lewton::samples::InterleavedSamples<_>>(
+                packet_reader,
+            )? {
+            Some(p) => p,
+            None => return Ok(None),
+        };
+        Ok(Some(decoded_packet.samples))
+    }
 }
 
 pub struct OggDecoder<T>
@@ -202,6 +151,9 @@ where
     format: AudioFormat,
     sample_rate: u32,
     sample_count: usize,
+    packet: Option<Vec<i16>>,
+    packet_start_byte_pos: u64,
+    packet_current_byte_pos: u64,
 }
 
 impl<T> OggDecoder<T>
@@ -210,40 +162,57 @@ where
 {
     pub fn new(input: T) -> Result<Self, DecoderError> {
         let mut packet_reader = PacketReader::new(input);
-        let sample_count = compute_sample_count(&mut packet_reader)?;
-
-        let ((ident_header, comment_header, setup_header), stream_serial) =
-            lewton::inside_ogg::read_headers(&mut packet_reader)?;
-
-        let mut context = OggContext {
-            ident_header,
-            comment_header,
-            setup_header,
-            previous_window_right: lewton::audio::PreviousWindowRight::new(),
-            cur_absgp: None,
-            stream_serial,
-        };
-
+        let sample_count = Self::compute_sample_count(&mut packet_reader)?;
+        let context = OggContext::new(&mut packet_reader)?;
         const BYTES_PER_SAMPLE: u32 = 2;
         let format = AudioFormat::new(context.ident_header.audio_channels as u32, BYTES_PER_SAMPLE);
-
         let sample_rate = context.ident_header.audio_sample_rate;
-
         Ok(Self {
             packet_reader,
             context,
             format,
             sample_rate,
             sample_count,
+            packet: None,
+            packet_start_byte_pos: 0,
+            packet_current_byte_pos: 0,
         })
     }
 
-    fn read_next_decoded_packet(&mut self) -> Result<Option<Vec<Vec<i16>>>, DecoderError> {
-        read_next_decoded_packet(&mut self.packet_reader, &mut self.context)
+    fn compute_sample_count(packet_reader: &mut PacketReader<T>) -> Result<usize, DecoderError> {
+        let mut sample_count = 0;
+        let mut context = OggContext::new(packet_reader)?;
+        loop {
+            let packet = match context.read_next_decoded_packet(packet_reader)? {
+                Some(p) => p,
+                None => break,
+            };
+
+            for channel in packet {
+                sample_count += channel.len();
+            }
+        }
+        Ok(sample_count)
     }
 
-    fn read_next_decoded_packet_interleaved(&mut self) -> Result<Option<Vec<i16>>, DecoderError> {
-        read_next_decoded_packet_interleaved(&mut self.packet_reader, &mut self.context)
+    fn reset_to_stream_begin(&mut self) -> Result<(), DecoderError> {
+        self.context = OggContext::new(&mut self.packet_reader)?;
+        self.packet = None;
+        self.packet_start_byte_pos = 0;
+        self.packet_current_byte_pos = 0;
+        Ok(())
+    }
+
+    fn read_next_packet(&mut self) -> Result<(), DecoderError> {
+        if let Some(p) = &self.packet {
+            self.packet_start_byte_pos +=
+                p.len() as u64 * self.audio_format().bytes_per_sample() as u64;
+        }
+        self.packet = self
+            .context
+            .read_next_decoded_packet_interleaved(&mut self.packet_reader)?;
+        self.packet_current_byte_pos = 0;
+        Ok(())
     }
 }
 
@@ -256,7 +225,42 @@ where
     }
 
     fn byte_seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
-        Ok(0)
+        let byte_count = self.byte_count() as i64;
+        let target_pos = match pos {
+            std::io::SeekFrom::Start(v) => v as i64,
+            std::io::SeekFrom::End(v) => byte_count + v,
+            std::io::SeekFrom::Current(v) => self.byte_stream_position()? as i64 + v,
+        };
+        let target_pos = std::cmp::max(0, std::cmp::min(target_pos, byte_count)) as u64;
+
+        let tbps = self.audio_format().total_bytes_per_sample() as u64;
+        assert!(
+            target_pos % tbps == 0,
+            "Invalid seek offset ({})",
+            target_pos
+        );
+
+        // TODO: replace unwrap
+        self.reset_to_stream_begin().unwrap();
+        let mut current_byte_pos = 0;
+        while self.packet_start_byte_pos < self.byte_count() as u64 {
+            match &self.packet {
+                Some(p) => {
+                    let packet_end_byte_pos = self.packet_start_byte_pos
+                        + p.len() as u64 * self.audio_format().bytes_per_sample() as u64;
+                    if target_pos < packet_end_byte_pos {
+                        self.packet_current_byte_pos = target_pos - self.packet_start_byte_pos;
+                        break;
+                    } else {
+                        current_byte_pos = packet_end_byte_pos;
+                        self.read_next_packet().unwrap();
+                    }
+                }
+                None => self.read_next_packet().unwrap(),
+            }
+        }
+
+        Ok(target_pos)
     }
 
     fn sample_rate(&self) -> u32 {
@@ -380,4 +384,78 @@ mod tests {
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
+
+    // #[test]
+    // fn mono16_byte_seek() {
+    // let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
+    // let buf = std::io::BufReader::new(file);
+    // let mut decoder = OggDecoder::new(buf).unwrap();
+
+    // expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+    // expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+
+    // // From start.
+    // expect_that!(
+    // &decoder.byte_seek(std::io::SeekFrom::Start(12)).unwrap(),
+    // eq(12)
+    // );
+    // expect_that!(&decoder.byte_stream_position().unwrap(), eq(12));
+    // expect_that!(&decoder.sample_stream_position().unwrap(), eq(6));
+
+    // // From current positive.
+    // expect_that!(
+    // &decoder.byte_seek(std::io::SeekFrom::Current(4)).unwrap(),
+    // eq(16)
+    // );
+    // expect_that!(&decoder.byte_stream_position().unwrap(), eq(16));
+    // expect_that!(&decoder.sample_stream_position().unwrap(), eq(8));
+
+    // // From current negative.
+    // expect_that!(
+    // &decoder.byte_seek(std::io::SeekFrom::Current(-8)).unwrap(),
+    // eq(8)
+    // );
+    // expect_that!(&decoder.byte_stream_position().unwrap(), eq(8));
+    // expect_that!(&decoder.sample_stream_position().unwrap(), eq(4));
+
+    // // From end.
+    // expect_that!(
+    // &decoder.byte_seek(std::io::SeekFrom::End(-12)).unwrap(),
+    // eq(36)
+    // );
+    // expect_that!(
+    // &decoder.byte_stream_position().unwrap(),
+    // eq(decoder.byte_count() as u64 - 12)
+    // );
+    // expect_that!(
+    // &decoder.sample_stream_position().unwrap(),
+    // eq(decoder.sample_count() as u64 - 6)
+    // );
+
+    // // Beyond end.
+    // expect_that!(
+    // &decoder.byte_seek(std::io::SeekFrom::End(40)).unwrap(),
+    // eq(48)
+    // );
+    // expect_that!(
+    // &decoder.byte_stream_position().unwrap(),
+    // eq(decoder.byte_count() as u64)
+    // );
+    // expect_that!(
+    // &decoder.sample_stream_position().unwrap(),
+    // eq(decoder.sample_count() as u64)
+    // );
+
+    // // Before start.
+    // expect_that!(
+    // &decoder.byte_seek(std::io::SeekFrom::Start(0)).unwrap(),
+    // eq(0)
+    // );
+    // expect_that!(
+    // &decoder.byte_seek(std::io::SeekFrom::Current(-3)).unwrap(),
+    // eq(0)
+    // );
+    // expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+    // expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+    // }
 }
