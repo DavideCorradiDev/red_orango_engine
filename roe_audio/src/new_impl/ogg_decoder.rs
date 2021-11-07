@@ -242,7 +242,6 @@ where
 
         // TODO: replace unwrap
         self.reset_to_stream_begin().unwrap();
-        let mut current_byte_pos = 0;
         while self.packet_start_byte_pos < self.byte_count() as u64 {
             match &self.packet {
                 Some(p) => {
@@ -252,7 +251,6 @@ where
                         self.packet_current_byte_pos = target_pos - self.packet_start_byte_pos;
                         break;
                     } else {
-                        current_byte_pos = packet_end_byte_pos;
                         self.read_next_packet().unwrap();
                     }
                 }
@@ -292,12 +290,18 @@ where
             match &self.packet {
                 Some(p) => {
                     let byte_data = bytemuck::cast_slice(p.as_slice());
-                    let byte_to_read_count =
-                        std::cmp::min(byte_data.len(), buf.len() - read_byte_count);
-                    buf[read_byte_count..read_byte_count + byte_to_read_count]
-                        .clone_from_slice(&byte_data[0..byte_to_read_count]);
+                    let byte_to_read_count = std::cmp::min(
+                        byte_data.len() - self.packet_current_byte_pos as usize,
+                        buf.len() - read_byte_count,
+                    );
+
+                    let in_range = self.packet_current_byte_pos as usize
+                        ..self.packet_current_byte_pos as usize + byte_to_read_count;
+                    let out_range = read_byte_count..read_byte_count + byte_to_read_count;
+                    buf[out_range].clone_from_slice(&byte_data[in_range]);
                     read_byte_count += byte_to_read_count;
-                    if byte_to_read_count == byte_data.len() {
+                    self.packet_current_byte_pos += byte_to_read_count as u64;
+                    if self.packet_current_byte_pos == byte_data.len() as u64 {
                         self.read_next_packet().unwrap();
                     }
                 }
@@ -582,7 +586,7 @@ mod tests {
         expect_that!(&buf, eq(vec![190, 47, 9, 50, 24, 44, 240, 45]));
 
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(8));
-        expect_that!(&buf, eq(vec![190, 47, 9, 50, 24, 44, 240, 45]));
+        expect_that!(&buf, eq(vec![219, 43, 179, 44, 39, 44, 155, 44]));
 
         decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
         expect_that!(&decoder.byte_stream_position().unwrap(), eq(44412));
@@ -591,6 +595,6 @@ mod tests {
         // Unable to read the whole buffer because at the end: the remaining elements
         // aren't overwritten!
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(4));
-        expect_that!(&buf, eq(vec![9, 0, 18, 0, 8, 0, 242, 255]));
+        expect_that!(&buf, eq(vec![0, 0, 0, 0, 39, 44, 155, 44]));
     }
 }
