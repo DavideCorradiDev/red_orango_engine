@@ -281,6 +281,13 @@ where
     }
 
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let tbps = self.audio_format().total_bytes_per_sample() as usize;
+        assert!(
+            buf.len() % tbps == 0,
+            "Invalid buffer length ({})",
+            buf.len()
+        );
+
         if let None = self.packet {
             self.read_next_packet().unwrap();
         }
@@ -596,5 +603,35 @@ mod tests {
         // aren't overwritten!
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(4));
         expect_that!(&buf, eq(vec![0, 0, 0, 0, 39, 44, 155, 44]));
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid buffer length (7)")]
+    fn mono16_read_invalid_buffer_length() {
+        let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
+        let mut buf = vec![0; 7];
+        decoder.read(&mut buf).unwrap();
+    }
+
+    #[test]
+    fn mono16_read_to_end() {
+        let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
+        decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
+        let content = decoder.read_to_end().unwrap();
+        expect_that!(&content.len(), eq(decoder.byte_count() - 572));
+    }
+
+    #[test]
+    fn mono16_read_all() {
+        let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
+        decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
+        let content = decoder.read_all().unwrap();
+        expect_that!(&content.len(), eq(decoder.byte_count()));
     }
 }
