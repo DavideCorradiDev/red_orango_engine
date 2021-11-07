@@ -1,5 +1,5 @@
-use ogg::reading::PacketReader;
 use lewton::samples::Samples;
+use ogg::reading::PacketReader;
 
 use super::{AudioFormat, Decoder};
 
@@ -28,9 +28,8 @@ where
         let ((ident_header, comment_header, setup_header), stream_serial) =
             lewton::inside_ogg::read_headers(&mut packet_reader)?;
 
-        let channel_count = ident_header.audio_channels as u32;
         const BYTES_PER_SAMPLE: u32 = 2;
-        let format = AudioFormat::new(channel_count, BYTES_PER_SAMPLE);
+        let format = AudioFormat::new(ident_header.audio_channels as u32, BYTES_PER_SAMPLE);
 
         Ok(Self {
             packet_reader,
@@ -43,16 +42,16 @@ where
             format,
             sample_count: 0,
         })
-
-        // let sample_count =
-        //     Self::compute_sample_count(&ident_header, &setup_header, &mut packet_reader)?;
     }
 
     fn decode_ogg_packet(&mut self, packet: &ogg::Packet) -> Result<Vec<Vec<i16>>, DecoderError> {
         self.decode_ogg_packet_generic(packet)
     }
 
-    fn decode_ogg_packet_generic<S: Samples>(&mut self, packet: &ogg::Packet) -> Result<S, DecoderError> {
+    fn decode_ogg_packet_generic<S: Samples>(
+        &mut self,
+        packet: &ogg::Packet,
+    ) -> Result<S, DecoderError> {
         Ok(lewton::audio::read_audio_packet_generic(
             &mut self.ident_header,
             &mut self.setup_header,
@@ -86,11 +85,14 @@ where
                     (ident_header.blocksize_0, ident_header.blocksize_1),
                 )?;
 
-                self.previous_window_right = lewton::audio::PreviousWindowRight::new();
-                self.cur_absgp = None;
+                const BYTES_PER_SAMPLE: u32 = 2;
+                self.format =
+                    AudioFormat::new(ident_header.audio_channels as u32, BYTES_PER_SAMPLE);
                 self.ident_header = ident_header;
                 self.comment_header = comment_header;
                 self.setup_header = setup_header;
+                self.previous_window_right = lewton::audio::PreviousWindowRight::new();
+                self.cur_absgp = None;
                 self.stream_serial = packet.stream_serial();
 
                 // Read the first data packet to initialize the previous_window_right.
@@ -122,61 +124,26 @@ where
 
         if packet.last_in_page() {
             self.cur_absgp = Some(packet.absgp_page());
-        }
-        else if let &mut Some(ref mut absgp) = &mut self.cur_absgp {
+        } else if let &mut Some(ref mut absgp) = &mut self.cur_absgp {
             *absgp += decoded_packet.num_samples() as u64;
         }
 
         Ok(Some(decoded_packet))
     }
 
-    fn read_next_decoded_packet(&mut self) -> Result<Option<Vec<Vec<i16>>>, DecoderError>
-    {
+    fn read_next_decoded_packet(&mut self) -> Result<Option<Vec<Vec<i16>>>, DecoderError> {
         self.read_next_decoded_packet()
     }
 
-    fn read_next_decoded_packet_interleaved(&mut self) -> Result<Option<Vec<i16>>, DecoderError>
-    {
-        let decoded_packet = match self.read_next_decoded_packet_generic::<lewton::samples::InterleavedSamples<_>>()? {
+    fn read_next_decoded_packet_interleaved(&mut self) -> Result<Option<Vec<i16>>, DecoderError> {
+        let decoded_packet = match self
+            .read_next_decoded_packet_generic::<lewton::samples::InterleavedSamples<_>>()?
+        {
             Some(p) => p,
             None => return Ok(None),
         };
         Ok(Some(decoded_packet.samples))
     }
-
-    // fn compute_sample_count(&mut self) -> Result<usize, DecoderError> {
-    //     let mut maybe_packet = packet_reader.read_packet()?;
-    //     let mut sample_count = 0;
-    //     let mut previous_window_right = lewton::audio::PreviousWindowRight::new();
-    //     while maybe_packet.is_some() {
-    //         let packet = maybe_packet.unwrap();
-    //         let decoded_data = lewton::audio::read_audio_packet(
-    //             ident_header,
-    //             setup_header,
-    //             &packet.data,
-    //             &mut previous_window_right,
-    //         )?;
-    //         for channel in decoded_data {
-    //             sample_count += channel.len()
-    //         }
-    //         maybe_packet = packet_reader.read_packet()?;
-    //     }
-
-    //     // Divide by the number of channels.
-    //     let channel_count = ident_header.audio_channels as usize;
-    //     if sample_count % channel_count != 0 {
-    //         return Err(DecoderError::InvalidData(String::from(
-    //             "The number of samples is not a multiple of the number of channels",
-    //         )));
-    //     }
-    //     sample_count /= channel_count;
-
-    //     // Reset to start of packet reader and re-read headers to make sure to be at the right offset.
-    //     packet_reader.seek_bytes(std::io::SeekFrom::Start(0))?;
-    //     lewton::inside_ogg::read_headers(packet_reader)?;
-
-    //     Ok(sample_count)
-    // }
 }
 
 impl<T> Decoder for OggDecoder<T>
