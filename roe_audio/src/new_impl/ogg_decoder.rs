@@ -271,8 +271,15 @@ where
         self.sample_count
     }
 
+    fn byte_stream_position(&mut self) -> std::io::Result<u64> {
+        Ok(self.packet_start_byte_pos + self.packet_current_byte_pos)
+    }
+
     fn sample_stream_position(&mut self) -> std::io::Result<u64> {
-        Ok(0)
+        let byte_stream_position = self.byte_stream_position()?;
+        let tbps = self.audio_format().total_bytes_per_sample() as u64;
+        assert!(byte_stream_position % tbps == 0);
+        Ok(byte_stream_position / tbps)
     }
 
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
@@ -385,77 +392,77 @@ mod tests {
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
 
-    // #[test]
-    // fn mono16_byte_seek() {
-    // let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
-    // let buf = std::io::BufReader::new(file);
-    // let mut decoder = OggDecoder::new(buf).unwrap();
+    #[test]
+    fn mono16_byte_seek() {
+        let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
 
-    // expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
-    // expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
 
-    // // From start.
-    // expect_that!(
-    // &decoder.byte_seek(std::io::SeekFrom::Start(12)).unwrap(),
-    // eq(12)
-    // );
-    // expect_that!(&decoder.byte_stream_position().unwrap(), eq(12));
-    // expect_that!(&decoder.sample_stream_position().unwrap(), eq(6));
+        // From start.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Start(12)).unwrap(),
+            eq(12)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(12));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(6));
 
-    // // From current positive.
-    // expect_that!(
-    // &decoder.byte_seek(std::io::SeekFrom::Current(4)).unwrap(),
-    // eq(16)
-    // );
-    // expect_that!(&decoder.byte_stream_position().unwrap(), eq(16));
-    // expect_that!(&decoder.sample_stream_position().unwrap(), eq(8));
+        // From current positive.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Current(4)).unwrap(),
+            eq(16)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(16));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(8));
 
-    // // From current negative.
-    // expect_that!(
-    // &decoder.byte_seek(std::io::SeekFrom::Current(-8)).unwrap(),
-    // eq(8)
-    // );
-    // expect_that!(&decoder.byte_stream_position().unwrap(), eq(8));
-    // expect_that!(&decoder.sample_stream_position().unwrap(), eq(4));
+        // From current negative.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Current(-8)).unwrap(),
+            eq(8)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(8));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(4));
 
-    // // From end.
-    // expect_that!(
-    // &decoder.byte_seek(std::io::SeekFrom::End(-12)).unwrap(),
-    // eq(36)
-    // );
-    // expect_that!(
-    // &decoder.byte_stream_position().unwrap(),
-    // eq(decoder.byte_count() as u64 - 12)
-    // );
-    // expect_that!(
-    // &decoder.sample_stream_position().unwrap(),
-    // eq(decoder.sample_count() as u64 - 6)
-    // );
+        // From end.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::End(-12)).unwrap(),
+            eq(decoder.byte_count() as u64 - 12)
+        );
+        expect_that!(
+            &decoder.byte_stream_position().unwrap(),
+            eq(decoder.byte_count() as u64 - 12)
+        );
+        expect_that!(
+            &decoder.sample_stream_position().unwrap(),
+            eq(decoder.sample_count() as u64 - 6)
+        );
 
-    // // Beyond end.
-    // expect_that!(
-    // &decoder.byte_seek(std::io::SeekFrom::End(40)).unwrap(),
-    // eq(48)
-    // );
-    // expect_that!(
-    // &decoder.byte_stream_position().unwrap(),
-    // eq(decoder.byte_count() as u64)
-    // );
-    // expect_that!(
-    // &decoder.sample_stream_position().unwrap(),
-    // eq(decoder.sample_count() as u64)
-    // );
+        // Beyond end.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::End(40)).unwrap(),
+            eq(decoder.byte_count() as u64)
+        );
+        expect_that!(
+            &decoder.byte_stream_position().unwrap(),
+            eq(decoder.byte_count() as u64)
+        );
+        expect_that!(
+            &decoder.sample_stream_position().unwrap(),
+            eq(decoder.sample_count() as u64)
+        );
 
-    // // Before start.
-    // expect_that!(
-    // &decoder.byte_seek(std::io::SeekFrom::Start(0)).unwrap(),
-    // eq(0)
-    // );
-    // expect_that!(
-    // &decoder.byte_seek(std::io::SeekFrom::Current(-3)).unwrap(),
-    // eq(0)
-    // );
-    // expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
-    // expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
-    // }
+        // Before start.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Start(0)).unwrap(),
+            eq(0)
+        );
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Current(-3)).unwrap(),
+            eq(0)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+    }
 }
