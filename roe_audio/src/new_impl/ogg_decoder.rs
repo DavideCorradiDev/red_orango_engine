@@ -579,18 +579,18 @@ mod tests {
         let mut buf = vec![0; 8];
 
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(8));
-        expect_that!(&buf, eq(vec![87, 49, 44, 49, 1, 49, 214, 48]));
+        expect_that!(&buf, eq(vec![190, 47, 9, 50, 24, 44, 240, 45]));
 
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(8));
-        expect_that!(&buf, eq(vec![171, 48, 129, 48, 86, 48, 43, 48]));
+        expect_that!(&buf, eq(vec![190, 47, 9, 50, 24, 44, 240, 45]));
 
         decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
-        expect_that!(&decoder.byte_stream_position().unwrap(), eq(42458));
-        expect_that!(&decoder.sample_stream_position().unwrap(), eq(21229));
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(44412));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(22206));
 
         // Unable to read the whole buffer because at the end: the remaining elements
         // aren't overwritten!
         expect_that!(&decoder.read(&mut buf).unwrap(), eq(4));
-        expect_that!(&buf, eq(vec![0, 0, 0, 0, 86, 48, 43, 48]));
+        expect_that!(&buf, eq(vec![9, 0, 18, 0, 8, 0, 242, 255]));
     }
 }
