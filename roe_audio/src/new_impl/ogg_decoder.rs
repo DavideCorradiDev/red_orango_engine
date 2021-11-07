@@ -10,6 +10,7 @@ where
     ident_header: lewton::header::IdentHeader,
     comment_header: lewton::header::CommentHeader,
     setup_header: lewton::header::SetupHeader,
+    previous_window_right: lewton::audio::PreviousWindowRight,
     stream_serial: u32,
     format: AudioFormat,
     sample_count: usize,
@@ -37,10 +38,49 @@ where
             ident_header,
             comment_header,
             setup_header,
+            previous_window_right: lewton::audio::PreviousWindowRight::new(),
             stream_serial,
             format,
             sample_count,
         })
+    }
+
+    fn read_next_ogg_packet(&mut self) -> Result<Option<ogg::Packet>, DecoderError> {
+        loop {
+            let packet = match self.packet_reader.read_packet()? {
+                Some(p) => p,
+                None => return Ok(None),
+            };
+
+            if packet.stream_serial() == self.stream_serial {
+                return Ok(Some(packet));
+            }
+
+            if packet.first_in_stream() {
+                // Re-initialize headers.
+                let ident_header = lewton::header::read_header_ident(&packet.data)?;
+
+                let packet = self.packet_reader.read_packet_expected()?;
+                let comment_header = lewton::header::read_header_comment(&packet.data)?;
+
+                let packet = self.packet_reader.read_packet_expected()?;
+                let setup_header = lewton::header::read_header_setup(
+                    &packet.data,
+                    ident_header.audio_channels,
+                    (ident_header.blocksize_0, ident_header.blocksize_1),
+                )?;
+
+                self.previous_window_right = lewton::audio::PreviousWindowRight::new();
+                self.ident_header = ident_header;
+                self.comment_header = comment_header;
+                self.setup_header = setup_header;
+                self.stream_serial = packet.stream_serial();
+
+                // Read actual data packet.
+                let packet = self.packet_reader.read_packet()?;
+                return Ok(packet);
+            }
+        }
     }
 
     fn compute_sample_count(

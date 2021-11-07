@@ -10,7 +10,10 @@ extern crate rand;
 use std::io::{self, Read, Seek};
 
 /// Allows you to decode a sound file stream into packets.
-pub struct Decoder<R> where R: Read + Seek {
+pub struct Decoder<R>
+where
+    R: Read + Seek,
+{
     // further informations are boxed so that a pointer can be passed to callbacks
     data: Box<DecoderData<R>>,
 }
@@ -49,7 +52,7 @@ impl std::error::Error for VorbisError {
     fn cause(&self) -> Option<&std::error::Error> {
         match self {
             &VorbisError::ReadError(ref err) => Some(err as &std::error::Error),
-            _ => None
+            _ => None,
         }
     }
 }
@@ -66,7 +69,10 @@ impl From<io::Error> for VorbisError {
     }
 }
 
-struct DecoderData<R> where R: Read + Seek {
+struct DecoderData<R>
+where
+    R: Read + Seek,
+{
     vorbis: vorbisfile_sys::OggVorbis_File,
     reader: R,
     current_logical_bitstream: libc::c_int,
@@ -92,10 +98,19 @@ pub struct Packet {
     pub bitrate_window: u64,
 }
 
-impl<R> Decoder<R> where R: Read + Seek {
+impl<R> Decoder<R>
+where
+    R: Read + Seek,
+{
     pub fn new(input: R) -> Result<Decoder<R>, VorbisError> {
-        extern fn read_func<R>(ptr: *mut libc::c_void, size: libc::size_t, nmemb: libc::size_t,
-            datasource: *mut libc::c_void) -> libc::size_t where R: Read + Seek
+        extern "C" fn read_func<R>(
+            ptr: *mut libc::c_void,
+            size: libc::size_t,
+            nmemb: libc::size_t,
+            datasource: *mut libc::c_void,
+        ) -> libc::size_t
+        where
+            R: Read + Seek,
         {
             use std::slice;
 
@@ -117,14 +132,19 @@ impl<R> Decoder<R> where R: Read + Seek {
                     Err(ref e) if e.kind() == io::ErrorKind::Interrupted => (),
                     Err(e) => {
                         data.read_error = Some(e);
-                        return 0
+                        return 0;
                     }
                 }
             }
         }
 
-        extern fn seek_func<R>(datasource: *mut libc::c_void, offset: ogg_sys::ogg_int64_t,
-            whence: libc::c_int) -> libc::c_int where R: Read + Seek
+        extern "C" fn seek_func<R>(
+            datasource: *mut libc::c_void,
+            offset: ogg_sys::ogg_int64_t,
+            whence: libc::c_int,
+        ) -> libc::c_int
+        where
+            R: Read + Seek,
         {
             let data: &mut DecoderData<R> = unsafe { std::mem::transmute(datasource) };
 
@@ -132,20 +152,24 @@ impl<R> Decoder<R> where R: Read + Seek {
                 libc::SEEK_SET => data.reader.seek(io::SeekFrom::Start(offset as u64)),
                 libc::SEEK_CUR => data.reader.seek(io::SeekFrom::Current(offset)),
                 libc::SEEK_END => data.reader.seek(io::SeekFrom::End(offset)),
-                _ => unreachable!()
+                _ => unreachable!(),
             };
 
             match result {
                 Ok(_) => 0,
-                Err(_) => -1
+                Err(_) => -1,
             }
         }
 
-        extern fn tell_func<R>(datasource: *mut libc::c_void) -> libc::c_long
-            where R: Read + Seek
+        extern "C" fn tell_func<R>(datasource: *mut libc::c_void) -> libc::c_long
+        where
+            R: Read + Seek,
         {
             let data: &mut DecoderData<R> = unsafe { std::mem::transmute(datasource) };
-            data.reader.seek(io::SeekFrom::Current(0)).map(|v| v as libc::c_long).unwrap_or(-1)
+            data.reader
+                .seek(io::SeekFrom::Current(0))
+                .map(|v| v as libc::c_long)
+                .unwrap_or(-1)
         }
 
         let callbacks = {
@@ -167,25 +191,24 @@ impl<R> Decoder<R> where R: Read + Seek {
         unsafe {
             let data_ptr = &mut *data as *mut DecoderData<R>;
             let data_ptr = data_ptr as *mut libc::c_void;
-            try!(check_errors(vorbisfile_sys::ov_open_callbacks(data_ptr, &mut data.vorbis,
-                std::ptr::null(), 0, callbacks)));
+            try!(check_errors(vorbisfile_sys::ov_open_callbacks(
+                data_ptr,
+                &mut data.vorbis,
+                std::ptr::null(),
+                0,
+                callbacks
+            )));
         }
 
-        Ok(Decoder {
-            data: data,
-        })
+        Ok(Decoder { data: data })
     }
 
     pub fn time_seek(&mut self, s: f64) -> Result<(), VorbisError> {
-        unsafe {
-            check_errors(vorbisfile_sys::ov_time_seek(&mut self.data.vorbis, s))
-        }
+        unsafe { check_errors(vorbisfile_sys::ov_time_seek(&mut self.data.vorbis, s)) }
     }
 
     pub fn time_tell(&mut self) -> Result<f64, VorbisError> {
-        unsafe {
-            Ok(vorbisfile_sys::ov_time_tell(&mut self.data.vorbis))
-        }
+        unsafe { Ok(vorbisfile_sys::ov_time_tell(&mut self.data.vorbis)) }
     }
 
     pub fn packets(&mut self) -> PacketsIter<R> {
@@ -201,29 +224,35 @@ impl<R> Decoder<R> where R: Read + Seek {
         let buffer_len = buffer.len() * 2;
 
         match unsafe {
-            vorbisfile_sys::ov_read(&mut self.data.vorbis,
+            vorbisfile_sys::ov_read(
+                &mut self.data.vorbis,
                 buffer.as_mut_ptr() as *mut libc::c_char,
-                buffer_len as libc::c_int, 0, 2, 1, &mut self.data.current_logical_bitstream)
+                buffer_len as libc::c_int,
+                0,
+                2,
+                1,
+                &mut self.data.current_logical_bitstream,
+            )
         } {
-            0 => {
-                match self.data.read_error.take() {
-                    Some(err) => Some(Err(VorbisError::ReadError(err))),
-                    None => None,
-                }
+            0 => match self.data.read_error.take() {
+                Some(err) => Some(Err(VorbisError::ReadError(err))),
+                None => None,
             },
 
-            err if err < 0 => {
-                match check_errors(err as libc::c_int) {
-                    Err(e) => Some(Err(e)),
-                    Ok(_) => unreachable!()
-                }
+            err if err < 0 => match check_errors(err as libc::c_int) {
+                Err(e) => Some(Err(e)),
+                Ok(_) => unreachable!(),
             },
 
             len => {
                 buffer.truncate(len as usize / 2);
 
-                let infos = unsafe { vorbisfile_sys::ov_info(&mut self.data.vorbis,
-                    self.data.current_logical_bitstream) };
+                let infos = unsafe {
+                    vorbisfile_sys::ov_info(
+                        &mut self.data.vorbis,
+                        self.data.current_logical_bitstream,
+                    )
+                };
 
                 let infos: &vorbis_sys::vorbis_info = unsafe { std::mem::transmute(infos) };
 
@@ -241,7 +270,10 @@ impl<R> Decoder<R> where R: Read + Seek {
     }
 }
 
-impl<'a, R> Iterator for PacketsIter<'a, R> where R: 'a + Read + Seek {
+impl<'a, R> Iterator for PacketsIter<'a, R>
+where
+    R: 'a + Read + Seek,
+{
     type Item = Result<Packet, VorbisError>;
 
     fn next(&mut self) -> Option<Result<Packet, VorbisError>> {
@@ -249,7 +281,10 @@ impl<'a, R> Iterator for PacketsIter<'a, R> where R: 'a + Read + Seek {
     }
 }
 
-impl<R> Iterator for PacketsIntoIter<R> where R: Read + Seek {
+impl<R> Iterator for PacketsIntoIter<R>
+where
+    R: Read + Seek,
+{
     type Item = Result<Packet, VorbisError>;
 
     fn next(&mut self) -> Option<Result<Packet, VorbisError>> {
@@ -257,7 +292,10 @@ impl<R> Iterator for PacketsIntoIter<R> where R: Read + Seek {
     }
 }
 
-impl<R> Drop for Decoder<R> where R: Read + Seek {
+impl<R> Drop for Decoder<R>
+where
+    R: Read + Seek,
+{
     fn drop(&mut self) {
         unsafe {
             vorbisfile_sys::ov_clear(&mut self.data.vorbis);
@@ -281,7 +319,7 @@ fn check_errors(code: libc::c_int) -> Result<(), VorbisError> {
 
         // indicates a bug or heap/stack corruption
         vorbis_sys::OV_EFAULT => panic!("Internal libvorbis error"),
-        _ => panic!("Unknown vorbis error {}", code)
+        _ => panic!("Unknown vorbis error {}", code),
     }
 }
 
@@ -299,7 +337,7 @@ pub enum VorbisQuality {
 // pub struct Encoder {
 //     e: vorbis_encoder::Encoder,
 // }
-// 
+//
 // impl Encoder {
 //     pub fn new(channels: u8, rate: u64, quality: VorbisQuality) -> Result<Self, VorbisError> {
 //         let quality = match quality {
@@ -323,7 +361,7 @@ pub enum VorbisQuality {
 //             }
 //         })
 //     }
-// 
+//
 //     // data is an interleaved array of samples
 //     pub fn encode(&mut self, data: &Vec<i16>) -> Result<Vec<u8>, VorbisError> {
 //         Ok(
@@ -338,7 +376,7 @@ pub enum VorbisQuality {
 //             }
 //         )
 //     }
-// 
+//
 //     pub fn flush(&mut self) -> Result<Vec<u8>, VorbisError> {
 //         Ok(
 //             match self.e.flush() {
