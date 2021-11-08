@@ -360,8 +360,6 @@ mod tests {
     use super::*;
     use galvanic_assert::{matchers::*, *};
 
-    // TODO: use DecoderError for wav decoder.
-    // TODO: match expectations in wav test.
     #[test]
     fn invalid_input_file() {
         let file = std::fs::File::open("data/audio/not-an-audio-file.txt").unwrap();
@@ -778,8 +776,14 @@ mod tests {
         expect_that!(&buf, eq(vec![182, 28, 182, 28, 132, 33, 132, 33]));
 
         decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
-        expect_that!(&decoder.byte_stream_position().unwrap(), eq(decoder.byte_count() as u64 - 4));
-        expect_that!(&decoder.sample_stream_position().unwrap(), eq(decoder.sample_count() as u64 - 1));
+        expect_that!(
+            &decoder.byte_stream_position().unwrap(),
+            eq(decoder.byte_count() as u64 - 4)
+        );
+        expect_that!(
+            &decoder.sample_stream_position().unwrap(),
+            eq(decoder.sample_count() as u64 - 1)
+        );
 
         // Unable to read the whole buffer because at the end: the remaining elements
         // aren't overwritten!
