@@ -1,27 +1,8 @@
-use super::{AudioFormat, BackendError, Context, Device, Decoder};
+use super::{AudioFormat, BackendError, Context, Decoder};
 
-pub use alto::{AsBufferData, Mono, SampleFrame, Stereo};
+use alto::{Mono, Stereo};
 
 use std::sync::Arc;
-
-fn buffer_with_format(
-    context: &Context,
-    data: &[u8],
-    format: AudioFormat,
-    frequency: i32,
-) -> Result<alto::Buffer, BackendError> {
-    let buffer = match format {
-        AudioFormat::Mono8 => context.value.new_buffer::<Mono<u8>, _>(data, frequency),
-        AudioFormat::Stereo8 => context.value.new_buffer::<Stereo<u8>, _>(data, frequency),
-        AudioFormat::Mono16 => context
-            .value
-            .new_buffer::<Mono<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency),
-        AudioFormat::Stereo16 => context
-            .value
-            .new_buffer::<Stereo<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency),
-    }?;
-    Ok(buffer)
-}
 
 fn set_buffer_data_with_format(
     buffer: &mut alto::Buffer,
@@ -47,46 +28,35 @@ pub struct Buffer {
 }
 
 impl Buffer {
-    pub fn new<F: SampleFrame, B: AsBufferData<F>>(
+    pub fn new(
         context: &Context,
-        data: B,
+        data: &[u8],
+        format: AudioFormat,
         frequency: i32,
     ) -> Result<Self, BackendError> {
-        let buffer = context.value.new_buffer::<F, B>(data, frequency)?;
+        let buffer = match format {
+            AudioFormat::Mono8 => context.value.new_buffer::<Mono<u8>, _>(data, frequency),
+            AudioFormat::Stereo8 => context.value.new_buffer::<Stereo<u8>, _>(data, frequency),
+            AudioFormat::Mono16 => context
+                .value
+                .new_buffer::<Mono<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency),
+            AudioFormat::Stereo16 => context
+                .value
+                .new_buffer::<Stereo<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency),
+        }?;
         Ok(Self {
             value: Arc::new(buffer),
         })
     }
 
-    // TODO: test this function
-    // TODO: must be able to propagate the errors coming from the decoder -> Need an encompassing error type.
-    // TODO: test with different formats.
-    // TODO: change to use buffer_with_format.
+    // TODO: unit test.
     pub fn from_decoder<D: Decoder>(
         context: &Context,
         decoder: &mut D,
     ) -> Result<Self, BackendError> {
-        // TODO: replace unwrap call.
+        // TODO: replace unwrap call. Needs wrapping error type.
         let data = decoder.read_all().unwrap();
-        let buffer = match decoder.audio_format() {
-            AudioFormat::Mono8 => {
-                Self::new::<Mono<u8>, _>(context, data, decoder.sample_rate() as i32)
-            }
-            AudioFormat::Stereo8 => {
-                Self::new::<Stereo<u8>, _>(context, data, decoder.sample_rate() as i32)
-            }
-            AudioFormat::Mono16 => Self::new::<Mono<i16>, _>(
-                context,
-                bytemuck::cast_slice::<u8, i16>(&data),
-                decoder.sample_rate() as i32,
-            ),
-            AudioFormat::Stereo16 => Self::new::<Stereo<i16>, _>(
-                context,
-                bytemuck::cast_slice::<u8, i16>(&data),
-                decoder.sample_rate() as i32,
-            ),
-        }?;
-        Ok(buffer)
+        Self::new(context, &data, decoder.audio_format(), decoder.sample_rate() as i32)
     }
 
     // TODO: add a set_data function determining at runtime what AudioFormat to use.
@@ -110,12 +80,13 @@ mod tests {
     use super::*;
     use galvanic_assert::{matchers::*, *};
 
+    // TODO: test with different formats.
     #[test]
     #[serial_test::serial]
     fn buffer_creation() {
         let device = Device::default().unwrap();
         let context = Context::default(&device).unwrap();
-        let buffer = Buffer::new::<Stereo<i16>, _>(&context, vec![12, 13, 14, 15], 5).unwrap();
+        let buffer = Buffer::new(&context, &[12, 13, 14, 15, 16, 17, 18, 19], AudioFormat::Stereo16, 5).unwrap();
         expect_that!(&buffer.frequency(), eq(5));
         expect_that!(&buffer.bits(), eq(16));
         expect_that!(&buffer.channels(), eq(2));
