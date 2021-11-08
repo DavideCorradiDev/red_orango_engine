@@ -1,6 +1,4 @@
-use super::{AudioFormat, Decoder};
-
-use lazy_static::lazy_static;
+use super::{AudioFormat, Decoder, new_impl::ALTO};
 
 use std::sync::Arc;
 
@@ -8,11 +6,6 @@ pub use alto::{
     AltoError as BackendError, AsBufferData, ContextAttrs as ContextDesc, Mono, SampleFrame,
     Source, SourceState, Stereo,
 };
-
-lazy_static! {
-    static ref ALTO: alto::Alto =
-        alto::Alto::load_default().expect("Failed to load the audio library");
-}
 
 pub struct Device {
     value: alto::OutputDevice,
