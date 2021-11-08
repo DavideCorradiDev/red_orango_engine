@@ -82,7 +82,7 @@ where
     T: std::io::Read + std::io::Seek,
 {
     pub fn new(mut input: T) -> Result<Self, DecoderError> {
-        input.seek(std::io::SeekFrom::Start(0)).unwrap();
+        input.seek(std::io::SeekFrom::Start(0))?;
 
         let mut signature = WavSignature::zeroed();
         input.read_exact(bytemuck::bytes_of_mut(&mut signature))?;
@@ -234,7 +234,11 @@ mod tests {
     fn invalid_input_file() {
         let file = std::fs::File::open("data/audio/not-an-audio-file.txt").unwrap();
         let buf = std::io::BufReader::new(file);
-        expect_that!(&WavDecoder::new(buf), is_variant!(Result::Err));
+        let result = WavDecoder::new(buf);
+        expect_that!(&result, is_variant!(Result::Err));
+        if let Err(e) = result {
+            expect_that!(&e, is_variant!(DecoderError::InvalidEncoding));
+        }
     }
 
     #[test]
