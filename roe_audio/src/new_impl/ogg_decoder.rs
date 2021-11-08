@@ -237,8 +237,7 @@ where
             target_pos
         );
 
-        // TODO: replace unwrap
-        self.reset_to_stream_begin().unwrap();
+        self.reset_to_stream_begin()?;
         while self.packet_start_byte_pos < self.byte_count() as u64 {
             match &self.packet {
                 Some(p) => {
@@ -248,10 +247,10 @@ where
                         self.packet_current_byte_pos = target_pos - self.packet_start_byte_pos;
                         break;
                     } else {
-                        self.read_next_packet().unwrap();
+                        self.read_next_packet()?;
                     }
                 }
-                None => self.read_next_packet().unwrap(),
+                None => self.read_next_packet()?,
             }
         }
 
@@ -286,7 +285,7 @@ where
         );
 
         if let None = self.packet {
-            self.read_next_packet().unwrap();
+            self.read_next_packet()?;
         }
 
         let mut read_byte_count = 0;
@@ -306,7 +305,7 @@ where
                     read_byte_count += byte_to_read_count;
                     self.packet_current_byte_pos += byte_to_read_count as u64;
                     if self.packet_current_byte_pos == byte_data.len() as u64 {
-                        self.read_next_packet().unwrap();
+                        self.read_next_packet()?;
                     }
                 }
                 None => break,

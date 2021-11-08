@@ -81,19 +81,18 @@ impl<T> WavDecoder<T>
 where
     T: std::io::Read + std::io::Seek,
 {
-    pub fn new(mut input: T) -> Result<Self, WavDecoderCreationError> {
+    pub fn new(mut input: T) -> Result<Self, DecoderError> {
         input.seek(std::io::SeekFrom::Start(0)).unwrap();
 
         let mut signature = WavSignature::zeroed();
         input.read_exact(bytemuck::bytes_of_mut(&mut signature))?;
         {
             let id_str = std::str::from_utf8(&signature.id).unwrap();
-            if id_str != "RIFF" {
-                return Err(WavDecoderCreationError::InvalidId(String::from(id_str)));
-            }
             let form_str = std::str::from_utf8(&signature.form).unwrap();
-            if form_str != "WAVE" {
-                return Err(WavDecoderCreationError::InvalidForm(String::from(form_str)));
+            if id_str != "RIFF" || form_str != "WAVE" {
+                return Err(DecoderError::InvalidEncoding(String::from(
+                    "Not a wav file",
+                )));
             }
         }
 
@@ -102,35 +101,44 @@ where
         {
             let id_str = std::str::from_utf8(&format_chunk.signature.id).unwrap();
             if id_str != "fmt " {
-                return Err(WavDecoderCreationError::InvalidFormatChunkId(String::from(
-                    id_str,
+                return Err(DecoderError::InvalidHeader(format!(
+                    "Invalid format chunk id ({})",
+                    id_str
                 )));
             }
             if format_chunk.channels != 1 && format_chunk.channels != 2 {
-                return Err(WavDecoderCreationError::InvalidChannelCount(
-                    format_chunk.channels,
-                ));
+                let channels = format_chunk.channels;
+                return Err(DecoderError::InvalidHeader(format!(
+                    "Invalid channel count ({})",
+                    channels
+                )));
             }
             if format_chunk.bits_per_sample != 8 && format_chunk.bits_per_sample != 16 {
-                return Err(WavDecoderCreationError::InvalidBitsPerSample(
-                    format_chunk.bits_per_sample,
-                ));
+                let bits_per_sample = format_chunk.bits_per_sample;
+                return Err(DecoderError::InvalidHeader(format!(
+                    "Invalid bits per sample ({})",
+                    bits_per_sample
+                )));
             }
             if format_chunk.byte_rate
                 != format_chunk.sample_rate
                     * format_chunk.channels as u32
                     * (format_chunk.bits_per_sample / 8) as u32
             {
-                return Err(WavDecoderCreationError::InvalidByteRate(
-                    format_chunk.byte_rate,
-                ));
+                let byte_rate = format_chunk.byte_rate;
+                return Err(DecoderError::InvalidHeader(format!(
+                    "Invalid byte rate ({})",
+                    byte_rate
+                )));
             }
             if format_chunk.block_align
                 != format_chunk.channels * (format_chunk.bits_per_sample / 8)
             {
-                return Err(WavDecoderCreationError::InvalidBlockAlignment(
-                    format_chunk.block_align,
-                ));
+                let block_align = format_chunk.block_align;
+                return Err(DecoderError::InvalidHeader(format!(
+                    "Invalid block alignment ({})",
+                    block_align
+                )));
             }
         }
 
@@ -214,48 +222,6 @@ where
         );
         let count = self.input.read(buf)?;
         Ok(count)
-    }
-}
-
-#[derive(Debug)]
-pub enum WavDecoderCreationError {
-    IoError(std::io::Error),
-    InvalidId(String),
-    InvalidForm(String),
-    InvalidFormatChunkId(String),
-    InvalidChannelCount(u16),
-    InvalidBitsPerSample(u16),
-    InvalidByteRate(u32),
-    InvalidBlockAlignment(u16),
-}
-
-impl std::fmt::Display for WavDecoderCreationError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::IoError(e) => write!(f, "Input / Output error ({})", e),
-            Self::InvalidId(e) => write!(f, "Invalid id ({})", e),
-            Self::InvalidForm(e) => write!(f, "Invalid form ({})", e),
-            Self::InvalidFormatChunkId(e) => write!(f, "Invalid format chunk id ({})", e),
-            Self::InvalidChannelCount(e) => write!(f, "Invalid channel count ({})", e),
-            Self::InvalidBitsPerSample(e) => write!(f, "Invalid bits per sample ({})", e),
-            Self::InvalidByteRate(e) => write!(f, "Invalid byte rate ({})", e),
-            Self::InvalidBlockAlignment(e) => write!(f, "Invalid block alignment ({})", e),
-        }
-    }
-}
-
-impl std::error::Error for WavDecoderCreationError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::IoError(e) => Some(e),
-            _ => None,
-        }
-    }
-}
-
-impl From<std::io::Error> for WavDecoderCreationError {
-    fn from(e: std::io::Error) -> Self {
-        Self::IoError(e)
     }
 }
 
