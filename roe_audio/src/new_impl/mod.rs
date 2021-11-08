@@ -20,3 +20,6 @@ pub use device::*;
 
 mod context;
 pub use context::*;
+
+mod buffer;
+pub use buffer::*;
