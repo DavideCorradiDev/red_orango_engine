@@ -1,4 +1,4 @@
-use super::{AudioFormat, Decoder};
+use super::{AudioFormat, Decoder, DecoderError};
 
 use bytemuck::Zeroable;
 
@@ -174,7 +174,7 @@ where
         self.sample_count
     }
 
-    fn sample_stream_position(&mut self) -> std::io::Result<u64> {
+    fn sample_stream_position(&mut self) -> Result<u64, DecoderError> {
         let input_pos = self.input.stream_position()?;
         let tbps = self.audio_format().total_bytes_per_sample() as u64;
         assert!(input_pos >= self.byte_data_offset);
@@ -183,7 +183,7 @@ where
         Ok(input_pos / tbps)
     }
 
-    fn byte_seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
+    fn byte_seek(&mut self, pos: std::io::SeekFrom) -> Result<u64, DecoderError> {
         let byte_count = self.byte_count() as i64;
         let target_pos = match pos {
             std::io::SeekFrom::Start(v) => v as i64,
@@ -205,7 +205,7 @@ where
         Ok(count - self.byte_data_offset)
     }
 
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, DecoderError> {
         let tbps = self.audio_format().total_bytes_per_sample() as usize;
         assert!(
             buf.len() % tbps == 0,

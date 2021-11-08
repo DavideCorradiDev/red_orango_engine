@@ -1,7 +1,7 @@
+use super::{AudioFormat, Decoder, DecoderError};
+
 use lewton::samples::Samples;
 use ogg::reading::PacketReader;
-
-use super::{AudioFormat, Decoder};
 
 struct OggContext {
     ident_header: lewton::header::IdentHeader,
@@ -221,7 +221,7 @@ where
         self.format
     }
 
-    fn byte_seek(&mut self, pos: std::io::SeekFrom) -> std::io::Result<u64> {
+    fn byte_seek(&mut self, pos: std::io::SeekFrom) -> Result<u64, DecoderError> {
         let byte_count = self.byte_count() as i64;
         let target_pos = match pos {
             std::io::SeekFrom::Start(v) => v as i64,
@@ -266,18 +266,18 @@ where
         self.sample_count
     }
 
-    fn byte_stream_position(&mut self) -> std::io::Result<u64> {
+    fn byte_stream_position(&mut self) -> Result<u64, DecoderError> {
         Ok(self.packet_start_byte_pos + self.packet_current_byte_pos)
     }
 
-    fn sample_stream_position(&mut self) -> std::io::Result<u64> {
+    fn sample_stream_position(&mut self) -> Result<u64, DecoderError> {
         let byte_stream_position = self.byte_stream_position()?;
         let tbps = self.audio_format().total_bytes_per_sample() as u64;
         assert!(byte_stream_position % tbps == 0);
         Ok(byte_stream_position / tbps)
     }
 
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+    fn read(&mut self, buf: &mut [u8]) -> Result<usize, DecoderError> {
         let tbps = self.audio_format().total_bytes_per_sample() as usize;
         assert!(
             buf.len() % tbps == 0,
@@ -314,42 +314,6 @@ where
         }
 
         Ok(read_byte_count)
-    }
-}
-
-#[derive(Debug)]
-pub enum DecoderError {
-    IoError(std::io::Error),
-    InvalidEncoding(String),
-    InvalidHeader(String),
-    InvalidData(String),
-    Unimplemented,
-}
-
-impl std::fmt::Display for DecoderError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::IoError(e) => write!(f, "Input / Output error ({})", e),
-            Self::InvalidEncoding(e) => write!(f, "Invalid encoding ({})", e),
-            Self::InvalidHeader(e) => write!(f, "Invalid header ({})", e),
-            Self::InvalidData(e) => write!(f, "Invalid data ({})", e),
-            Self::Unimplemented => write!(f, "Unimplemented"),
-        }
-    }
-}
-
-impl std::error::Error for DecoderError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::IoError(e) => Some(e),
-            _ => None,
-        }
-    }
-}
-
-impl From<std::io::Error> for DecoderError {
-    fn from(e: std::io::Error) -> Self {
-        Self::IoError(e)
     }
 }
 
