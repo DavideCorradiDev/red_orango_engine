@@ -1,9 +1,4 @@
-use super::ALTO;
-
-pub use alto::{
-    AltoError as BackendError, AsBufferData, ContextAttrs as ContextDesc, Mono, SampleFrame,
-    Source, SourceState, Stereo,
-};
+use super::{ALTO, BackendError};
 
 pub struct Device {
     pub(crate) value: alto::OutputDevice,
