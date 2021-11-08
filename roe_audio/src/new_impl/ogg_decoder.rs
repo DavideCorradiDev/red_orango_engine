@@ -187,10 +187,7 @@ where
                 Some(p) => p,
                 None => break,
             };
-
-            for channel in packet {
-                sample_count += channel.len();
-            }
+            sample_count += packet[0].len();
         }
         Ok(sample_count)
     }
@@ -628,6 +625,228 @@ mod tests {
     #[test]
     fn mono16_read_all() {
         let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
+        decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
+        let content = decoder.read_all().unwrap();
+        expect_that!(&content.len(), eq(decoder.byte_count()));
+    }
+
+    #[test]
+    fn stereo16_loading() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let decoder = OggDecoder::new(buf).unwrap();
+        expect_that!(&decoder.audio_format(), eq(AudioFormat::Stereo16));
+        expect_that!(&decoder.byte_count(), eq(22208 * 4));
+        expect_that!(&decoder.sample_count(), eq(22208));
+        expect_that!(&decoder.byte_rate(), eq(44100 * 4));
+        expect_that!(&decoder.sample_rate(), eq(44100));
+    }
+
+    #[test]
+    fn stereo16_byte_seek() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
+
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+
+        // From start.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Start(12)).unwrap(),
+            eq(12)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(12));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(3));
+
+        // From current positive.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Current(4)).unwrap(),
+            eq(16)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(16));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(4));
+
+        // From current negative.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Current(-8)).unwrap(),
+            eq(8)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(8));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(2));
+
+        // From end.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::End(-12)).unwrap(),
+            eq(decoder.byte_count() as u64 - 12)
+        );
+        expect_that!(
+            &decoder.byte_stream_position().unwrap(),
+            eq(decoder.byte_count() as u64 - 12)
+        );
+        expect_that!(
+            &decoder.sample_stream_position().unwrap(),
+            eq(decoder.sample_count() as u64 - 3)
+        );
+
+        // Beyond end.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::End(40)).unwrap(),
+            eq(decoder.byte_count() as u64)
+        );
+        expect_that!(
+            &decoder.byte_stream_position().unwrap(),
+            eq(decoder.byte_count() as u64)
+        );
+        expect_that!(
+            &decoder.sample_stream_position().unwrap(),
+            eq(decoder.sample_count() as u64)
+        );
+
+        // Before start.
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Start(0)).unwrap(),
+            eq(0)
+        );
+        expect_that!(
+            &decoder.byte_seek(std::io::SeekFrom::Current(-3)).unwrap(),
+            eq(0)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid seek offset (3)")]
+    fn stereo16_byte_seek_invalid_offset() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
+        decoder.byte_seek(std::io::SeekFrom::Start(3)).unwrap();
+    }
+
+    #[test]
+    fn stereo16_sample_seek() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
+
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+
+        // From start.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Start(3)).unwrap(),
+            eq(3)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(12));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(3));
+
+        // From current positive.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Current(1)).unwrap(),
+            eq(4)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(16));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(4));
+
+        // From current negative.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Current(-2)).unwrap(),
+            eq(2)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(8));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(2));
+
+        // From end.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::End(-3)).unwrap(),
+            eq(decoder.sample_count() as u64 - 3)
+        );
+        expect_that!(
+            &decoder.byte_stream_position().unwrap(),
+            eq(decoder.byte_count() as u64 - 12)
+        );
+        expect_that!(
+            &decoder.sample_stream_position().unwrap(),
+            eq(decoder.sample_count() as u64 - 3)
+        );
+
+        // Beyond end.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::End(10)).unwrap(),
+            eq(decoder.sample_count() as u64)
+        );
+        expect_that!(
+            &decoder.byte_stream_position().unwrap(),
+            eq(decoder.byte_count() as u64)
+        );
+        expect_that!(
+            &decoder.sample_stream_position().unwrap(),
+            eq(decoder.sample_count() as u64)
+        );
+
+        // Before start.
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Start(0)).unwrap(),
+            eq(0)
+        );
+        expect_that!(
+            &decoder.sample_seek(std::io::SeekFrom::Current(-3)).unwrap(),
+            eq(0)
+        );
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(0));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(0));
+    }
+
+    #[test]
+    fn stereo16_read() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
+        let mut buf = vec![0; 8];
+
+        expect_that!(&decoder.read(&mut buf).unwrap(), eq(8));
+        expect_that!(&buf, eq(vec![12, 31, 12, 31, 20, 35, 20, 35]));
+
+        expect_that!(&decoder.read(&mut buf).unwrap(), eq(8));
+        expect_that!(&buf, eq(vec![182, 28, 182, 28, 132, 33, 132, 33]));
+
+        decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
+        expect_that!(&decoder.byte_stream_position().unwrap(), eq(decoder.byte_count() as u64 - 4));
+        expect_that!(&decoder.sample_stream_position().unwrap(), eq(decoder.sample_count() as u64 - 1));
+
+        // Unable to read the whole buffer because at the end: the remaining elements
+        // aren't overwritten!
+        expect_that!(&decoder.read(&mut buf).unwrap(), eq(4));
+        expect_that!(&buf, eq(vec![0, 0, 0, 0, 132, 33, 132, 33]));
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid buffer length (7)")]
+    fn stereo16_read_invalid_buffer_length() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
+        let mut buf = vec![0; 7];
+        decoder.read(&mut buf).unwrap();
+    }
+
+    #[test]
+    fn stereo16_read_to_end() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap();
+        let buf = std::io::BufReader::new(file);
+        let mut decoder = OggDecoder::new(buf).unwrap();
+        decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
+        let content = decoder.read_to_end().unwrap();
+        expect_that!(&content.len(), eq(decoder.byte_count() - 572));
+    }
+
+    #[test]
+    fn stereo16_read_all() {
+        let file = std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap();
         let buf = std::io::BufReader::new(file);
         let mut decoder = OggDecoder::new(buf).unwrap();
         decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
