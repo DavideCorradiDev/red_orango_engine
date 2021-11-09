@@ -3,6 +3,9 @@ pub use alto::AltoError as Error;
 mod audio_format;
 pub use audio_format::*;
 
+mod decoder_error;
+pub use decoder_error::*;
+
 mod decoder;
 pub use decoder::*;
 
