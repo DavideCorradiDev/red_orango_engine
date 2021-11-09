@@ -1,4 +1,4 @@
-use super::{ALTO, BackendError};
+use super::{ALTO, AudioError};
 
 pub struct Device {
     pub(crate) value: alto::OutputDevice,
@@ -12,12 +12,12 @@ impl Device {
             .collect()
     }
 
-    pub fn default() -> Result<Self, BackendError> {
+    pub fn default() -> Result<Self, AudioError> {
         let device = ALTO.open(None)?;
         Ok(Self { value: device })
     }
 
-    pub fn new(device_name: &str) -> Result<Self, BackendError> {
+    pub fn new(device_name: &str) -> Result<Self, AudioError> {
         let device = ALTO.open(Some(&std::ffi::CString::new(device_name).unwrap()))?;
         Ok(Self { value: device })
     }

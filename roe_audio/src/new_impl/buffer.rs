@@ -1,4 +1,4 @@
-use super::{AudioFormat, BackendError, Context, Decoder};
+use super::{AudioFormat, AudioError, Context, Decoder};
 
 use alto::{Mono, Stereo};
 
@@ -19,7 +19,7 @@ impl Buffer {
         data: &[u8],
         format: AudioFormat,
         frequency: i32,
-    ) -> Result<Self, BackendError> {
+    ) -> Result<Self, AudioError> {
         let buffer = match format {
             AudioFormat::Mono8 => context.value.new_buffer::<Mono<u8>, _>(data, frequency),
             AudioFormat::Stereo8 => context.value.new_buffer::<Stereo<u8>, _>(data, frequency),
@@ -38,9 +38,8 @@ impl Buffer {
     pub fn from_decoder<D: Decoder>(
         context: &Context,
         decoder: &mut D,
-    ) -> Result<Self, BackendError> {
-        // TODO: replace unwrap call. Needs wrapping error type.
-        let data = decoder.read_all().unwrap();
+    ) -> Result<Self, AudioError> {
+        let data = decoder.read_all()?;
         Self::new(
             context,
             &data,
@@ -50,6 +49,7 @@ impl Buffer {
     }
 }
 
+// TODO: Remove deref and use a cleaner interface.
 impl std::ops::Deref for Buffer {
     type Target = alto::Buffer;
     fn deref(&self) -> &Self::Target {

@@ -1,4 +1,4 @@
-use super::{BackendError, Device};
+use super::{AudioError, Device};
 
 pub use alto::ContextAttrs as ContextDesc;
 
@@ -7,12 +7,12 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn default(device: &Device) -> Result<Self, BackendError> {
+    pub fn default(device: &Device) -> Result<Self, AudioError> {
         let context = device.value.new_context(None)?;
         Ok(Self { value: context })
     }
 
-    pub fn new(device: &Device, desc: &ContextDesc) -> Result<Self, BackendError> {
+    pub fn new(device: &Device, desc: &ContextDesc) -> Result<Self, AudioError> {
         let context = device.value.new_context(Some(desc.clone()))?;
         Ok(Self { value: context })
     }

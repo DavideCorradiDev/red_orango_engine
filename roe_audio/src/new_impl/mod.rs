@@ -15,6 +15,9 @@ pub use ogg_decoder::*;
 mod alto_lib;
 pub use alto_lib::*;
 
+mod audio_error;
+pub use audio_error::*;
+
 mod device;
 pub use device::*;
 
