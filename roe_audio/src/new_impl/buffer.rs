@@ -1,4 +1,4 @@
-use super::{AudioFormat, AudioError, Context, Decoder};
+use super::{AudioError, AudioFormat, Context, Decoder};
 
 use alto::{Mono, Stereo};
 
@@ -12,7 +12,6 @@ pub struct Buffer {
     value: Arc<alto::Buffer>,
 }
 
-// TODO: consider updating the interface to match that of decoder.
 impl Buffer {
     pub fn new(
         context: &Context,
@@ -47,13 +46,26 @@ impl Buffer {
             decoder.sample_rate() as i32,
         )
     }
-}
 
-// TODO: Remove deref and use a cleaner interface.
-impl std::ops::Deref for Buffer {
-    type Target = alto::Buffer;
-    fn deref(&self) -> &Self::Target {
-        &self.value
+    pub fn audio_format(&self) -> AudioFormat {
+        let bytes_per_sample = self.value.bits() / 8;
+        AudioFormat::new(self.value.channels() as u32, bytes_per_sample as u32)
+    }
+
+    pub fn byte_rate(&self) -> u32 {
+        self.sample_rate() * self.audio_format().total_bytes_per_sample()
+    }
+
+    pub fn byte_count(&self) -> usize {
+        self.value.size() as usize
+    }
+
+    pub fn sample_rate(&self) -> u32 {
+        self.value.frequency() as u32
+    }
+
+    pub fn sample_count(&self) -> usize {
+        self.byte_count() / self.audio_format().total_bytes_per_sample() as usize
     }
 }
 
@@ -83,10 +95,11 @@ mod tests {
             5,
         )
         .unwrap();
-        expect_that!(&buffer.frequency(), eq(5));
-        expect_that!(&buffer.bits(), eq(8));
-        expect_that!(&buffer.channels(), eq(1));
-        expect_that!(&buffer.size(), eq(8));
+        expect_that!(&buffer.audio_format(), eq(AudioFormat::Mono8));
+        expect_that!(&buffer.byte_rate(), eq(5));
+        expect_that!(&buffer.sample_rate(), eq(5));
+        expect_that!(&buffer.byte_count(), eq(8));
+        expect_that!(&buffer.sample_count(), eq(8));
     }
 
     #[test]
@@ -101,10 +114,11 @@ mod tests {
             5,
         )
         .unwrap();
-        expect_that!(&buffer.frequency(), eq(5));
-        expect_that!(&buffer.bits(), eq(16));
-        expect_that!(&buffer.channels(), eq(1));
-        expect_that!(&buffer.size(), eq(8));
+        expect_that!(&buffer.audio_format(), eq(AudioFormat::Mono16));
+        expect_that!(&buffer.byte_rate(), eq(10));
+        expect_that!(&buffer.sample_rate(), eq(5));
+        expect_that!(&buffer.byte_count(), eq(8));
+        expect_that!(&buffer.sample_count(), eq(4));
     }
 
     #[test]
@@ -119,10 +133,11 @@ mod tests {
             5,
         )
         .unwrap();
-        expect_that!(&buffer.frequency(), eq(5));
-        expect_that!(&buffer.bits(), eq(8));
-        expect_that!(&buffer.channels(), eq(2));
-        expect_that!(&buffer.size(), eq(8));
+        expect_that!(&buffer.audio_format(), eq(AudioFormat::Stereo8));
+        expect_that!(&buffer.byte_rate(), eq(10));
+        expect_that!(&buffer.sample_rate(), eq(5));
+        expect_that!(&buffer.byte_count(), eq(8));
+        expect_that!(&buffer.sample_count(), eq(4));
     }
 
     #[test]
@@ -137,10 +152,11 @@ mod tests {
             5,
         )
         .unwrap();
-        expect_that!(&buffer.frequency(), eq(5));
-        expect_that!(&buffer.bits(), eq(16));
-        expect_that!(&buffer.channels(), eq(2));
-        expect_that!(&buffer.size(), eq(8));
+        expect_that!(&buffer.audio_format(), eq(AudioFormat::Stereo16));
+        expect_that!(&buffer.byte_rate(), eq(20));
+        expect_that!(&buffer.sample_rate(), eq(5));
+        expect_that!(&buffer.byte_count(), eq(8));
+        expect_that!(&buffer.sample_count(), eq(2));
     }
 
     #[test]
@@ -154,9 +170,10 @@ mod tests {
         let context = Context::default(&device).unwrap();
         let buffer = Buffer::from_decoder(&context, &mut decoder).unwrap();
 
-        expect_that!(&buffer.frequency(), eq(44100));
-        expect_that!(&buffer.bits(), eq(16));
-        expect_that!(&buffer.channels(), eq(2));
-        expect_that!(&buffer.size(), eq(84924));
+        expect_that!(&buffer.audio_format(), eq(AudioFormat::Stereo16));
+        expect_that!(&buffer.byte_rate(), eq(44100 * 4));
+        expect_that!(&buffer.sample_rate(), eq(44100));
+        expect_that!(&buffer.byte_count(), eq(21231 * 4));
+        expect_that!(&buffer.sample_count(), eq(21231));
     }
 }
