@@ -9,7 +9,7 @@ pub struct Buffer {
     // This means that the value can't be modified anymore after creation.
     // This ensures no race conditions, but also means that changing data in an existing buffer
     // is not possible: a new buffer has to be created.
-    value: Arc<alto::Buffer>,
+    pub(crate) value: Arc<alto::Buffer>,
 }
 
 impl Buffer {

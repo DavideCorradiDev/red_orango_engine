@@ -29,3 +29,6 @@ pub use context::*;
 
 mod buffer;
 pub use buffer::*;
+
+mod static_source;
+pub use static_source::*;
