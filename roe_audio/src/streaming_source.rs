@@ -67,6 +67,7 @@ pub struct StreamingSource<D: Decoder> {
     looping: bool,
 }
 
+// TODO: weird artifact at the start of playback.
 impl<D: Decoder> StreamingSource<D> {
     pub fn new(
         context: &Context,

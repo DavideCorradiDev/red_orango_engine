@@ -238,6 +238,7 @@ where
             target_pos
         );
 
+        // TODO: use seek_bytes from packet reader?
         self.reset_to_stream_begin()?;
         while self.packet_start_byte_pos < self.byte_count() as u64 {
             match &self.packet {
