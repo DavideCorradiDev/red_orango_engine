@@ -16,7 +16,7 @@ pub enum ApplicationError {
     InstanceCreationFailed(roe_graphics::InstanceCreationError),
     RenderFrameCreationFailed(roe_graphics::SwapChainError),
     FontCreationFailed(roe_text::FontError),
-    AudioBackendError(roe_audio::BackendError),
+    AudioError(roe_audio::AudioError),
     CustomEventSendingError,
 }
 
@@ -35,8 +35,8 @@ impl std::fmt::Display for ApplicationError {
             ApplicationError::FontCreationFailed(e) => {
                 write!(f, "Font creation failed ({})", e)
             }
-            ApplicationError::AudioBackendError(e) => {
-                write!(f, "Audio backend error ({})", e)
+            ApplicationError::AudioError(e) => {
+                write!(f, "Audio error ({})", e)
             }
             ApplicationError::CustomEventSendingError => {
                 write!(f, "Failed to send custom event")
@@ -52,7 +52,7 @@ impl std::error::Error for ApplicationError {
             ApplicationError::InstanceCreationFailed(e) => Some(e),
             ApplicationError::RenderFrameCreationFailed(e) => Some(e),
             ApplicationError::FontCreationFailed(e) => Some(e),
-            ApplicationError::AudioBackendError(e) => Some(e),
+            ApplicationError::AudioError(e) => Some(e),
             ApplicationError::CustomEventSendingError => None,
         }
     }
@@ -82,9 +82,9 @@ impl From<roe_text::FontError> for ApplicationError {
     }
 }
 
-impl From<roe_audio::BackendError> for ApplicationError {
-    fn from(e: roe_audio::BackendError) -> Self {
-        ApplicationError::AudioBackendError(e)
+impl From<roe_audio::AudioError> for ApplicationError {
+    fn from(e: roe_audio::AudioError) -> Self {
+        ApplicationError::AudioError(e)
     }
 }
 

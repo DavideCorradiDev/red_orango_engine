@@ -269,13 +269,6 @@ where
         Ok(self.packet_start_byte_pos + self.packet_current_byte_pos)
     }
 
-    fn sample_stream_position(&mut self) -> Result<u64, DecoderError> {
-        let byte_stream_position = self.byte_stream_position()?;
-        let tbps = self.audio_format().total_bytes_per_sample() as u64;
-        assert!(byte_stream_position % tbps == 0);
-        Ok(byte_stream_position / tbps)
-    }
-
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, DecoderError> {
         let tbps = self.audio_format().total_bytes_per_sample() as usize;
         assert!(
