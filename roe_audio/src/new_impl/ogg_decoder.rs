@@ -104,8 +104,8 @@ impl OggContext {
         };
         let mut decoded_packet: S = self.decode_ogg_packet_generic(&packet)?;
 
-        // If this is the last packet in the logical bitstream, it has to be truncated so
-        // that the end matches the absgp of the current page.
+        // If this is the last packet in the logical bitstream, it has to be truncated
+        // so that the end matches the absgp of the current page.
         if let (Some(absgp), true) = (self.cur_absgp, packet.last_in_stream()) {
             let target_length = packet.absgp_page().saturating_sub(absgp) as usize;
             decoded_packet.truncate(target_length);

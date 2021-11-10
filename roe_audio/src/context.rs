@@ -114,11 +114,11 @@ impl Buffer {
 
     // TODO: rename this file to something other than context.
     // TODO: remove the "sound" class.
-    // TODO: think if the Decoder should have a better interface. Or maybe separate this ufnction into another constructor accepting raw data.
-    // TODO: test this function
-    // TODO: must be able to propagate the errors coming from the decoder -> Need an encompassing error type.
-    // TODO: test with different formats.
-    // TODO: change to use buffer_With_format.
+    // TODO: think if the Decoder should have a better interface. Or maybe separate
+    // this ufnction into another constructor accepting raw data. TODO: test
+    // this function TODO: must be able to propagate the errors coming from the
+    // decoder -> Need an encompassing error type. TODO: test with different
+    // formats. TODO: change to use buffer_With_format.
     pub fn from_decoder<D: Decoder>(
         context: &Context,
         decoder: &mut D,
@@ -253,10 +253,11 @@ impl<D: Decoder> StreamingSource<D> {
         Ok(source)
     }
 
-    // TODO: make a check: if we are at the end of the decoder buffer, and the source is not looping, stop queueing stuff.
-    // We should store the new buffers somewhere though, or else they will be lost...
-    // Also on "play" we should make the first buffer loading...
-    // TODO: implement looping as well...
+    // TODO: make a check: if we are at the end of the decoder buffer, and the
+    // source is not looping, stop queueing stuff. We should store the new
+    // buffers somewhere though, or else they will be lost... Also on "play" we
+    // should make the first buffer loading... TODO: implement looping as
+    // well...
     pub fn update(&mut self) -> Result<(), BackendError> {
         for _ in 0..self.value.buffers_processed() {
             let mut audio_buf = self.value.unqueue_buffer()?;
