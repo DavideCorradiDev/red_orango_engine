@@ -92,49 +92,43 @@ impl<D: Decoder> StreamingSource<D> {
             empty_buffers,
             looping: desc.looping,
         };
-
-        // source.decoder.byte_seek(std::io::SeekFrom::Start(0))?;
-        // let buffer_byte_count = desc.buffer_sample_count
-        //     * source.decoder.audio_format().total_bytes_per_sample() as usize;
-        // for _ in 0..desc.buffer_count {
-        //     let mut mem_buf = vec![0; buffer_byte_count];
-        //     source.decoder.read(&mut mem_buf)?;
-        //     let audio_buf = buffer_with_format(
-        //         context,
-        //         &mem_buf,
-        //         source.decoder.audio_format(),
-        //         source.decoder.sample_rate() as i32,
-        //     )?;
-        //     source.value.queue_buffer(audio_buf)?;
-        // }
+        source.update()?;
 
         Ok(source)
     }
 
-    // TODO: make a check: if we are at the end of the decoder buffer, and the source is not looping, stop queueing stuff.
-    // We should store the new buffers somewhere though, or else they will be lost...
-    // Also on "play" we should make the first buffer loading...
-    // TODO: implement looping as well...
-    // pub fn update(&mut self) -> Result<(), AudioError> {
-    //     for _ in 0..self.value.buffers_processed() {
-    //         let mut audio_buf = self.value.unqueue_buffer()?;
-    //         let mut mem_buf = vec![0; audio_buf.size() as usize];
-    //         let bytes_read = self.decoder.read(&mut mem_buf)?;
-    //         if bytes_read != 0 {
-    //             set_buffer_data_with_format(
-    //                 &mut audio_buf,
-    //                 &mem_buf,
-    //                 self.decoder.audio_format(),
-    //                 self.decoder.sample_rate() as i32,
-    //             )?;
-    //             self.value.queue_buffer(audio_buf)?;
-    //         }
-    //         else {
-    //             self.empty_buffers.push(audio_buf);
-    //         }
-    //     }
-    //     Ok(())
-    // }
+    pub fn update(&mut self) -> Result<(), AudioError> {
+        // Unqueue processed buffers.
+        for _ in 0..self.value.buffers_processed() {
+            self.empty_buffers.push(self.value.unqueue_buffer()?);
+        }
+
+        // Read new data into empty buffers.
+        let mut empty_buffer_count = self.empty_buffers.len();
+        for audio_buf in self.empty_buffers.iter_mut().rev() {
+            let mut mem_buf = vec![0; audio_buf.size() as usize];
+            let bytes_read = self.decoder.read(&mut mem_buf)?;
+            if bytes_read != 0 {
+                set_buffer_data_with_format(
+                    audio_buf,
+                    &mem_buf,
+                    self.decoder.audio_format(),
+                    self.decoder.sample_rate() as i32,
+                )?;
+                empty_buffer_count -= 1;
+            } else {
+                break;
+            }
+        }
+
+        // Queue populated buffers.
+        let non_empty_buffers = self.empty_buffers.split_off(empty_buffer_count);
+        for audio_buf in non_empty_buffers.into_iter() {
+            self.value.queue_buffer(audio_buf)?;
+        }
+
+        Ok(())
+    }
 }
 
 // TODO: substitute deref.
