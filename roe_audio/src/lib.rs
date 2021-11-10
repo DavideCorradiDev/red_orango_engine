@@ -32,3 +32,6 @@ pub use buffer::*;
 
 mod static_source;
 pub use static_source::*;
+
+mod streaming_source;
+pub use streaming_source::*;
