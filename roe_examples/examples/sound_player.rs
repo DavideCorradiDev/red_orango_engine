@@ -14,6 +14,8 @@ struct ApplicationImpl {
     audio_device: roe_audio::Device,
     audio_context: roe_audio::Context,
     static_source: roe_audio::StaticSource,
+    streaming_source:
+        roe_audio::StreamingSource<roe_audio::OggDecoder<std::io::BufReader<std::fs::File>>>,
 }
 
 impl EventHandler<ApplicationError, ()> for ApplicationImpl {
@@ -43,11 +45,22 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
         let mut static_source = roe_audio::StaticSource::new(&audio_context)?;
         static_source.set_buffer(&audio_buffer)?;
 
+        let streaming_source = roe_audio::StreamingSource::new(
+            &audio_context,
+            roe_audio::OggDecoder::new(std::io::BufReader::new(
+                std::fs::File::open("roe_examples/data/audio/bach.ogg").unwrap(),
+            ))
+            .unwrap(),
+            &roe_audio::StreamingSourceDescriptor::default(),
+        )
+        .unwrap();
+
         Ok(Self {
             window,
             audio_device,
             audio_context,
             static_source,
+            streaming_source,
         })
     }
 
@@ -65,8 +78,16 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
                 if key_code == keyboard::KeyCode::Key1 {
                     self.static_source.play();
                 }
+                if key_code == keyboard::KeyCode::Key2 {
+                    self.streaming_source.play();
+                }
             }
         }
+        Ok(ControlFlow::Continue)
+    }
+
+    fn on_fixed_update(&mut self, _: std::time::Duration) -> Result<ControlFlow, Self::Error> {
+        self.streaming_source.update().unwrap();
         Ok(ControlFlow::Continue)
     }
 }
