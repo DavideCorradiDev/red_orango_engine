@@ -3,12 +3,13 @@ use super::{AudioError, AudioFormat, Context, Decoder};
 use alto::{Mono, Stereo};
 
 // TODO: avoid duplication.
-fn buffer_with_format(
+fn create_buffer(
     context: &Context,
-    data: &[u8],
+    buffer_byte_count: usize,
     format: AudioFormat,
     frequency: i32,
 ) -> Result<alto::Buffer, AudioError> {
+    let data = vec![0; buffer_byte_count];
     let buffer = match format {
         AudioFormat::Mono8 => context.value.new_buffer::<Mono<u8>, _>(data, frequency),
         AudioFormat::Stereo8 => context.value.new_buffer::<Stereo<u8>, _>(data, frequency),
@@ -62,6 +63,8 @@ impl std::default::Default for StreamingSourceDescriptor {
 pub struct StreamingSource<D: Decoder> {
     value: alto::StreamingSource,
     decoder: D,
+    empty_buffers: Vec<alto::Buffer>,
+    looping: bool,
 }
 
 impl<D: Decoder> StreamingSource<D> {
@@ -71,24 +74,40 @@ impl<D: Decoder> StreamingSource<D> {
         desc: &StreamingSourceDescriptor,
     ) -> Result<Self, AudioError> {
         let source = context.value.new_streaming_source()?;
+        let buffer_byte_count =
+            desc.buffer_sample_count * decoder.audio_format().total_bytes_per_sample() as usize;
+        let mut empty_buffers = Vec::new();
+        for _ in 0..desc.buffer_count {
+            empty_buffers.push(create_buffer(
+                context,
+                buffer_byte_count,
+                decoder.audio_format(),
+                decoder.sample_rate() as i32,
+            )?);
+        }
+
         let mut source = Self {
             value: source,
             decoder,
+            empty_buffers,
+            looping: desc.looping,
         };
-        source.decoder.byte_seek(std::io::SeekFrom::Start(0))?;
-        let buffer_byte_count = desc.buffer_sample_count
-            * source.decoder.audio_format().total_bytes_per_sample() as usize;
-        for _ in 0..desc.buffer_count {
-            let mut mem_buf = vec![0; buffer_byte_count];
-            source.decoder.read(&mut mem_buf)?;
-            let audio_buf = buffer_with_format(
-                context,
-                &mem_buf,
-                source.decoder.audio_format(),
-                source.decoder.sample_rate() as i32,
-            )?;
-            source.value.queue_buffer(audio_buf)?;
-        }
+
+        // source.decoder.byte_seek(std::io::SeekFrom::Start(0))?;
+        // let buffer_byte_count = desc.buffer_sample_count
+        //     * source.decoder.audio_format().total_bytes_per_sample() as usize;
+        // for _ in 0..desc.buffer_count {
+        //     let mut mem_buf = vec![0; buffer_byte_count];
+        //     source.decoder.read(&mut mem_buf)?;
+        //     let audio_buf = buffer_with_format(
+        //         context,
+        //         &mem_buf,
+        //         source.decoder.audio_format(),
+        //         source.decoder.sample_rate() as i32,
+        //     )?;
+        //     source.value.queue_buffer(audio_buf)?;
+        // }
+
         Ok(source)
     }
 
@@ -96,23 +115,26 @@ impl<D: Decoder> StreamingSource<D> {
     // We should store the new buffers somewhere though, or else they will be lost...
     // Also on "play" we should make the first buffer loading...
     // TODO: implement looping as well...
-    pub fn update(&mut self) -> Result<(), AudioError> {
-        for _ in 0..self.value.buffers_processed() {
-            let mut audio_buf = self.value.unqueue_buffer()?;
-            let mut mem_buf = vec![0; audio_buf.size() as usize];
-            let bytes_read = self.decoder.read(&mut mem_buf)?;
-            if bytes_read != 0 {
-                set_buffer_data_with_format(
-                    &mut audio_buf,
-                    &mem_buf,
-                    self.decoder.audio_format(),
-                    self.decoder.sample_rate() as i32,
-                )?;
-                self.value.queue_buffer(audio_buf)?;
-            }
-        }
-        Ok(())
-    }
+    // pub fn update(&mut self) -> Result<(), AudioError> {
+    //     for _ in 0..self.value.buffers_processed() {
+    //         let mut audio_buf = self.value.unqueue_buffer()?;
+    //         let mut mem_buf = vec![0; audio_buf.size() as usize];
+    //         let bytes_read = self.decoder.read(&mut mem_buf)?;
+    //         if bytes_read != 0 {
+    //             set_buffer_data_with_format(
+    //                 &mut audio_buf,
+    //                 &mem_buf,
+    //                 self.decoder.audio_format(),
+    //                 self.decoder.sample_rate() as i32,
+    //             )?;
+    //             self.value.queue_buffer(audio_buf)?;
+    //         }
+    //         else {
+    //             self.empty_buffers.push(audio_buf);
+    //         }
+    //     }
+    //     Ok(())
+    // }
 }
 
 // TODO: substitute deref.
