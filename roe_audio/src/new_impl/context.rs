@@ -1,6 +1,4 @@
-use super::{AudioError, Device};
-
-pub use alto::ContextAttrs as ContextDesc;
+use super::{AudioError, Device, ContextDesc};
 
 pub struct Context {
     pub(crate) value: alto::Context,

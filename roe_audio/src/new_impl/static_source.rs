@@ -38,3 +38,29 @@ impl std::fmt::Debug for StaticSource {
         write!(f, "StaticSource {{ }}")
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        super::{AudioFormat, Device, Source, SourceState},
+        *,
+    };
+    use galvanic_assert::{matchers::*, *};
+
+    #[test]
+    #[serial_test::serial]
+    fn static_source_creation() {
+        let device = Device::default().unwrap();
+        let context = Context::default(&device).unwrap();
+        let buffer = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 5).unwrap();
+        let mut source = StaticSource::new(&context).unwrap();
+        source.set_buffer(&buffer).unwrap();
+        expect_that!(&source.state(), eq(SourceState::Initial));
+        expect_that!(&source.gain(), close_to(1., 1e-6));
+        expect_that!(&source.min_gain(), close_to(0., 1e-6));
+        expect_that!(&source.max_gain(), close_to(1., 1e-6));
+        expect_that!(&source.reference_distance(), close_to(1., 1e-6));
+        expect_that!(&source.rolloff_factor(), close_to(1., 1e-6));
+        expect_that!(&source.pitch(), close_to(1., 1e-6));
+    }
+}
