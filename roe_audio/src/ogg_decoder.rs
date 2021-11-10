@@ -179,6 +179,7 @@ where
         })
     }
 
+    // TODO: this takes long to process. is there a better way?
     fn compute_sample_count(packet_reader: &mut PacketReader<T>) -> Result<usize, DecoderError> {
         let mut sample_count = 0;
         let mut context = OggContext::new(packet_reader)?;
