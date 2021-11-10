@@ -1,4 +1,4 @@
-use super::{ALTO, AudioError};
+use super::{AudioError, ALTO};
 
 pub struct Device {
     pub(crate) value: alto::OutputDevice,

@@ -1,4 +1,4 @@
-use super::{AudioFormat, Decoder, new_impl::ALTO};
+use super::{new_impl::ALTO, AudioFormat, Decoder};
 
 use std::sync::Arc;
 

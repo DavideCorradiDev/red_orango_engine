@@ -12,12 +12,13 @@ impl std::fmt::Display for AudioError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::BackendError(e) => write!(f, "Backend error ({})", e),
-            Self::DecoderError(e) => write!(f, "Decoder error ({})", e)
+            Self::DecoderError(e) => write!(f, "Decoder error ({})", e),
         }
     }
 }
 
-impl std::error::Error for AudioError { fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+impl std::error::Error for AudioError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::BackendError(e) => Some(e),
             Self::DecoderError(e) => Some(e),
