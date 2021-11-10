@@ -89,7 +89,6 @@ pub fn compile_shaders_into_spirv(
         if in_subdir.file_type()?.is_file() {
             let in_path = in_subdir.path();
             let mut out_path = std::path::PathBuf::from(out_dir.clone());
-            println!("Output dir: {:?}", out_path);
             out_path.push(format!(
                 "{}.spv",
                 in_path
@@ -98,7 +97,6 @@ pub fn compile_shaders_into_spirv(
                     .to_str()
                     .unwrap_or("unnamed"),
             ));
-            println!("Output path: {:?}", out_path);
             compile_shader_into_spirv(in_path, out_path)?;
         }
     }

@@ -691,14 +691,13 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn default_config() {
-        let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
-        println!("{:?}", instance.info());
+        let _instance = Instance::new(&InstanceDescriptor::default()).unwrap();
     }
 
     #[test]
     #[serial_test::serial]
     fn new() {
-        let instance = Instance::new(&InstanceDescriptor {
+        let _instance = Instance::new(&InstanceDescriptor {
             backend: Backend::VULKAN,
             power_preference: PowerPreference::Default,
             required_features: Features::default(),
@@ -706,7 +705,6 @@ mod tests {
             required_limits: Limits::default(),
         })
         .unwrap();
-        println!("{:?}", instance.info());
     }
 
     #[test]
@@ -717,9 +715,8 @@ mod tests {
             .with_visible(false)
             .build(&event_loop)
             .unwrap();
-        let (instance, _surface) = unsafe {
+        let (_instance, _surface) = unsafe {
             Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
         };
-        println!("{:?}", instance.info());
     }
 }

@@ -30,21 +30,8 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
             .build(event_loop)?;
         let audio_device = roe_audio::Device::default()?;
         let audio_context = roe_audio::Context::default(&audio_device)?;
+
         // TODO: replace unwrap
-
-        use roe_audio::Decoder;
-        use std::io::Write;
-        let audio_data = &mut roe_audio::WavDecoder::new(std::io::BufReader::new(
-            std::fs::File::open("roe_examples/data/audio/stereo-16-44100.wav").unwrap(),
-        ))
-        .unwrap();
-        let mut out_file = std::fs::File::create("foo2.txt").unwrap();
-        out_file.write_fmt(format_args!(
-            "All audio data {}: {:?}",
-            audio_data.sample_count(),
-            audio_data.read_all().unwrap()
-        ));
-
         let audio_buffer = roe_audio::Buffer::from_decoder(
             &audio_context,
             &mut roe_audio::WavDecoder::new(std::io::BufReader::new(

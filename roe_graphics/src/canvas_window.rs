@@ -314,11 +314,8 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn multiple_windows_with_generic_instance() {
-        println!("Create instance");
         let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
-        println!("Create event loop");
         let event_loop = EventLoop::<()>::new_any_thread();
-        println!("Create window 1");
         let window1 = unsafe {
             CanvasWindow::from_window(
                 &instance,
@@ -329,7 +326,6 @@ mod tests {
                 &CanvasWindowDescriptor::default(),
             )
         };
-        println!("Create window 2");
         let window2 = unsafe {
             CanvasWindow::from_window(
                 &instance,
@@ -340,7 +336,6 @@ mod tests {
                 &CanvasWindowDescriptor::default(),
             )
         };
-        println!("Done");
         expect_that!(&window1.id(), not(eq(window2.id())));
     }
 

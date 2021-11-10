@@ -221,11 +221,6 @@ where
     }
 
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, DecoderError> {
-        println!(
-            "TODO: BYTE POS {}, STREAM POS {}",
-            self.byte_stream_position().unwrap(),
-            self.input.stream_position().unwrap()
-        );
         let tbps = self.audio_format().total_bytes_per_sample() as usize;
         assert!(
             buf.len() % tbps == 0,
@@ -234,13 +229,13 @@ where
         );
         let mut count = 0;
         loop {
+            // Looping is necessary because read isn't guaranteed to fill the input buffer.
             let new_count = self.input.read(&mut buf[count..])?;
             if new_count == 0 {
                 break;
             }
             count += new_count;
         }
-        println!("TODO: BUFFER LEN {}, READ {} BYTES", buf.len(), count);
         Ok(count)
     }
 }

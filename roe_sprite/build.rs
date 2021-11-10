@@ -9,7 +9,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     let in_dir: std::path::PathBuf = [shader_folder, "glsl"].iter().collect();
     let out_dir: std::path::PathBuf = [shader_folder, "gen", "spirv"].iter().collect();
-    println!("in_dir: {:?}, out_dir: {:?}", in_dir, out_dir);
     roe_shader::compile_shaders_into_spirv(in_dir, out_dir)?;
     Ok(())
 }
