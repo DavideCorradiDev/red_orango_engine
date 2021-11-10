@@ -20,6 +20,7 @@ impl StaticSource {
     }
 }
 
+// TODO: substitute deref.
 impl std::ops::Deref for StaticSource {
     type Target = alto::StaticSource;
     fn deref(&self) -> &Self::Target {
@@ -39,6 +40,7 @@ impl std::fmt::Debug for StaticSource {
     }
 }
 
+// TODO: more tests (if possible).
 #[cfg(test)]
 mod tests {
     use super::{

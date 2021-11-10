@@ -115,6 +115,20 @@ impl<D: Decoder> StreamingSource<D> {
     }
 }
 
+// TODO: substitute deref.
+impl<D: Decoder> std::ops::Deref for StreamingSource<D> {
+    type Target = alto::StreamingSource;
+    fn deref(&self) -> &Self::Target {
+        &self.value
+    }
+}
+
+impl<D: Decoder> std::ops::DerefMut for StreamingSource<D> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.value
+    }
+}
+
 impl<D: Decoder> std::fmt::Debug for StreamingSource<D> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "StreamingSource {{ }}")
@@ -124,7 +138,7 @@ impl<D: Decoder> std::fmt::Debug for StreamingSource<D> {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Device, Source, SourceState, OggDecoder},
+        super::{Device, OggDecoder, Source, SourceState},
         *,
     };
     use galvanic_assert::{matchers::*, *};
@@ -134,20 +148,21 @@ mod tests {
     fn streaming_source_creation() {
         let device = Device::default().unwrap();
         let context = Context::default(&device).unwrap();
-        let mut source = StreamingSource::new(
+        let source = StreamingSource::new(
             &context,
             OggDecoder::new(std::io::BufReader::new(
                 std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap(),
-            )).unwrap(),
+            ))
+            .unwrap(),
             &StreamingSourceDescriptor::default(),
         )
         .unwrap();
-        // expect_that!(&source.state(), eq(SourceState::Initial));
-        // expect_that!(&source.gain(), close_to(1., 1e-6));
-        // expect_that!(&source.min_gain(), close_to(0., 1e-6));
-        // expect_that!(&source.max_gain(), close_to(1., 1e-6));
-        // expect_that!(&source.reference_distance(), close_to(1., 1e-6));
-        // expect_that!(&source.rolloff_factor(), close_to(1., 1e-6));
-        // expect_that!(&source.pitch(), close_to(1., 1e-6));
+        expect_that!(&source.state(), eq(SourceState::Initial));
+        expect_that!(&source.gain(), close_to(1., 1e-6));
+        expect_that!(&source.min_gain(), close_to(0., 1e-6));
+        expect_that!(&source.max_gain(), close_to(1., 1e-6));
+        expect_that!(&source.reference_distance(), close_to(1., 1e-6));
+        expect_that!(&source.rolloff_factor(), close_to(1., 1e-6));
+        expect_that!(&source.pitch(), close_to(1., 1e-6));
     }
 }
