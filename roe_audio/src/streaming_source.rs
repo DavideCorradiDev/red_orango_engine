@@ -186,8 +186,7 @@ mod tests {
             OggDecoder::new(std::io::BufReader::new(
                 std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap(),
             ))
-            .unwrap(),
-            &StreamingSourceDescriptor::default(),
+            .unwrap()
         )
         .unwrap();
         expect_that!(&source.state(), eq(SourceState::Initial));
