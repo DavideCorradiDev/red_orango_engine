@@ -51,7 +51,10 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
                 std::fs::File::open("roe_examples/data/audio/bach.ogg").unwrap(),
             ))
             .unwrap(),
-            &roe_audio::StreamingSourceDescriptor::default(),
+            &roe_audio::StreamingSourceDescriptor{
+                looping:true, 
+                ..roe_audio::StreamingSourceDescriptor::default()
+            }
         )
         .unwrap();
 

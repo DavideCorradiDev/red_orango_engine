@@ -108,10 +108,15 @@ impl<D: Decoder> StreamingSource<D> {
         // Read new data into empty buffers.
         let mut empty_buffer_count = self.empty_buffers.len();
         for audio_buf in self.empty_buffers.iter_mut().rev() {
-            let mut mem_buf = vec![0; self.buffer_byte_count];
-            let bytes_read = self.decoder.read(&mut mem_buf)?;
-            if bytes_read != 0 {
-                mem_buf.resize(bytes_read, 0);
+            if self.looping {
+                let mut read_byte_count = 0;
+                let mut mem_buf = vec![0; self.buffer_byte_count];
+                while read_byte_count < self.buffer_byte_count {
+                    read_byte_count += self.decoder.read(&mut mem_buf[read_byte_count..])?;
+                    if read_byte_count < self.buffer_byte_count {
+                        self.decoder.byte_seek(std::io::SeekFrom::Start(0))?;
+                    }
+                }
                 set_buffer_data_with_format(
                     audio_buf,
                     &mem_buf,
@@ -120,7 +125,19 @@ impl<D: Decoder> StreamingSource<D> {
                 )?;
                 empty_buffer_count -= 1;
             } else {
-                break;
+                let mut mem_buf = vec![0; self.buffer_byte_count];
+                let bytes_read = self.decoder.read(&mut mem_buf)?;
+                if bytes_read == 0 {
+                    break;
+                }
+                mem_buf.resize(bytes_read, 0);
+                set_buffer_data_with_format(
+                    audio_buf,
+                    &mem_buf,
+                    self.decoder.audio_format(),
+                    self.decoder.sample_rate() as i32,
+                )?;
+                empty_buffer_count -= 1;
             }
         }
 
