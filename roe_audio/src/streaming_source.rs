@@ -41,24 +41,6 @@ fn set_buffer_data_with_format(
     Ok(())
 }
 
-// TODO: remove this descriptor struct.
-#[derive(Debug, PartialEq, Eq, Clone)]
-pub struct StreamingSourceDescriptor {
-    pub buffer_count: usize,
-    pub buffer_sample_count: usize,
-    pub looping: bool,
-}
-
-impl std::default::Default for StreamingSourceDescriptor {
-    fn default() -> Self {
-        Self {
-            buffer_count: 3,
-            buffer_sample_count: 2048,
-            looping: false,
-        }
-    }
-}
-
 pub struct StreamingSource<D: Decoder> {
     value: alto::StreamingSource,
     decoder: D,
@@ -71,13 +53,21 @@ impl<D: Decoder> StreamingSource<D> {
     pub fn new(
         context: &Context,
         decoder: D,
-        desc: &StreamingSourceDescriptor,
+    ) -> Result<Self, AudioError> {
+        Self::new_with_buffer_config(context, decoder, 3, 2048)
+    }
+
+    pub fn new_with_buffer_config(
+        context: &Context,
+        decoder: D,
+        buffer_count: usize,
+        buffer_sample_count: usize,
     ) -> Result<Self, AudioError> {
         let source = context.value.new_streaming_source()?;
         let buffer_byte_count =
-            desc.buffer_sample_count * decoder.audio_format().total_bytes_per_sample() as usize;
+            buffer_sample_count * decoder.audio_format().total_bytes_per_sample() as usize;
         let mut empty_buffers = Vec::new();
-        for _ in 0..desc.buffer_count {
+        for _ in 0..buffer_count {
             empty_buffers.push(create_buffer(
                 context,
                 buffer_byte_count,
@@ -91,7 +81,7 @@ impl<D: Decoder> StreamingSource<D> {
             decoder,
             empty_buffers,
             buffer_byte_count,
-            looping: desc.looping,
+            looping: false
         };
         source.update()?;
 
