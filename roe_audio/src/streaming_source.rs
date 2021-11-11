@@ -43,6 +43,7 @@ fn set_buffer_data_with_format(
 }
 
 // TODO implement "source" for this.
+// TODO: remove this descriptor struct.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct StreamingSourceDescriptor {
     pub buffer_count: usize,
@@ -148,6 +149,14 @@ impl<D: Decoder> StreamingSource<D> {
         }
 
         Ok(())
+    }
+
+    pub fn looping(&self) -> bool {
+        self.looping
+    }
+
+    pub fn set_looping(&mut self, value: bool) {
+        self.looping = value
     }
 }
 
