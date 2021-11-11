@@ -64,6 +64,7 @@ pub struct StreamingSource<D: Decoder> {
     value: alto::StreamingSource,
     decoder: D,
     empty_buffers: Vec<alto::Buffer>,
+    buffer_byte_count: usize,
     looping: bool,
 }
 
@@ -90,6 +91,7 @@ impl<D: Decoder> StreamingSource<D> {
             value: source,
             decoder,
             empty_buffers,
+            buffer_byte_count,
             looping: desc.looping,
         };
         source.update()?;
@@ -106,16 +108,16 @@ impl<D: Decoder> StreamingSource<D> {
         // Read new data into empty buffers.
         let mut empty_buffer_count = self.empty_buffers.len();
         for audio_buf in self.empty_buffers.iter_mut().rev() {
-            let mut mem_buf = vec![0; audio_buf.size() as usize];
+            let mut mem_buf = vec![0; self.buffer_byte_count];
             let bytes_read = self.decoder.read(&mut mem_buf)?;
             if bytes_read != 0 {
+                mem_buf.resize(bytes_read, 0);
                 set_buffer_data_with_format(
                     audio_buf,
                     &mem_buf,
                     self.decoder.audio_format(),
                     self.decoder.sample_rate() as i32,
                 )?;
-                // TODO: resize the buffer if not enough data read? This also means that above we shouldn't read audio_buf.size().
                 empty_buffer_count -= 1;
             } else {
                 break;
