@@ -33,30 +33,25 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
         let audio_device = roe_audio::Device::default()?;
         let audio_context = roe_audio::Context::default(&audio_device)?;
 
-        // TODO: replace unwrap
         let audio_buffer = roe_audio::Buffer::from_decoder(
             &audio_context,
-            &mut roe_audio::WavDecoder::new(std::io::BufReader::new(
-                std::fs::File::open("roe_examples/data/audio/stereo-16-44100.wav").unwrap(),
-            ))
-            .unwrap(),
-        )
-        .unwrap();
+            &mut roe_audio::WavDecoder::new(std::io::BufReader::new(std::fs::File::open(
+                "roe_examples/data/audio/stereo-16-44100.wav",
+            )?))?,
+        )?;
         let mut static_source = roe_audio::StaticSource::new(&audio_context)?;
         static_source.set_buffer(&audio_buffer)?;
 
         let streaming_source = roe_audio::StreamingSource::new(
             &audio_context,
-            roe_audio::OggDecoder::new(std::io::BufReader::new(
-                std::fs::File::open("roe_examples/data/audio/bach.ogg").unwrap(),
-            ))
-            .unwrap(),
-            &roe_audio::StreamingSourceDescriptor{
-                looping:true, 
+            roe_audio::OggDecoder::new(std::io::BufReader::new(std::fs::File::open(
+                "roe_examples/data/audio/bach.ogg",
+            )?))?,
+            &roe_audio::StreamingSourceDescriptor {
+                looping: true,
                 ..roe_audio::StreamingSourceDescriptor::default()
-            }
-        )
-        .unwrap();
+            },
+        )?;
 
         Ok(Self {
             window,
@@ -90,7 +85,7 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
     }
 
     fn on_fixed_update(&mut self, _: std::time::Duration) -> Result<ControlFlow, Self::Error> {
-        self.streaming_source.update().unwrap();
+        self.streaming_source.update()?;
         Ok(ControlFlow::Continue)
     }
 }

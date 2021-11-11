@@ -2,7 +2,6 @@ use super::{AudioError, AudioFormat, Context, Decoder};
 
 use alto::{Mono, Stereo};
 
-// TODO: avoid duplication.
 fn create_buffer(
     context: &Context,
     buffer_byte_count: usize,
@@ -42,7 +41,6 @@ fn set_buffer_data_with_format(
     Ok(())
 }
 
-// TODO implement "source" for this.
 // TODO: remove this descriptor struct.
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct StreamingSourceDescriptor {
