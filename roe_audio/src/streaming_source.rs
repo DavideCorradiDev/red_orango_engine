@@ -67,7 +67,6 @@ pub struct StreamingSource<D: Decoder> {
     looping: bool,
 }
 
-// TODO: weird artifact at the start of playback.
 impl<D: Decoder> StreamingSource<D> {
     pub fn new(
         context: &Context,
@@ -116,6 +115,7 @@ impl<D: Decoder> StreamingSource<D> {
                     self.decoder.audio_format(),
                     self.decoder.sample_rate() as i32,
                 )?;
+                // TODO: resize the buffer if not enough data read? This also means that above we shouldn't read audio_buf.size().
                 empty_buffer_count -= 1;
             } else {
                 break;
@@ -124,7 +124,7 @@ impl<D: Decoder> StreamingSource<D> {
 
         // Queue populated buffers.
         let non_empty_buffers = self.empty_buffers.split_off(empty_buffer_count);
-        for audio_buf in non_empty_buffers.into_iter() {
+        for audio_buf in non_empty_buffers.into_iter().rev() {
             self.value.queue_buffer(audio_buf)?;
         }
 

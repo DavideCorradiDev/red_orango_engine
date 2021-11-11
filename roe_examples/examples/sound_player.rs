@@ -36,8 +36,8 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
         // TODO: replace unwrap
         let audio_buffer = roe_audio::Buffer::from_decoder(
             &audio_context,
-            &mut roe_audio::OggDecoder::new(std::io::BufReader::new(
-                std::fs::File::open("roe_examples/data/audio/bach.ogg").unwrap(),
+            &mut roe_audio::WavDecoder::new(std::io::BufReader::new(
+                std::fs::File::open("roe_examples/data/audio/stereo-16-44100.wav").unwrap(),
             ))
             .unwrap(),
         )
