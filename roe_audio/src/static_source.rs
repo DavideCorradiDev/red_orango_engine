@@ -299,6 +299,34 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
+    fn set_buffer() {
+        let context = create_context();
+        let mut source = StaticSource::new(&context).unwrap();
+        let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
+        source.set_buffer(&buf).unwrap();
+        expect_that!(&source.audio_format(), eq(AudioFormat::Stereo16));
+        expect_that!(&source.sample_rate(), eq(10));
+        expect_that!(&source.state(), eq(SourceState::Initial));
+        expect_that!(&source.gain(), close_to(1., 1e-6));
+        expect_that!(&source.min_gain(), close_to(0., 1e-6));
+        expect_that!(&source.max_gain(), close_to(1., 1e-6));
+        expect_that!(&source.reference_distance(), close_to(1., 1e-6));
+        expect_that!(&source.rolloff_factor(), close_to(1., 1e-6));
+        expect_that!(&source.pitch(), close_to(1., 1e-6));
+        expect_that!(&source.position(), eq([0., 0., 0.]));
+        expect_that!(&source.velocity(), eq([0., 0., 0.]));
+        expect_that!(&source.direction(), eq([0., 0., 0.]));
+        expect_that!(&source.cone_inner_angle(), close_to(360., 1e-6));
+        expect_that!(&source.cone_outer_angle(), close_to(360., 1e-6));
+        expect_that!(&source.cone_outer_gain(), close_to(0., 1e-6));
+        expect_that!(&source.distance_model(), eq(DistanceModel::InverseClamped));
+        expect_that!(&source.radius(), close_to(0., 1e-6));
+        expect_that!(&source.sample_length(), eq(64));
+        expect_that!(&source.sample_offset(), eq(0));
+    }
+
+    #[test]
+    #[serial_test::serial]
     fn sample_offset() {
         let context = create_context();
         let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
