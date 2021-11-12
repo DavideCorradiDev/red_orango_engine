@@ -452,53 +452,54 @@ mod tests {
         source.set_byte_offset(3).unwrap();
     }
 
-    // #[test]
-    // #[serial_test::serial]
-    // fn looping() {
-    //     let context = create_context();
-    //     let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
+    #[test]
+    #[serial_test::serial]
+    fn looping() {
+        let context = create_context();
+        let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
 
-    //     let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-    //     expect_that!(&source.looping(), eq(false));
+        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        expect_that!(&source.looping(), eq(false));
+        expect_that!(&source.playing(), eq(false));
 
-    //     source.play();
-    //     std::thread::sleep(std::time::Duration::from_millis(5));
-    //     expect_that!(&source.state(), eq(SourceState::Playing));
+        source.play().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        expect_that!(&source.playing(), eq(false));
 
-    //     source.set_looping(true);
-    //     expect_that!(&source.looping(), eq(true));
-    //     source.play();
-    //     std::thread::sleep(std::time::Duration::from_millis(5));
-    //     expect_that!(&source.state(), eq(SourceState::Playing));
-    // }
+        source.set_looping(true);
+        expect_that!(&source.looping(), eq(true));
+        source.play().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        expect_that!(&source.playing(), eq(true));
+    }
 
-    // #[test]
-    // #[serial_test::serial]
-    // fn play_controls() {
-    //     let context = create_context();
-    //     let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
-
-    //     let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-    //     expect_that!(&source.looping(), eq(false));
-    //     expect_that!(&source.state(), eq(SourceState::Initial));
-    //     expect_that!(&source.sample_offset(), eq(0));
-
-    //     source.play();
-    //     std::thread::sleep(std::time::Duration::from_millis(10));
-    //     expect_that!(&source.state(), eq(SourceState::Stopped));
-    //     expect_that!(&source.sample_offset(), eq(source.sample_length() as u64));
-
-    //     // source.set_looping(true);
-    //     // source.play();
-    //     // expect_that!(&source.state(), eq(SourceState::Playing));
-
-    //     // source.set_looping(false);
-    //     // std::thread::sleep(std::time::Duration::from_millis(10));
-    //     // expect_that!(&source.state(), eq(SourceState::Stopped));
-    //     // expect_that!(&source.sample_offset(), eq(source.sample_length() as u64));
-
-    //     // source.rewind();
-    //     // expect_that!(&source.state(), eq(SourceState::Initial));
-    //     // expect_that!(&source.sample_offset(), eq(0));
-    // }
+//     #[test]
+//     #[serial_test::serial]
+//     fn play_controls() {
+//         let context = create_context();
+//         let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
+// 
+//         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+//         expect_that!(&source.looping(), eq(false));
+//         expect_that!(&source.playing(), eq(false));
+//         expect_that!(&source.sample_offset(), eq(0));
+// 
+//         source.play().unwrap();
+//         std::thread::sleep(std::time::Duration::from_millis(10));
+//         expect_that!(&source.playing(), eq(false));
+//         expect_that!(&source.sample_offset(), eq(source.sample_length() as u64));
+// 
+//         // source.set_looping(true);
+//         // source.play();
+//         // expect_that!(&source.state(), eq(SourceState::Playing));
+// 
+//         // source.set_looping(false);
+//         // std::thread::sleep(std::time::Duration::from_millis(10));
+//         // expect_that!(&source.state(), eq(SourceState::Stopped));
+//         // expect_that!(&source.sample_offset(), eq(source.sample_length() as u64));
+// 
+//         // source.rewind();
+//         // expect_that!(&source.state(), eq(SourceState::Initial));
+//         // expect_that!(&source.sample_offset(), eq(0));
+//     }
 }
