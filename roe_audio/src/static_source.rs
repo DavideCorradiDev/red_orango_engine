@@ -15,13 +15,16 @@ pub struct StaticSource {
 }
 
 impl StaticSource {
+    const DEFAULT_AUDIO_FORMAT: AudioFormat = AudioFormat::Mono8;
+    const DEFAULT_SAMPLE_RATE: u32 = 1;
+
     pub fn new(context: &Context) -> Result<Self, AudioError> {
         let static_source = context.value.new_static_source()?;
         Ok(Self {
             value: static_source,
-            audio_format: AudioFormat::Mono8,
+            audio_format: Self::DEFAULT_AUDIO_FORMAT,
             sample_length: 0,
-            sample_rate: 1,
+            sample_rate: Self::DEFAULT_SAMPLE_RATE,
             sample_offset_override: 0,
         })
     }
@@ -38,6 +41,15 @@ impl StaticSource {
         self.sample_rate = buf.sample_rate();
         self.sample_offset_override = 0;
         Ok(())
+    }
+
+    pub fn clear_buffer(&mut self)
+    {
+        self.value.clear_buffer();
+        self.audio_format = Self::DEFAULT_AUDIO_FORMAT;
+        self.sample_length = 0;
+        self.sample_rate = Self::DEFAULT_SAMPLE_RATE;
+        self.sample_offset_override = 0;
     }
 
     pub fn looping(&self) -> bool {
@@ -299,6 +311,34 @@ mod tests {
         expect_that!(&source.distance_model(), eq(DistanceModel::InverseClamped));
         expect_that!(&source.radius(), close_to(0., 1e-6));
         expect_that!(&source.sample_length(), eq(64));
+        expect_that!(&source.sample_offset(), eq(0));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn clear_buffer() {
+        let context = create_context();
+        let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
+        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        source.clear_buffer();
+        expect_that!(&source.audio_format(), eq(AudioFormat::Mono8));
+        expect_that!(&source.sample_rate(), eq(1));
+        expect_that!(&source.state(), eq(SourceState::Initial));
+        expect_that!(&source.gain(), close_to(1., 1e-6));
+        expect_that!(&source.min_gain(), close_to(0., 1e-6));
+        expect_that!(&source.max_gain(), close_to(1., 1e-6));
+        expect_that!(&source.reference_distance(), close_to(1., 1e-6));
+        expect_that!(&source.rolloff_factor(), close_to(1., 1e-6));
+        expect_that!(&source.pitch(), close_to(1., 1e-6));
+        expect_that!(&source.position(), eq([0., 0., 0.]));
+        expect_that!(&source.velocity(), eq([0., 0., 0.]));
+        expect_that!(&source.direction(), eq([0., 0., 0.]));
+        expect_that!(&source.cone_inner_angle(), close_to(360., 1e-6));
+        expect_that!(&source.cone_outer_angle(), close_to(360., 1e-6));
+        expect_that!(&source.cone_outer_gain(), close_to(0., 1e-6));
+        expect_that!(&source.distance_model(), eq(DistanceModel::InverseClamped));
+        expect_that!(&source.radius(), close_to(0., 1e-6));
+        expect_that!(&source.sample_length(), eq(0));
         expect_that!(&source.sample_offset(), eq(0));
     }
 
