@@ -21,6 +21,45 @@ pub trait Source {
     fn looping(&self) -> bool;
     fn set_looping(&mut self, value: bool);
 
+    fn sample_length(&self) -> usize;
+    fn sample_offset(&self) -> u64;
+    fn set_sample_offset(&mut self, value: u64) -> Result<(), AudioError>;
+
+    fn byte_length(&self) -> usize {
+        self.sample_length() * self.audio_format().total_bytes_per_sample() as usize
+    }
+
+    // TODO: change to usize.
+    fn byte_offset(&self) -> u64 {
+        self.sample_offset() * self.audio_format().total_bytes_per_sample() as u64
+    }
+
+    fn set_byte_offset(&mut self, value: u64) -> Result<(), AudioError> {
+        let tbps = self.audio_format().total_bytes_per_sample() as u64;
+        assert!(value % tbps == 0, "Invalid byte offset ({})", value);
+        self.set_sample_offset(value / tbps)
+    }
+
+    // TODO: use an appropriate time datatype.
+    fn sec_length(&self) -> f32
+    {
+        let sample_rate = self.sample_rate();
+        assert!(sample_rate != 0);
+        self.sample_length() as f32 / sample_rate as f32
+    }
+
+    fn sec_offset(&self) -> f32
+    {
+        let sample_rate = self.sample_rate();
+        assert!(sample_rate != 0);
+        self.sample_offset() as f32 / sample_rate as f32
+    }
+
+    fn set_sec_offset(&mut self, value: f32) -> Result<(), AudioError>
+    {
+        self.set_sample_offset((value * self.sample_rate() as f32) as u64)
+    }
+
     fn gain(&self) -> f32;
     fn set_gain(&mut self, value: f32);
 
@@ -65,43 +104,4 @@ pub trait Source {
 
     fn radius(&self) -> f32;
     fn set_radius(&self, value: f32);
-
-    fn sample_length(&self) -> usize;
-    fn sample_offset(&self) -> u64;
-    fn set_sample_offset(&mut self, value: u64) -> Result<(), AudioError>;
-
-    fn byte_length(&self) -> usize {
-        self.sample_length() * self.audio_format().total_bytes_per_sample() as usize
-    }
-
-    // TODO: change to usize.
-    fn byte_offset(&self) -> u64 {
-        self.sample_offset() * self.audio_format().total_bytes_per_sample() as u64
-    }
-
-    fn set_byte_offset(&mut self, value: u64) -> Result<(), AudioError> {
-        let tbps = self.audio_format().total_bytes_per_sample() as u64;
-        assert!(value % tbps == 0, "Invalid byte offset ({})", value);
-        self.set_sample_offset(value / tbps)
-    }
-
-    // TODO: use an appropriate time datatype.
-    fn sec_length(&self) -> f32
-    {
-        let sample_rate = self.sample_rate();
-        assert!(sample_rate != 0);
-        self.sample_length() as f32 / sample_rate as f32
-    }
-
-    fn sec_offset(&self) -> f32
-    {
-        let sample_rate = self.sample_rate();
-        assert!(sample_rate != 0);
-        self.sample_offset() as f32 / sample_rate as f32
-    }
-
-    fn set_sec_offset(&mut self, value: f32) -> Result<(), AudioError>
-    {
-        self.set_sample_offset((value * self.sample_rate() as f32) as u64)
-    }
 }

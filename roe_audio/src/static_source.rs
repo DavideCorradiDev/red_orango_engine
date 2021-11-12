@@ -102,6 +102,45 @@ impl Source for StaticSource {
         self.value.set_looping(value)
     }
 
+    fn sample_length(&self) -> usize {
+        self.sample_length
+    }
+
+    fn sample_offset(&self) -> u64 {
+        if self.playing() {
+            self.value.sample_offset() as u64
+        } else {
+            self.sample_offset_override
+        }
+    }
+
+    fn set_sample_offset(&mut self, value: u64) -> Result<(), AudioError> {
+        // Make sure the provided sample offset is within bounds.
+        let sample_length = self.sample_length;
+        let normalized_value = if sample_length == 0 {
+            0
+        } else {
+            value % sample_length as u64
+        };
+
+        if normalized_value != value && !self.looping() {
+            // If not looping and the offset was outside bounds, stop.
+            self.stop();
+            return Ok(());
+        }
+
+        if self.playing() {
+            // If currently playing, stop, set offset, and resume.
+            self.value.stop();
+            self.value.set_sample_offset(value as alto::sys::ALint)?;
+            self.value.play();
+        } else {
+            // If not currently playing, store the requested offset.
+            self.sample_offset_override = std::cmp::min(value, self.sample_length() as u64);
+        }
+        Ok(())
+    }
+
     fn gain(&self) -> f32 {
         self.value.gain()
     }
@@ -220,45 +259,6 @@ impl Source for StaticSource {
 
     fn set_radius(&self, value: f32) {
         self.value.set_radius(value).unwrap();
-    }
-
-    fn sample_length(&self) -> usize {
-        self.sample_length
-    }
-
-    fn sample_offset(&self) -> u64 {
-        if self.playing() {
-            self.value.sample_offset() as u64
-        } else {
-            self.sample_offset_override
-        }
-    }
-
-    fn set_sample_offset(&mut self, value: u64) -> Result<(), AudioError> {
-        // Make sure the provided sample offset is within bounds.
-        let sample_length = self.sample_length;
-        let normalized_value = if sample_length == 0 {
-            0
-        } else {
-            value % sample_length as u64
-        };
-
-        if normalized_value != value && !self.looping() {
-            // If not looping and the offset was outside bounds, stop.
-            self.stop();
-            return Ok(());
-        }
-
-        if self.playing() {
-            // If currently playing, stop, set offset, and resume.
-            self.value.stop();
-            self.value.set_sample_offset(value as alto::sys::ALint)?;
-            self.value.play();
-        } else {
-            // If not currently playing, store the requested offset.
-            self.sample_offset_override = std::cmp::min(value, self.sample_length() as u64);
-        }
-        Ok(())
     }
 }
 
@@ -464,6 +464,8 @@ mod tests {
 
         source.play().unwrap();
         std::thread::sleep(std::time::Duration::from_millis(100));
+        expect_that!(&source.playing(), eq(false));
+        source.stop();
         expect_that!(&source.playing(), eq(false));
 
         source.set_looping(true);
