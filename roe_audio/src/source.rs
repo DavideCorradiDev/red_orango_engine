@@ -1,17 +1,22 @@
 use super::{AudioError, AudioFormat};
 
-pub use alto::{DistanceModel, SourceState};
+pub use alto::{DistanceModel};
 
 pub trait Source {
     fn audio_format(&self) -> AudioFormat;
     fn sample_rate(&self) -> u32;
 
-    fn state(&self) -> SourceState;
-
-    fn play(&mut self);
+    // TODO: add looping / set_looping to this trait.
+    fn playing(&self) -> bool;
+    fn play(&mut self) -> Result<(), AudioError>;
     fn pause(&mut self);
     fn stop(&mut self);
-    fn rewind(&mut self);
+
+    fn replay(&mut self) -> Result<(), AudioError>
+    {
+        self.stop();
+        self.play()
+    }
 
     fn gain(&self) -> f32;
     fn set_gain(&mut self, value: f32);
@@ -66,6 +71,7 @@ pub trait Source {
         self.sample_length() * self.audio_format().total_bytes_per_sample() as usize
     }
 
+    // TODO: change to usize.
     fn byte_offset(&self) -> u64 {
         self.sample_offset() * self.audio_format().total_bytes_per_sample() as u64
     }
