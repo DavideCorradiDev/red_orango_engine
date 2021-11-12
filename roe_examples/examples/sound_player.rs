@@ -70,11 +70,11 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
         if !is_repeat && wid == self.window.id() {
             if let Some(key_code) = key_code {
                 if key_code == keyboard::KeyCode::Key1 {
-                    self.static_source.play();
+                    self.static_source.play().unwrap();
                 }
-                if key_code == keyboard::KeyCode::Key2 {
-                    self.streaming_source.play();
-                }
+                // if key_code == keyboard::KeyCode::Key2 {
+                //     self.streaming_source.play();
+                // }
             }
         }
         Ok(ControlFlow::Continue)

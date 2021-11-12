@@ -456,14 +456,14 @@ mod tests {
     #[serial_test::serial]
     fn looping() {
         let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
+        let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 6000).unwrap();
 
         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
         expect_that!(&source.looping(), eq(false));
         expect_that!(&source.playing(), eq(false));
 
         source.play().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(100));
+        std::thread::sleep(std::time::Duration::from_millis(50));
         expect_that!(&source.playing(), eq(false));
         source.stop();
         expect_that!(&source.playing(), eq(false));
