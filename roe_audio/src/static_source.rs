@@ -39,6 +39,14 @@ impl StaticSource {
         self.sample_offset_override = 0;
         Ok(())
     }
+
+    pub fn looping(&self) -> bool {
+        self.value.looping()
+    }
+
+    pub fn set_looping(&mut self, value: bool) {
+        self.value.set_looping(value)
+    }
 }
 
 impl Source for StaticSource {
@@ -237,9 +245,6 @@ mod tests {
         Context::default(&device).unwrap()
     }
 
-    // TODO: test creation before setting buffer.
-    // TODO: test creation with buffer set.
-    // TODO: test setting buffer afterwards.
     // TODO: test individual properties with setters / getters.
     // TODO: test play / stop / pause etc (hard).
     // TODO: test looping (hard).
@@ -381,5 +386,21 @@ mod tests {
         let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
         source.set_byte_offset(3).unwrap();
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn looping() {
+        let context = create_context();
+        let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
+        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        expect_that!(&source.looping(), eq(false));
+        source.play();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        source.set_looping(true); 
+        expect_that!(&source.looping(), eq(true));
+        source.play();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        expect_that!(&source.state(), eq(SourceState::Playing));
     }
 }
