@@ -17,6 +17,7 @@ pub trait Decoder {
     fn sample_rate(&self) -> u32;
     fn sample_count(&self) -> usize;
 
+    // TODO: rename to match Source naming?
     fn sample_stream_position(&mut self) -> Result<u64, DecoderError> {
         let byte_stream_position = self.byte_stream_position()?;
         let tbps = self.audio_format().total_bytes_per_sample() as u64;

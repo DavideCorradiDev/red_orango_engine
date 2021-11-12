@@ -50,10 +50,7 @@ pub struct StreamingSource<D: Decoder> {
 }
 
 impl<D: Decoder> StreamingSource<D> {
-    pub fn new(
-        context: &Context,
-        decoder: D,
-    ) -> Result<Self, AudioError> {
+    pub fn new(context: &Context, decoder: D) -> Result<Self, AudioError> {
         Self::new_with_buffer_config(context, decoder, 3, 2048)
     }
 
@@ -81,7 +78,7 @@ impl<D: Decoder> StreamingSource<D> {
             decoder,
             empty_buffers,
             buffer_byte_count,
-            looping: false
+            looping: false,
         };
         source.update()?;
 
@@ -171,10 +168,11 @@ impl<D: Decoder> std::fmt::Debug for StreamingSource<D> {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Device, OggDecoder, Source, SourceState},
+        super::{Device, OggDecoder, SourceState},
         *,
     };
     use galvanic_assert::{matchers::*, *};
+    use alto::Source;
 
     #[test]
     #[serial_test::serial]
@@ -186,7 +184,7 @@ mod tests {
             OggDecoder::new(std::io::BufReader::new(
                 std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap(),
             ))
-            .unwrap()
+            .unwrap(),
         )
         .unwrap();
         expect_that!(&source.state(), eq(SourceState::Initial));

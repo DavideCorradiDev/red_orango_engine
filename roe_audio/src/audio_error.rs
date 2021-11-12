@@ -2,6 +2,7 @@ use super::DecoderError;
 
 pub use alto::AltoError as BackendError;
 
+// TODO: rename to Error
 #[derive(Debug)]
 pub enum AudioError {
     BackendError(BackendError),

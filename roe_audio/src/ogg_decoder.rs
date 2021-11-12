@@ -179,7 +179,6 @@ where
         })
     }
 
-    // TODO: this takes long to process. is there a better way?
     fn compute_sample_count(packet_reader: &mut PacketReader<T>) -> Result<usize, DecoderError> {
         let mut sample_count = 0;
         let mut context = OggContext::new(packet_reader)?;
@@ -238,7 +237,6 @@ where
             target_pos
         );
 
-        // TODO: use seek_bytes from packet reader?
         self.reset_to_stream_begin()?;
         while self.packet_start_byte_pos < self.byte_count() as u64 {
             match &self.packet {
