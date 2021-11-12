@@ -114,6 +114,7 @@ impl Source for StaticSource {
         }
     }
 
+    // TODO: maybe change to not looping, just clamping?
     fn set_sample_offset(&mut self, value: u64) -> Result<(), AudioError> {
         // Make sure the provided sample offset is within bounds.
         let sample_length = self.sample_length;
