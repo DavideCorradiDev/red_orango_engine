@@ -9,7 +9,8 @@ pub struct StaticSource {
     audio_format: AudioFormat,
     sample_length: usize,
     sample_rate: u32,
-    // Variable used to ensure consistency when retrieving the current sample offset.
+    // Variable used to ensure consistency when retrieving the current sample offset when the source
+    // is not playing.
     sample_offset_override: u64,
 }
 
@@ -54,23 +55,28 @@ impl Source for StaticSource {
     }
 
     fn play(&mut self) {
-        // TODO: prevent play when already playing.
-        self.value.play()
+        if self.state() != SourceState::Playing {
+            self.value.play();
+        }
     }
 
     fn pause(&mut self) {
-        // TODO: should set the offset override when doing this.
-        self.value.pause()
+        if self.state() == SourceState::Playing {
+            self.value.pause();
+            self.sample_offset_override = self.sample_offset();
+        }
     }
 
     fn stop(&mut self) {
-        // TODO: should set the offset override when doing this.
-        self.value.stop()
+        if self.state() == SourceState::Playing {
+            self.value.stop();
+            self.sample_offset_override = self.sample_offset();
+        }
     }
 
     fn rewind(&mut self) {
-        // TODO: should set the offset override when doing this.
-        self.value.rewind()
+        self.value.rewind();
+        self.sample_offset_override = 0;
     }
 
     fn gain(&self) -> f32 {
@@ -86,7 +92,7 @@ impl Source for StaticSource {
     }
 
     fn set_min_gain(&mut self, value: f32) {
-        self.value.set_min_gain(value).unwrap()
+        self.value.set_min_gain(value).unwrap();
     }
 
     fn max_gain(&self) -> f32 {
@@ -94,7 +100,7 @@ impl Source for StaticSource {
     }
 
     fn set_max_gain(&mut self, value: f32) {
-        self.value.set_max_gain(value).unwrap()
+        self.value.set_max_gain(value).unwrap();
     }
 
     fn reference_distance(&self) -> f32 {
@@ -102,7 +108,7 @@ impl Source for StaticSource {
     }
 
     fn set_reference_distance(&mut self, value: f32) {
-        self.value.set_reference_distance(value).unwrap()
+        self.value.set_reference_distance(value).unwrap();
     }
 
     fn rolloff_factor(&self) -> f32 {
@@ -110,7 +116,7 @@ impl Source for StaticSource {
     }
 
     fn set_rolloff_factor(&mut self, value: f32) {
-        self.value.set_rolloff_factor(value).unwrap()
+        self.value.set_rolloff_factor(value).unwrap();
     }
 
     fn max_distance(&self) -> f32 {
@@ -118,7 +124,7 @@ impl Source for StaticSource {
     }
 
     fn set_max_distance(&mut self, value: f32) {
-        self.value.set_max_distance(value).unwrap()
+        self.value.set_max_distance(value).unwrap();
     }
 
     fn pitch(&self) -> f32 {
@@ -126,7 +132,7 @@ impl Source for StaticSource {
     }
 
     fn set_pitch(&mut self, value: f32) {
-        self.value.set_pitch(value).unwrap()
+        self.value.set_pitch(value).unwrap();
     }
 
     fn position<V: From<[f32; 3]>>(&self) -> V {
@@ -134,7 +140,7 @@ impl Source for StaticSource {
     }
 
     fn set_position<V: Into<[f32; 3]>>(&mut self, value: V) {
-        self.value.set_position(value).unwrap()
+        self.value.set_position(value).unwrap();
     }
 
     fn velocity<V: From<[f32; 3]>>(&self) -> V {
@@ -142,7 +148,7 @@ impl Source for StaticSource {
     }
 
     fn set_velocity<V: Into<[f32; 3]>>(&mut self, value: V) {
-        self.value.set_velocity(value).unwrap()
+        self.value.set_velocity(value).unwrap();
     }
 
     fn direction<V: From<[f32; 3]>>(&self) -> V {
@@ -150,7 +156,7 @@ impl Source for StaticSource {
     }
 
     fn set_direction<V: Into<[f32; 3]>>(&mut self, value: V) {
-        self.value.set_direction(value).unwrap()
+        self.value.set_direction(value).unwrap();
     }
 
     fn cone_inner_angle(&self) -> f32 {
@@ -158,7 +164,7 @@ impl Source for StaticSource {
     }
 
     fn set_cone_inner_angle(&mut self, value: f32) {
-        self.value.set_cone_inner_angle(value).unwrap()
+        self.value.set_cone_inner_angle(value).unwrap();
     }
 
     fn cone_outer_angle(&self) -> f32 {
@@ -166,7 +172,7 @@ impl Source for StaticSource {
     }
 
     fn set_cone_outer_angle(&mut self, value: f32) {
-        self.value.set_cone_outer_angle(value).unwrap()
+        self.value.set_cone_outer_angle(value).unwrap();
     }
 
     fn cone_outer_gain(&self) -> f32 {
@@ -174,7 +180,7 @@ impl Source for StaticSource {
     }
 
     fn set_cone_outer_gain(&mut self, value: f32) {
-        self.value.set_cone_outer_gain(value).unwrap()
+        self.value.set_cone_outer_gain(value).unwrap();
     }
 
     fn distance_model(&self) -> DistanceModel {
@@ -182,7 +188,7 @@ impl Source for StaticSource {
     }
 
     fn set_distance_model(&mut self, value: DistanceModel) {
-        self.value.set_distance_model(value).unwrap()
+        self.value.set_distance_model(value).unwrap();
     }
 
     fn radius(&self) -> f32 {
@@ -190,7 +196,7 @@ impl Source for StaticSource {
     }
 
     fn set_radius(&self, value: f32) {
-        self.value.set_radius(value).unwrap()
+        self.value.set_radius(value).unwrap();
     }
 
     fn sample_length(&self) -> usize {
@@ -209,20 +215,6 @@ impl Source for StaticSource {
         self.value.set_sample_offset(value as alto::sys::ALint)?;
         self.sample_offset_override = std::cmp::min(value, self.sample_length() as u64);
         Ok(())
-    }
-}
-
-// TODO: substitute deref.
-impl std::ops::Deref for StaticSource {
-    type Target = alto::StaticSource;
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl std::ops::DerefMut for StaticSource {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
     }
 }
 
