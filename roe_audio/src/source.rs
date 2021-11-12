@@ -18,6 +18,9 @@ pub trait Source {
         self.play()
     }
 
+    fn looping(&self) -> bool;
+    fn set_looping(&mut self, value: bool);
+
     fn gain(&self) -> f32;
     fn set_gain(&mut self, value: f32);
 
@@ -82,6 +85,7 @@ pub trait Source {
         self.set_sample_offset(value / tbps)
     }
 
+    // TODO: use an appropriate time datatype.
     fn sec_length(&self) -> f32
     {
         let sample_rate = self.sample_rate();

@@ -52,14 +52,6 @@ impl StaticSource {
         self.sample_rate = Self::DEFAULT_SAMPLE_RATE;
         self.sample_offset_override = 0;
     }
-
-    pub fn looping(&self) -> bool {
-        self.value.looping()
-    }
-
-    pub fn set_looping(&mut self, value: bool) {
-        self.value.set_looping(value)
-    }
 }
 
 impl Source for StaticSource {
@@ -100,6 +92,14 @@ impl Source for StaticSource {
     fn stop(&mut self) {
         self.value.stop();
         self.sample_offset_override = 0;
+    }
+
+    fn looping(&self) -> bool {
+        self.value.looping()
+    }
+
+    fn set_looping(&mut self, value: bool) {
+        self.value.set_looping(value)
     }
 
     fn gain(&self) -> f32 {
