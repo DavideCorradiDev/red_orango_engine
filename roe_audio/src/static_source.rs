@@ -273,6 +273,11 @@ mod tests {
         Context::default(&device).unwrap()
     }
 
+    fn create_empty_source() -> StaticSource {
+        let context = create_context();
+        StaticSource::new(&context).unwrap()
+    }
+
     fn create_source() -> StaticSource {
         let context = create_context();
         let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
@@ -887,6 +892,49 @@ mod tests {
         expect_that!(&pos1, geq(pos0));
         expect_that!(&pos2, eq(0));
         expect_that!(&pos3, geq(0));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn play_looping() {
+        let context = create_context();
+        let buf = Buffer::new(&context, &[0; 100], Format::Stereo16, 4000).unwrap();
+        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        source.set_looping(true);
+        source.play().unwrap();
+        expect_that!(&source.playing(), eq(true));
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        expect_that!(&source.playing(), eq(true));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn set_loping_while_playing() {
+        let context = create_context();
+        let buf = Buffer::new(&context, &[0; 100], Format::Stereo16, 4000).unwrap();
+        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        source.play().unwrap();
+        expect_that!(&source.playing(), eq(true));
+        source.set_looping(true);
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        expect_that!(&source.playing(), eq(true));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn play_with_no_buffer_not_looping() {
+        let mut source = create_empty_source();
+        source.play().unwrap();
+        expect_that!(&source.playing(), eq(false));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn play_with_no_buffer_looping() {
+        let mut source = create_empty_source();
+        source.set_looping(true);
+        source.play().unwrap();
+        expect_that!(&source.playing(), eq(false));
     }
 
     // Properties tests
