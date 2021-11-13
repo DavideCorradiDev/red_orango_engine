@@ -1,6 +1,6 @@
 use super::{AudioError, AudioFormat};
 
-pub use alto::{DistanceModel};
+pub use alto::DistanceModel;
 
 pub trait Source {
     fn audio_format(&self) -> AudioFormat;
@@ -11,8 +11,7 @@ pub trait Source {
     fn pause(&mut self);
     fn stop(&mut self);
 
-    fn replay(&mut self) -> Result<(), AudioError>
-    {
+    fn replay(&mut self) -> Result<(), AudioError> {
         self.stop();
         self.play()
     }
@@ -34,28 +33,28 @@ pub trait Source {
 
     fn set_byte_offset(&mut self, value: usize) -> Result<(), AudioError> {
         let tbps = self.audio_format().total_bytes_per_sample() as usize;
-        assert!(value % tbps == 0, "Byte offset is within sample ({})", value);
+        assert!(
+            value % tbps == 0,
+            "Byte offset is within sample ({})",
+            value
+        );
         self.set_sample_offset(value / tbps)
     }
 
-    // TODO: use an appropriate time datatype.
-    fn sec_length(&self) -> f32
-    {
+    fn sec_length(&self) -> std::time::Duration {
         let sample_rate = self.sample_rate();
         assert!(sample_rate != 0);
-        self.sample_length() as f32 / sample_rate as f32
+        std::time::Duration::from_secs_f64(self.sample_length() as f64 / sample_rate as f64)
     }
 
-    fn sec_offset(&self) -> f32
-    {
+    fn sec_offset(&self) -> std::time::Duration {
         let sample_rate = self.sample_rate();
         assert!(sample_rate != 0);
-        self.sample_offset() as f32 / sample_rate as f32
+        std::time::Duration::from_secs_f64(self.sample_offset() as f64 / sample_rate as f64)
     }
 
-    fn set_sec_offset(&mut self, value: f32) -> Result<(), AudioError>
-    {
-        self.set_sample_offset((value * self.sample_rate() as f32) as usize)
+    fn set_sec_offset(&mut self, value: std::time::Duration) -> Result<(), AudioError> {
+        self.set_sample_offset((value.as_secs_f64() * self.sample_rate() as f64) as usize)
     }
 
     fn gain(&self) -> f32;
