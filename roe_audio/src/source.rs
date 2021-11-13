@@ -36,7 +36,7 @@ pub trait Source {
 
     fn set_byte_offset(&mut self, value: u64) -> Result<(), AudioError> {
         let tbps = self.audio_format().total_bytes_per_sample() as u64;
-        assert!(value % tbps == 0, "Invalid byte offset ({})", value);
+        assert!(value % tbps == 0, "Byte offset is within sample ({})", value);
         self.set_sample_offset(value / tbps)
     }
 

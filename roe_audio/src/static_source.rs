@@ -114,22 +114,13 @@ impl Source for StaticSource {
         }
     }
 
-    // TODO: maybe change to not looping, just clamping?
     fn set_sample_offset(&mut self, value: u64) -> Result<(), AudioError> {
-        // Make sure the provided sample offset is within bounds.
-        let sample_length = self.sample_length;
-        let normalized_value = if sample_length == 0 {
-            0
-        } else {
-            value % sample_length as u64
-        };
-
-        if normalized_value != value && !self.looping() {
-            // If not looping and the offset was outside bounds, stop.
-            self.stop();
-            return Ok(());
-        }
-
+        assert!(
+            value < self.sample_length() as u64,
+            "Sample offset exceeds sample length ({} >= {})",
+            value,
+            self.sample_length()
+        );
         if self.playing() {
             // If currently playing, stop, set offset, and resume.
             self.value.stop();
@@ -283,9 +274,6 @@ mod tests {
     }
 
     // TODO: test individual properties with setters / getters.
-    // TODO: test play / stop / pause etc (hard).
-    // TODO: test looping (hard).
-
     #[test]
     #[serial_test::serial]
     fn creation() {
@@ -298,6 +286,10 @@ mod tests {
         expect_that!(&source.looping(), eq(false));
         expect_that!(&source.sample_length(), eq(0));
         expect_that!(&source.sample_offset(), eq(0));
+        expect_that!(&source.byte_length(), eq(0));
+        expect_that!(&source.byte_offset(), eq(0));
+        expect_that!(&source.sec_length(), close_to(0., 1e-6));
+        expect_that!(&source.sec_offset(), close_to(0., 1e-6));
 
         expect_that!(&source.gain(), close_to(1., 1e-6));
         expect_that!(&source.min_gain(), close_to(0., 1e-6));
@@ -328,6 +320,10 @@ mod tests {
         expect_that!(&source.looping(), eq(false));
         expect_that!(&source.sample_length(), eq(64));
         expect_that!(&source.sample_offset(), eq(0));
+        expect_that!(&source.byte_length(), eq(256));
+        expect_that!(&source.byte_offset(), eq(0));
+        expect_that!(&source.sec_length(), close_to(6.4, 1e-6));
+        expect_that!(&source.sec_offset(), close_to(0., 1e-6));
 
         expect_that!(&source.gain(), close_to(1., 1e-6));
         expect_that!(&source.min_gain(), close_to(0., 1e-6));
@@ -359,6 +355,10 @@ mod tests {
         expect_that!(&source.looping(), eq(false));
         expect_that!(&source.sample_length(), eq(0));
         expect_that!(&source.sample_offset(), eq(0));
+        expect_that!(&source.byte_length(), eq(0));
+        expect_that!(&source.byte_offset(), eq(0));
+        expect_that!(&source.sec_length(), close_to(0., 1e-6));
+        expect_that!(&source.sec_offset(), close_to(0., 1e-6));
 
         expect_that!(&source.gain(), close_to(1., 1e-6));
         expect_that!(&source.min_gain(), close_to(0., 1e-6));
@@ -390,6 +390,10 @@ mod tests {
         expect_that!(&source.looping(), eq(false));
         expect_that!(&source.sample_length(), eq(64));
         expect_that!(&source.sample_offset(), eq(0));
+        expect_that!(&source.byte_length(), eq(256));
+        expect_that!(&source.byte_offset(), eq(0));
+        expect_that!(&source.sec_length(), close_to(6.4, 1e-6));
+        expect_that!(&source.sec_offset(), close_to(0., 1e-6));
 
         expect_that!(&source.gain(), close_to(1., 1e-6));
         expect_that!(&source.min_gain(), close_to(0., 1e-6));
@@ -409,21 +413,38 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn sample_offset() {
+    fn sample_offset_while_paused() {
         let context = create_context();
         let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-        expect_that!(&source.sample_length(), eq(64));
-        expect_that!(&source.sample_offset(), eq(0));
 
+        expect_that!(&source.sample_offset(), eq(0));
         source.set_sample_offset(24).unwrap();
         expect_that!(&source.sample_offset(), eq(24));
+    }
 
-        source.set_sample_offset(64).unwrap();
-        expect_that!(&source.sample_offset(), eq(0));
+    #[test]
+    #[serial_test::serial]
+    fn sample_offset_while_playing() {
+        let context = create_context();
+        let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
+        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
 
-        source.set_sample_offset(80).unwrap();
         expect_that!(&source.sample_offset(), eq(0));
+        source.play().unwrap();
+        expect_that!(&source.sample_offset(), not(geq(24)));
+        source.set_sample_offset(24).unwrap();
+        expect_that!(&source.sample_offset(), geq(24));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    #[should_panic(expected = "Sample offset exceeds sample length (100 >= 64)")]
+    fn sample_offset_exceeds_sample_length() {
+        let context = create_context();
+        let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
+        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        source.set_sample_offset(100).unwrap();
     }
 
     #[test]
@@ -432,20 +453,15 @@ mod tests {
         let context = create_context();
         let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-        expect_that!(&source.sec_length(), close_to(6.4, 1e-6));
         expect_that!(&source.sec_offset(), close_to(0., 1e-6));
 
         source.set_sec_offset(3.1).unwrap();
         expect_that!(&source.sec_offset(), close_to(3.1, 1e-6));
 
-        source.set_sec_offset(6.4).unwrap();
-        expect_that!(&source.sec_offset(), close_to(0., 1e-6));
-
-        source.set_sec_offset(8.).unwrap();
+        source.set_sec_offset(0.).unwrap();
         expect_that!(&source.sec_offset(), close_to(0., 1e-6));
     }
 
-    // TODO: add overflow tests.
     #[test]
     #[serial_test::serial]
     fn byte_offset() {
@@ -460,71 +476,15 @@ mod tests {
 
         source.set_byte_offset(0).unwrap();
         expect_that!(&source.byte_offset(), eq(0));
-
-        source.set_byte_offset(0).unwrap();
-        expect_that!(&source.byte_offset(), eq(0));
     }
 
     #[test]
     #[serial_test::serial]
-    #[should_panic(expected = "Invalid byte offset (3)")]
-    fn invalid_byte_offset() {
+    #[should_panic(expected = "Byte offset is within sample (3)")]
+    fn byte_offset_within_sample() {
         let context = create_context();
         let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
         source.set_byte_offset(3).unwrap();
     }
-
-//     #[test]
-//     #[serial_test::serial]
-//     fn looping() {
-//         let context = create_context();
-//         let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 6000).unwrap();
-// 
-//         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-//         expect_that!(&source.looping(), eq(false));
-//         expect_that!(&source.playing(), eq(false));
-// 
-//         source.play().unwrap();
-//         std::thread::sleep(std::time::Duration::from_millis(50));
-//         expect_that!(&source.playing(), eq(false));
-//         source.stop();
-//         expect_that!(&source.playing(), eq(false));
-// 
-//         source.set_looping(true);
-//         expect_that!(&source.looping(), eq(true));
-//         source.play().unwrap();
-//         std::thread::sleep(std::time::Duration::from_millis(5));
-//         expect_that!(&source.playing(), eq(true));
-//     }
-
-//     #[test]
-//     #[serial_test::serial]
-//     fn play_controls() {
-//         let context = create_context();
-//         let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
-// 
-//         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-//         expect_that!(&source.looping(), eq(false));
-//         expect_that!(&source.playing(), eq(false));
-//         expect_that!(&source.sample_offset(), eq(0));
-// 
-//         source.play().unwrap();
-//         std::thread::sleep(std::time::Duration::from_millis(10));
-//         expect_that!(&source.playing(), eq(false));
-//         expect_that!(&source.sample_offset(), eq(source.sample_length() as u64));
-// 
-//         // source.set_looping(true);
-//         // source.play();
-//         // expect_that!(&source.state(), eq(SourceState::Playing));
-// 
-//         // source.set_looping(false);
-//         // std::thread::sleep(std::time::Duration::from_millis(10));
-//         // expect_that!(&source.state(), eq(SourceState::Stopped));
-//         // expect_that!(&source.sample_offset(), eq(source.sample_length() as u64));
-// 
-//         // source.rewind();
-//         // expect_that!(&source.state(), eq(SourceState::Initial));
-//         // expect_that!(&source.sample_offset(), eq(0));
-//     }
 }
