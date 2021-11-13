@@ -41,19 +41,19 @@ pub trait Source {
         self.set_sample_offset(value / tbps)
     }
 
-    fn sec_length(&self) -> std::time::Duration {
+    fn time_length(&self) -> std::time::Duration {
         let sample_rate = self.sample_rate();
         assert!(sample_rate != 0);
         std::time::Duration::from_secs_f64(self.sample_length() as f64 / sample_rate as f64)
     }
 
-    fn sec_offset(&self) -> std::time::Duration {
+    fn time_offset(&self) -> std::time::Duration {
         let sample_rate = self.sample_rate();
         assert!(sample_rate != 0);
         std::time::Duration::from_secs_f64(self.sample_offset() as f64 / sample_rate as f64)
     }
 
-    fn set_sec_offset(&mut self, value: std::time::Duration) -> Result<(), AudioError> {
+    fn set_time_offset(&mut self, value: std::time::Duration) -> Result<(), AudioError> {
         self.set_sample_offset((value.as_secs_f64() * self.sample_rate() as f64) as usize)
     }
 

@@ -288,8 +288,8 @@ mod tests {
         expect_that!(&source.sample_offset(), eq(0));
         expect_that!(&source.byte_length(), eq(0));
         expect_that!(&source.byte_offset(), eq(0));
-        expect_that!(&source.sec_length().as_secs_f64(), close_to(0., 1e-6));
-        expect_that!(&source.sec_offset().as_secs_f64(), close_to(0., 1e-6));
+        expect_that!(&source.time_length().as_secs_f64(), close_to(0., 1e-6));
+        expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
 
         expect_that!(&source.gain(), close_to(1., 1e-6));
         expect_that!(&source.min_gain(), close_to(0., 1e-6));
@@ -322,8 +322,8 @@ mod tests {
         expect_that!(&source.sample_offset(), eq(0));
         expect_that!(&source.byte_length(), eq(256));
         expect_that!(&source.byte_offset(), eq(0));
-        expect_that!(&source.sec_length().as_secs_f64(), close_to(6.4, 1e-6));
-        expect_that!(&source.sec_offset().as_secs_f64(), close_to(0., 1e-6));
+        expect_that!(&source.time_length().as_secs_f64(), close_to(6.4, 1e-6));
+        expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
 
         expect_that!(&source.gain(), close_to(1., 1e-6));
         expect_that!(&source.min_gain(), close_to(0., 1e-6));
@@ -357,8 +357,8 @@ mod tests {
         expect_that!(&source.sample_offset(), eq(0));
         expect_that!(&source.byte_length(), eq(0));
         expect_that!(&source.byte_offset(), eq(0));
-        expect_that!(&source.sec_length().as_secs_f64(), close_to(0., 1e-6));
-        expect_that!(&source.sec_offset().as_secs_f64(), close_to(0., 1e-6));
+        expect_that!(&source.time_length().as_secs_f64(), close_to(0., 1e-6));
+        expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
 
         expect_that!(&source.gain(), close_to(1., 1e-6));
         expect_that!(&source.min_gain(), close_to(0., 1e-6));
@@ -392,8 +392,8 @@ mod tests {
         expect_that!(&source.sample_offset(), eq(0));
         expect_that!(&source.byte_length(), eq(256));
         expect_that!(&source.byte_offset(), eq(0));
-        expect_that!(&source.sec_length().as_secs_f64(), close_to(6.4, 1e-6));
-        expect_that!(&source.sec_offset().as_secs_f64(), close_to(0., 1e-6));
+        expect_that!(&source.time_length().as_secs_f64(), close_to(6.4, 1e-6));
+        expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
 
         expect_that!(&source.gain(), close_to(1., 1e-6));
         expect_that!(&source.min_gain(), close_to(0., 1e-6));
@@ -463,27 +463,27 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn set_sec_offset() {
+    fn set_time_offset() {
         let context = create_context();
         let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-        expect_that!(&source.sec_offset().as_secs_f64(), close_to(0., 1e-6));
+        expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
 
-        source.set_sec_offset(std::time::Duration::from_secs_f64(3.1)).unwrap();
-        expect_that!(&source.sec_offset().as_secs_f64(), close_to(3.1, 1e-6));
+        source.set_time_offset(std::time::Duration::from_secs_f64(3.1)).unwrap();
+        expect_that!(&source.time_offset().as_secs_f64(), close_to(3.1, 1e-6));
 
-        source.set_sec_offset(std::time::Duration::from_secs_f64(0.)).unwrap();
-        expect_that!(&source.sec_offset().as_secs_f64(), close_to(0., 1e-6));
+        source.set_time_offset(std::time::Duration::from_secs_f64(0.)).unwrap();
+        expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
     }
 
     #[test]
     #[serial_test::serial]
     #[should_panic(expected = "underflow when converting float to duration")]
-    fn set_sec_offset_negative() {
+    fn set_time_offset_negative() {
         let context = create_context();
         let buf = Buffer::new(&context, &[0; 256], AudioFormat::Stereo16, 10).unwrap();
         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-        source.set_sec_offset(std::time::Duration::from_secs_f64(-1.)).unwrap();
+        source.set_time_offset(std::time::Duration::from_secs_f64(-1.)).unwrap();
     }
 
     #[test]
