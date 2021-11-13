@@ -62,13 +62,13 @@ impl<D: Decoder> StreamingSource<D> {
     ) -> Result<Self, Error> {
         let source = context.value.new_streaming_source()?;
         let buffer_byte_count =
-            buffer_sample_count * decoder.audio_format().total_bytes_per_sample() as usize;
+            buffer_sample_count * decoder.format().total_bytes_per_sample() as usize;
         let mut empty_buffers = Vec::new();
         for _ in 0..buffer_count {
             empty_buffers.push(create_buffer(
                 context,
                 buffer_byte_count,
-                decoder.audio_format(),
+                decoder.format(),
                 decoder.sample_rate() as i32,
             )?);
         }
@@ -106,7 +106,7 @@ impl<D: Decoder> StreamingSource<D> {
                 set_buffer_data_with_format(
                     audio_buf,
                     &mem_buf,
-                    self.decoder.audio_format(),
+                    self.decoder.format(),
                     self.decoder.sample_rate() as i32,
                 )?;
                 empty_buffer_count -= 1;
@@ -120,7 +120,7 @@ impl<D: Decoder> StreamingSource<D> {
                 set_buffer_data_with_format(
                     audio_buf,
                     &mem_buf,
-                    self.decoder.audio_format(),
+                    self.decoder.format(),
                     self.decoder.sample_rate() as i32,
                 )?;
                 empty_buffer_count -= 1;

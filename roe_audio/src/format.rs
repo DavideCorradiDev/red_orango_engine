@@ -68,7 +68,7 @@ mod tests {
     use galvanic_assert::{matchers::*, *};
 
     #[test]
-    fn new_audio_format() {
+    fn new_format() {
         expect_that!(&Format::new(1, 1), eq(Format::Mono8));
         expect_that!(&Format::new(1, 2), eq(Format::Mono16));
         expect_that!(&Format::new(2, 1), eq(Format::Stereo8));

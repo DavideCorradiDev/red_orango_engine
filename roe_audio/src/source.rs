@@ -3,7 +3,7 @@ use super::{Error, Format};
 pub use alto::DistanceModel;
 
 pub trait Source {
-    fn audio_format(&self) -> Format;
+    fn format(&self) -> Format;
     fn sample_rate(&self) -> u32;
 
     fn playing(&self) -> bool;
@@ -24,15 +24,15 @@ pub trait Source {
     fn set_sample_offset(&mut self, value: usize) -> Result<(), Error>;
 
     fn byte_length(&self) -> usize {
-        self.sample_length() * self.audio_format().total_bytes_per_sample() as usize
+        self.sample_length() * self.format().total_bytes_per_sample() as usize
     }
 
     fn byte_offset(&self) -> usize {
-        self.sample_offset() * self.audio_format().total_bytes_per_sample() as usize
+        self.sample_offset() * self.format().total_bytes_per_sample() as usize
     }
 
     fn set_byte_offset(&mut self, value: usize) -> Result<(), Error> {
-        let tbps = self.audio_format().total_bytes_per_sample() as usize;
+        let tbps = self.format().total_bytes_per_sample() as usize;
         assert!(
             value % tbps == 0,
             "Byte offset is within sample ({})",

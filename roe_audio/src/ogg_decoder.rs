@@ -203,7 +203,7 @@ where
     fn read_next_packet(&mut self) -> Result<(), DecoderError> {
         if let Some(p) = &self.packet {
             self.packet_start_byte_pos +=
-                p.len() as u64 * self.audio_format().bytes_per_sample() as u64;
+                p.len() as u64 * self.format().bytes_per_sample() as u64;
         }
         self.packet = self
             .context
@@ -217,7 +217,7 @@ impl<T> Decoder for OggDecoder<T>
 where
     T: std::io::Read + std::io::Seek,
 {
-    fn audio_format(&self) -> Format {
+    fn format(&self) -> Format {
         self.format
     }
 
@@ -230,7 +230,7 @@ where
         };
         let target_pos = std::cmp::max(0, std::cmp::min(target_pos, byte_count)) as u64;
 
-        let tbps = self.audio_format().total_bytes_per_sample() as u64;
+        let tbps = self.format().total_bytes_per_sample() as u64;
         assert!(
             target_pos % tbps == 0,
             "Invalid seek offset ({})",
@@ -242,7 +242,7 @@ where
             match &self.packet {
                 Some(p) => {
                     let packet_end_byte_pos = self.packet_start_byte_pos
-                        + p.len() as u64 * self.audio_format().bytes_per_sample() as u64;
+                        + p.len() as u64 * self.format().bytes_per_sample() as u64;
                     if target_pos < packet_end_byte_pos {
                         self.packet_current_byte_pos = target_pos - self.packet_start_byte_pos;
                         break;
@@ -270,7 +270,7 @@ where
     }
 
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, DecoderError> {
-        let tbps = self.audio_format().total_bytes_per_sample() as usize;
+        let tbps = self.format().total_bytes_per_sample() as usize;
         assert!(
             buf.len() % tbps == 0,
             "Invalid buffer length ({})",
@@ -369,7 +369,7 @@ mod tests {
         let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
         let buf = std::io::BufReader::new(file);
         let decoder = OggDecoder::new(buf).unwrap();
-        expect_that!(&decoder.audio_format(), eq(Format::Mono16));
+        expect_that!(&decoder.format(), eq(Format::Mono16));
         expect_that!(&decoder.byte_count(), eq(22208 * 2));
         expect_that!(&decoder.sample_count(), eq(22208));
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
@@ -591,7 +591,7 @@ mod tests {
         let file = std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap();
         let buf = std::io::BufReader::new(file);
         let decoder = OggDecoder::new(buf).unwrap();
-        expect_that!(&decoder.audio_format(), eq(Format::Stereo16));
+        expect_that!(&decoder.format(), eq(Format::Stereo16));
         expect_that!(&decoder.byte_count(), eq(22208 * 4));
         expect_that!(&decoder.sample_count(), eq(22208));
         expect_that!(&decoder.byte_rate(), eq(44100 * 4));

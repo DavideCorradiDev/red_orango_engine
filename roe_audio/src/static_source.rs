@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 pub struct StaticSource {
     value: alto::StaticSource,
-    audio_format: Format,
+    format: Format,
     sample_length: usize,
     sample_rate: u32,
     // Variable used to ensure consistency when retrieving the current sample offset when the source
@@ -22,7 +22,7 @@ impl StaticSource {
         let static_source = context.value.new_static_source()?;
         Ok(Self {
             value: static_source,
-            audio_format: Self::DEFAULT_AUDIO_FORMAT,
+            format: Self::DEFAULT_AUDIO_FORMAT,
             sample_length: 0,
             sample_rate: Self::DEFAULT_SAMPLE_RATE,
             sample_offset_override: 0,
@@ -37,7 +37,7 @@ impl StaticSource {
     pub fn set_buffer(&mut self, buf: &Buffer) -> Result<(), Error> {
         self.value.stop();
         self.value.set_buffer(Arc::clone(&buf.value))?;
-        self.audio_format = buf.audio_format();
+        self.format = buf.format();
         self.sample_length = buf.sample_count();
         self.sample_rate = buf.sample_rate();
         self.sample_offset_override = 0;
@@ -47,7 +47,7 @@ impl StaticSource {
     pub fn clear_buffer(&mut self) {
         self.value.stop();
         self.value.clear_buffer();
-        self.audio_format = Self::DEFAULT_AUDIO_FORMAT;
+        self.format = Self::DEFAULT_AUDIO_FORMAT;
         self.sample_length = 0;
         self.sample_rate = Self::DEFAULT_SAMPLE_RATE;
         self.sample_offset_override = 0;
@@ -55,8 +55,8 @@ impl StaticSource {
 }
 
 impl Source for StaticSource {
-    fn audio_format(&self) -> Format {
-        self.audio_format
+    fn format(&self) -> Format {
+        self.format
     }
 
     fn sample_rate(&self) -> u32 {
@@ -280,7 +280,7 @@ mod tests {
         let context = create_context();
         let source = StaticSource::new(&context).unwrap();
 
-        expect_that!(&source.audio_format(), eq(Format::Mono8));
+        expect_that!(&source.format(), eq(Format::Mono8));
         expect_that!(&source.sample_rate(), eq(1));
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.looping(), eq(false));
@@ -314,7 +314,7 @@ mod tests {
         let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
         let source = StaticSource::with_buffer(&context, &buf).unwrap();
 
-        expect_that!(&source.audio_format(), eq(Format::Stereo16));
+        expect_that!(&source.format(), eq(Format::Stereo16));
         expect_that!(&source.sample_rate(), eq(10));
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.looping(), eq(false));
@@ -349,7 +349,7 @@ mod tests {
         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
         source.clear_buffer();
 
-        expect_that!(&source.audio_format(), eq(Format::Mono8));
+        expect_that!(&source.format(), eq(Format::Mono8));
         expect_that!(&source.sample_rate(), eq(1));
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.looping(), eq(false));
@@ -384,7 +384,7 @@ mod tests {
         let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
         source.set_buffer(&buf).unwrap();
 
-        expect_that!(&source.audio_format(), eq(Format::Stereo16));
+        expect_that!(&source.format(), eq(Format::Stereo16));
         expect_that!(&source.sample_rate(), eq(10));
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.looping(), eq(false));

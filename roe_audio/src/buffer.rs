@@ -42,18 +42,18 @@ impl Buffer {
         Self::new(
             context,
             &data,
-            decoder.audio_format(),
+            decoder.format(),
             decoder.sample_rate() as i32,
         )
     }
 
-    pub fn audio_format(&self) -> Format {
+    pub fn format(&self) -> Format {
         let bytes_per_sample = self.value.bits() / 8;
         Format::new(self.value.channels() as u32, bytes_per_sample as u32)
     }
 
     pub fn byte_rate(&self) -> u32 {
-        self.sample_rate() * self.audio_format().total_bytes_per_sample()
+        self.sample_rate() * self.format().total_bytes_per_sample()
     }
 
     pub fn byte_count(&self) -> usize {
@@ -65,7 +65,7 @@ impl Buffer {
     }
 
     pub fn sample_count(&self) -> usize {
-        self.byte_count() / self.audio_format().total_bytes_per_sample() as usize
+        self.byte_count() / self.format().total_bytes_per_sample() as usize
     }
 }
 
@@ -95,7 +95,7 @@ mod tests {
             5,
         )
         .unwrap();
-        expect_that!(&buffer.audio_format(), eq(Format::Mono8));
+        expect_that!(&buffer.format(), eq(Format::Mono8));
         expect_that!(&buffer.byte_rate(), eq(5));
         expect_that!(&buffer.sample_rate(), eq(5));
         expect_that!(&buffer.byte_count(), eq(8));
@@ -114,7 +114,7 @@ mod tests {
             5,
         )
         .unwrap();
-        expect_that!(&buffer.audio_format(), eq(Format::Mono16));
+        expect_that!(&buffer.format(), eq(Format::Mono16));
         expect_that!(&buffer.byte_rate(), eq(10));
         expect_that!(&buffer.sample_rate(), eq(5));
         expect_that!(&buffer.byte_count(), eq(8));
@@ -133,7 +133,7 @@ mod tests {
             5,
         )
         .unwrap();
-        expect_that!(&buffer.audio_format(), eq(Format::Stereo8));
+        expect_that!(&buffer.format(), eq(Format::Stereo8));
         expect_that!(&buffer.byte_rate(), eq(10));
         expect_that!(&buffer.sample_rate(), eq(5));
         expect_that!(&buffer.byte_count(), eq(8));
@@ -152,7 +152,7 @@ mod tests {
             5,
         )
         .unwrap();
-        expect_that!(&buffer.audio_format(), eq(Format::Stereo16));
+        expect_that!(&buffer.format(), eq(Format::Stereo16));
         expect_that!(&buffer.byte_rate(), eq(20));
         expect_that!(&buffer.sample_rate(), eq(5));
         expect_that!(&buffer.byte_count(), eq(8));
@@ -170,7 +170,7 @@ mod tests {
         let context = Context::default(&device).unwrap();
         let buffer = Buffer::from_decoder(&context, &mut decoder).unwrap();
 
-        expect_that!(&buffer.audio_format(), eq(Format::Stereo16));
+        expect_that!(&buffer.format(), eq(Format::Stereo16));
         expect_that!(&buffer.byte_rate(), eq(44100 * 4));
         expect_that!(&buffer.sample_rate(), eq(44100));
         expect_that!(&buffer.byte_count(), eq(21231 * 4));
