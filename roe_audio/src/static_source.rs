@@ -11,7 +11,7 @@ pub struct StaticSource {
     sample_rate: u32,
     // Variable used to ensure consistency when retrieving the current sample offset when the source
     // is not playing.
-    sample_offset_override: u64,
+    sample_offset_override: usize,
 }
 
 impl StaticSource {
@@ -106,17 +106,17 @@ impl Source for StaticSource {
         self.sample_length
     }
 
-    fn sample_offset(&self) -> u64 {
+    fn sample_offset(&self) -> usize {
         if self.playing() {
-            self.value.sample_offset() as u64
+            self.value.sample_offset() as usize
         } else {
             self.sample_offset_override
         }
     }
 
-    fn set_sample_offset(&mut self, value: u64) -> Result<(), AudioError> {
+    fn set_sample_offset(&mut self, value: usize) -> Result<(), AudioError> {
         assert!(
-            value < self.sample_length() as u64,
+            value < self.sample_length(),
             "Sample offset exceeds sample length ({} >= {})",
             value,
             self.sample_length()
@@ -128,7 +128,7 @@ impl Source for StaticSource {
             self.value.play();
         } else {
             // If not currently playing, store the requested offset.
-            self.sample_offset_override = std::cmp::min(value, self.sample_length() as u64);
+            self.sample_offset_override = std::cmp::min(value, self.sample_length());
         }
         Ok(())
     }

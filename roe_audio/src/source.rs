@@ -6,7 +6,6 @@ pub trait Source {
     fn audio_format(&self) -> AudioFormat;
     fn sample_rate(&self) -> u32;
 
-    // TODO: add looping / set_looping to this trait.
     fn playing(&self) -> bool;
     fn play(&mut self) -> Result<(), AudioError>;
     fn pause(&mut self);
@@ -22,20 +21,19 @@ pub trait Source {
     fn set_looping(&mut self, value: bool);
 
     fn sample_length(&self) -> usize;
-    fn sample_offset(&self) -> u64;
-    fn set_sample_offset(&mut self, value: u64) -> Result<(), AudioError>;
+    fn sample_offset(&self) -> usize;
+    fn set_sample_offset(&mut self, value: usize) -> Result<(), AudioError>;
 
     fn byte_length(&self) -> usize {
         self.sample_length() * self.audio_format().total_bytes_per_sample() as usize
     }
 
-    // TODO: change to usize.
-    fn byte_offset(&self) -> u64 {
-        self.sample_offset() * self.audio_format().total_bytes_per_sample() as u64
+    fn byte_offset(&self) -> usize {
+        self.sample_offset() * self.audio_format().total_bytes_per_sample() as usize
     }
 
-    fn set_byte_offset(&mut self, value: u64) -> Result<(), AudioError> {
-        let tbps = self.audio_format().total_bytes_per_sample() as u64;
+    fn set_byte_offset(&mut self, value: usize) -> Result<(), AudioError> {
+        let tbps = self.audio_format().total_bytes_per_sample() as usize;
         assert!(value % tbps == 0, "Byte offset is within sample ({})", value);
         self.set_sample_offset(value / tbps)
     }
@@ -57,7 +55,7 @@ pub trait Source {
 
     fn set_sec_offset(&mut self, value: f32) -> Result<(), AudioError>
     {
-        self.set_sample_offset((value * self.sample_rate() as f32) as u64)
+        self.set_sample_offset((value * self.sample_rate() as f32) as usize)
     }
 
     fn gain(&self) -> f32;
