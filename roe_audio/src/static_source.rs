@@ -83,7 +83,7 @@ impl Source for StaticSource {
         if self.playing() {
             // Pause and save current offset.
             self.value.pause();
-            self.sample_offset_override = self.sample_offset();
+            self.sample_offset_override = self.value.sample_offset() as usize;
             // Actually stop the source to reduce the number of states to be managed.
             self.value.stop();
         }
@@ -273,6 +273,12 @@ mod tests {
         Context::default(&device).unwrap()
     }
 
+    fn create_source() -> StaticSource {
+        let context = create_context();
+        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
+        StaticSource::with_buffer(&context, &buf).unwrap()
+    }
+
     // TODO: test individual properties with setters / getters.
     #[test]
     #[serial_test::serial]
@@ -415,7 +421,7 @@ mod tests {
     #[serial_test::serial]
     fn set_sample_offset_while_paused() {
         let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
+        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
 
         expect_that!(&source.sample_offset(), eq(0));
@@ -426,10 +432,7 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn set_sample_offset_while_playing() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-
+        let mut source = create_source();
         expect_that!(&source.sample_offset(), eq(0));
         source.play().unwrap();
         expect_that!(&source.sample_offset(), not(geq(24)));
@@ -439,11 +442,8 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn get_sample_offset_after_playing() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-
+    fn get_sample_offset_after_play() {
+        let mut source = create_source();
         source.set_sample_offset(24).unwrap();
         expect_that!(&source.sample_offset(), eq(24));
         source.play().unwrap();
@@ -453,26 +453,59 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
+    fn get_sample_offset_after_pause() {
+        let mut source = create_source();
+        source.set_sample_offset(24).unwrap();
+        expect_that!(&source.sample_offset(), eq(24));
+        source.play().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        source.pause();
+        expect_that!(&source.sample_offset(), gt(24));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn get_sample_offset_after_stop() {
+        let mut source = create_source();
+        source.set_sample_offset(24).unwrap();
+        expect_that!(&source.sample_offset(), eq(24));
+        source.play().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        source.stop();
+        expect_that!(&source.sample_offset(), eq(0));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn get_sample_offset_after_pause_and_stop() {
+        let mut source = create_source();
+        source.set_sample_offset(24).unwrap();
+        expect_that!(&source.sample_offset(), eq(24));
+        source.play().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        source.pause();
+        source.stop();
+        expect_that!(&source.sample_offset(), eq(0));
+    }
+
+    #[test]
+    #[serial_test::serial]
     #[should_panic(expected = "Sample offset exceeds sample length (100 >= 64)")]
     fn set_sample_offset_exceeds_sample_length() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        let mut source = create_source();
         source.set_sample_offset(100).unwrap();
     }
 
     #[test]
     #[serial_test::serial]
     fn set_time_offset() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        let mut source = create_source();
         expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
 
         source
-            .set_time_offset(std::time::Duration::from_secs_f64(3.1))
+            .set_time_offset(std::time::Duration::from_secs_f64(0.33))
             .unwrap();
-        expect_that!(&source.time_offset().as_secs_f64(), close_to(3.1, 1e-6));
+        expect_that!(&source.time_offset().as_secs_f64(), close_to(0.33, 1e-6));
 
         source
             .set_time_offset(std::time::Duration::from_secs_f64(0.))
@@ -484,9 +517,7 @@ mod tests {
     #[serial_test::serial]
     #[should_panic(expected = "underflow when converting float to duration")]
     fn set_time_offset_negative() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        let mut source = create_source();
         source
             .set_time_offset(std::time::Duration::from_secs_f64(-1.))
             .unwrap();
@@ -495,9 +526,7 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn set_byte_offset() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        let mut source = create_source();
         expect_that!(&source.byte_length(), eq(256));
         expect_that!(&source.byte_offset(), eq(0));
 
@@ -512,9 +541,7 @@ mod tests {
     #[serial_test::serial]
     #[should_panic(expected = "Byte offset is within sample (3)")]
     fn set_byte_offset_within_sample() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        let mut source = create_source();
         source.set_byte_offset(3).unwrap();
     }
 }
