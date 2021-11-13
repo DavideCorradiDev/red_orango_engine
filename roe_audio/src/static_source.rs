@@ -733,6 +733,85 @@ mod tests {
         expect_that!(&pos3, eq(0));
     }
 
+    #[test]
+    #[serial_test::serial]
+    fn replay_at_initial_state() {
+        let mut source = create_source();
+        let pos0 = source.sample_offset();
+
+        source.replay().unwrap();
+        let pos1 = source.sample_offset();
+        expect_that!(&source.playing(), eq(true));
+        
+        expect_that!(&pos1, geq(pos0));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn replay_after_play() {
+        let mut source = create_source();
+        source.set_sample_offset(24).unwrap();
+        let pos0 = source.sample_offset();
+
+        source.play().unwrap();
+        let pos1 = source.sample_offset();
+        expect_that!(&source.playing(), eq(true));
+
+        source.replay().unwrap();
+        let pos2 = source.sample_offset();
+        expect_that!(&source.playing(), eq(true));
+
+        expect_that!(&pos1, geq(pos0));
+        expect_that!(&pos2, lt(pos1));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn replay_after_pause() {
+        let mut source = create_source();
+        source.set_sample_offset(24).unwrap();
+        let pos0 = source.sample_offset();
+
+        source.play().unwrap();
+        let pos1 = source.sample_offset();
+        expect_that!(&source.playing(), eq(true));
+
+        source.pause();
+        let pos2 = source.sample_offset();
+        expect_that!(&source.playing(), eq(false));
+
+        source.replay().unwrap();
+        let pos3 = source.sample_offset();
+        expect_that!(&source.playing(), eq(true));
+
+        expect_that!(&pos1, geq(pos0));
+        expect_that!(&pos2, geq(pos1));
+        expect_that!(&pos3, lt(pos2));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn replay_after_stop() {
+        let mut source = create_source();
+        let pos0 = source.sample_offset();
+
+        source.play().unwrap();
+        let pos1 = source.sample_offset();
+        expect_that!(&source.playing(), eq(true));
+
+        source.stop();
+        let pos2 = source.sample_offset();
+        expect_that!(&source.playing(), eq(false));
+
+        source.replay().unwrap();
+        let pos3 = source.sample_offset();
+        expect_that!(&source.playing(), eq(true));
+        
+        expect_that!(&pos1, geq(pos0));
+        expect_that!(&pos2, eq(0));
+        expect_that!(&pos3, geq(0));
+    }
+
     // Properties tests
 
     #[test]
