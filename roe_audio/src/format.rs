@@ -1,14 +1,12 @@
-// TODO: rename to Format
-
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub enum AudioFormat {
+pub enum Format {
     Mono8,
     Mono16,
     Stereo8,
     Stereo16,
 }
 
-impl AudioFormat {
+impl Format {
     pub fn new(channel_count: u32, bytes_per_sample: u32) -> Self {
         assert!(
             channel_count == 1 || channel_count == 2,
@@ -71,45 +69,45 @@ mod tests {
 
     #[test]
     fn new_audio_format() {
-        expect_that!(&AudioFormat::new(1, 1), eq(AudioFormat::Mono8));
-        expect_that!(&AudioFormat::new(1, 2), eq(AudioFormat::Mono16));
-        expect_that!(&AudioFormat::new(2, 1), eq(AudioFormat::Stereo8));
-        expect_that!(&AudioFormat::new(2, 2), eq(AudioFormat::Stereo16));
+        expect_that!(&Format::new(1, 1), eq(Format::Mono8));
+        expect_that!(&Format::new(1, 2), eq(Format::Mono16));
+        expect_that!(&Format::new(2, 1), eq(Format::Stereo8));
+        expect_that!(&Format::new(2, 2), eq(Format::Stereo16));
     }
 
     #[test]
     #[should_panic(expected = "Invalid channel count (0)")]
     fn invalid_channel_number() {
-        let _ = AudioFormat::new(0, 1);
+        let _ = Format::new(0, 1);
     }
 
     #[test]
     #[should_panic(expected = "Invalid bytes per sample (42)")]
     fn invalid_bytes_per_sample() {
-        let _ = AudioFormat::new(1, 42);
+        let _ = Format::new(1, 42);
     }
 
     #[test]
     fn channel_count() {
-        expect_that!(&AudioFormat::Mono8.channel_count(), eq(1));
-        expect_that!(&AudioFormat::Mono16.channel_count(), eq(1));
-        expect_that!(&AudioFormat::Stereo8.channel_count(), eq(2));
-        expect_that!(&AudioFormat::Stereo16.channel_count(), eq(2));
+        expect_that!(&Format::Mono8.channel_count(), eq(1));
+        expect_that!(&Format::Mono16.channel_count(), eq(1));
+        expect_that!(&Format::Stereo8.channel_count(), eq(2));
+        expect_that!(&Format::Stereo16.channel_count(), eq(2));
     }
 
     #[test]
     fn bytes_per_sample() {
-        expect_that!(&AudioFormat::Mono8.bytes_per_sample(), eq(1));
-        expect_that!(&AudioFormat::Mono16.bytes_per_sample(), eq(2));
-        expect_that!(&AudioFormat::Stereo8.bytes_per_sample(), eq(1));
-        expect_that!(&AudioFormat::Stereo16.bytes_per_sample(), eq(2));
+        expect_that!(&Format::Mono8.bytes_per_sample(), eq(1));
+        expect_that!(&Format::Mono16.bytes_per_sample(), eq(2));
+        expect_that!(&Format::Stereo8.bytes_per_sample(), eq(1));
+        expect_that!(&Format::Stereo16.bytes_per_sample(), eq(2));
     }
 
     #[test]
     fn total_bytes_per_sample() {
-        expect_that!(&AudioFormat::Mono8.total_bytes_per_sample(), eq(1));
-        expect_that!(&AudioFormat::Mono16.total_bytes_per_sample(), eq(2));
-        expect_that!(&AudioFormat::Stereo8.total_bytes_per_sample(), eq(2));
-        expect_that!(&AudioFormat::Stereo16.total_bytes_per_sample(), eq(4));
+        expect_that!(&Format::Mono8.total_bytes_per_sample(), eq(1));
+        expect_that!(&Format::Mono16.total_bytes_per_sample(), eq(2));
+        expect_that!(&Format::Stereo8.total_bytes_per_sample(), eq(2));
+        expect_that!(&Format::Stereo16.total_bytes_per_sample(), eq(4));
     }
 }

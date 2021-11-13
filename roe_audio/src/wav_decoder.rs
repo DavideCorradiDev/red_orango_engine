@@ -1,4 +1,4 @@
-use super::{AudioFormat, Decoder, DecoderError};
+use super::{Format, Decoder, DecoderError};
 
 use bytemuck::Zeroable;
 
@@ -71,7 +71,7 @@ unsafe impl bytemuck::Pod for WavFormatChunk {}
 #[derive(Debug)]
 pub struct WavDecoder<T: std::io::Read + std::io::Seek> {
     input: T,
-    format: AudioFormat,
+    format: Format,
     sample_rate: u32,
     sample_count: usize,
     byte_data_offset: u64,
@@ -143,7 +143,7 @@ where
         }
 
         let bytes_per_sample = format_chunk.bits_per_sample / 8;
-        let format = AudioFormat::new(format_chunk.channels as u32, bytes_per_sample as u32);
+        let format = Format::new(format_chunk.channels as u32, bytes_per_sample as u32);
         let sample_rate = format_chunk.sample_rate;
 
         let byte_count = loop {
@@ -180,7 +180,7 @@ impl<T> Decoder for WavDecoder<T>
 where
     T: std::io::Read + std::io::Seek,
 {
-    fn audio_format(&self) -> AudioFormat {
+    fn audio_format(&self) -> Format {
         self.format
     }
 
@@ -261,7 +261,7 @@ mod tests {
         let file = std::fs::File::open("data/audio/mono-8-44100.wav").unwrap();
         let buf = std::io::BufReader::new(file);
         let decoder = WavDecoder::new(buf).unwrap();
-        expect_that!(&decoder.audio_format(), eq(AudioFormat::Mono8));
+        expect_that!(&decoder.audio_format(), eq(Format::Mono8));
         expect_that!(&decoder.byte_count(), eq(21231));
         expect_that!(&decoder.sample_count(), eq(21231));
         expect_that!(&decoder.byte_rate(), eq(44100));
@@ -440,7 +440,7 @@ mod tests {
         let file = std::fs::File::open("data/audio/mono-16-44100.wav").unwrap();
         let buf = std::io::BufReader::new(file);
         let decoder = WavDecoder::new(buf).unwrap();
-        expect_that!(&decoder.audio_format(), eq(AudioFormat::Mono16));
+        expect_that!(&decoder.audio_format(), eq(Format::Mono16));
         expect_that!(&decoder.byte_count(), eq(21231 * 2));
         expect_that!(&decoder.sample_count(), eq(21231));
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
@@ -638,7 +638,7 @@ mod tests {
         let file = std::fs::File::open("data/audio/stereo-8-44100.wav").unwrap();
         let buf = std::io::BufReader::new(file);
         let decoder = WavDecoder::new(buf).unwrap();
-        expect_that!(&decoder.audio_format(), eq(AudioFormat::Stereo8));
+        expect_that!(&decoder.audio_format(), eq(Format::Stereo8));
         expect_that!(&decoder.byte_count(), eq(21231 * 2));
         expect_that!(&decoder.sample_count(), eq(21231));
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
@@ -836,7 +836,7 @@ mod tests {
         let file = std::fs::File::open("data/audio/stereo-16-44100.wav").unwrap();
         let buf = std::io::BufReader::new(file);
         let decoder = WavDecoder::new(buf).unwrap();
-        expect_that!(&decoder.audio_format(), eq(AudioFormat::Stereo16));
+        expect_that!(&decoder.audio_format(), eq(Format::Stereo16));
         expect_that!(&decoder.byte_count(), eq(21231 * 4));
         expect_that!(&decoder.sample_count(), eq(21231));
         expect_that!(&decoder.byte_rate(), eq(44100 * 4));

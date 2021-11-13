@@ -1,21 +1,21 @@
-use super::{Error, AudioFormat, Context, Decoder};
+use super::{Error, Format, Context, Decoder};
 
 use alto::{Mono, Stereo};
 
 fn create_buffer(
     context: &Context,
     buffer_byte_count: usize,
-    format: AudioFormat,
+    format: Format,
     frequency: i32,
 ) -> Result<alto::Buffer, Error> {
     let data = vec![0; buffer_byte_count];
     let buffer = match format {
-        AudioFormat::Mono8 => context.value.new_buffer::<Mono<u8>, _>(data, frequency),
-        AudioFormat::Stereo8 => context.value.new_buffer::<Stereo<u8>, _>(data, frequency),
-        AudioFormat::Mono16 => context
+        Format::Mono8 => context.value.new_buffer::<Mono<u8>, _>(data, frequency),
+        Format::Stereo8 => context.value.new_buffer::<Stereo<u8>, _>(data, frequency),
+        Format::Mono16 => context
             .value
             .new_buffer::<Mono<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency),
-        AudioFormat::Stereo16 => context
+        Format::Stereo16 => context
             .value
             .new_buffer::<Stereo<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency),
     }?;
@@ -25,16 +25,16 @@ fn create_buffer(
 fn set_buffer_data_with_format(
     buffer: &mut alto::Buffer,
     data: &[u8],
-    format: AudioFormat,
+    format: Format,
     frequency: i32,
 ) -> Result<(), Error> {
     match format {
-        AudioFormat::Mono8 => buffer.set_data::<Mono<u8>, _>(data, frequency),
-        AudioFormat::Stereo8 => buffer.set_data::<Stereo<u8>, _>(data, frequency),
-        AudioFormat::Mono16 => {
+        Format::Mono8 => buffer.set_data::<Mono<u8>, _>(data, frequency),
+        Format::Stereo8 => buffer.set_data::<Stereo<u8>, _>(data, frequency),
+        Format::Mono16 => {
             buffer.set_data::<Mono<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency)
         }
-        AudioFormat::Stereo16 => {
+        Format::Stereo16 => {
             buffer.set_data::<Stereo<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency)
         }
     }?;

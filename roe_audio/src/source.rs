@@ -1,9 +1,9 @@
-use super::{Error, AudioFormat};
+use super::{Error, Format};
 
 pub use alto::DistanceModel;
 
 pub trait Source {
-    fn audio_format(&self) -> AudioFormat;
+    fn audio_format(&self) -> Format;
     fn sample_rate(&self) -> u32;
 
     fn playing(&self) -> bool;

@@ -1,7 +1,7 @@
-use super::{AudioFormat, DecoderError};
+use super::{Format, DecoderError};
 
 pub trait Decoder {
-    fn audio_format(&self) -> AudioFormat;
+    fn audio_format(&self) -> Format;
 
     fn byte_rate(&self) -> u32 {
         self.sample_rate() * self.audio_format().total_bytes_per_sample()

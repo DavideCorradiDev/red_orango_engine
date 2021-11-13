@@ -1,4 +1,4 @@
-use super::{AudioFormat, Decoder, DecoderError};
+use super::{Format, Decoder, DecoderError};
 
 use lewton::samples::Samples;
 use ogg::reading::PacketReader;
@@ -148,7 +148,7 @@ where
 {
     packet_reader: PacketReader<T>,
     context: OggContext,
-    format: AudioFormat,
+    format: Format,
     sample_rate: u32,
     sample_count: usize,
     packet: Option<Vec<i16>>,
@@ -165,7 +165,7 @@ where
         let sample_count = Self::compute_sample_count(&mut packet_reader)?;
         let context = OggContext::new(&mut packet_reader)?;
         const BYTES_PER_SAMPLE: u32 = 2;
-        let format = AudioFormat::new(context.ident_header.audio_channels as u32, BYTES_PER_SAMPLE);
+        let format = Format::new(context.ident_header.audio_channels as u32, BYTES_PER_SAMPLE);
         let sample_rate = context.ident_header.audio_sample_rate;
         Ok(Self {
             packet_reader,
@@ -217,7 +217,7 @@ impl<T> Decoder for OggDecoder<T>
 where
     T: std::io::Read + std::io::Seek,
 {
-    fn audio_format(&self) -> AudioFormat {
+    fn audio_format(&self) -> Format {
         self.format
     }
 
@@ -369,7 +369,7 @@ mod tests {
         let file = std::fs::File::open("data/audio/mono-16-44100.ogg").unwrap();
         let buf = std::io::BufReader::new(file);
         let decoder = OggDecoder::new(buf).unwrap();
-        expect_that!(&decoder.audio_format(), eq(AudioFormat::Mono16));
+        expect_that!(&decoder.audio_format(), eq(Format::Mono16));
         expect_that!(&decoder.byte_count(), eq(22208 * 2));
         expect_that!(&decoder.sample_count(), eq(22208));
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
@@ -591,7 +591,7 @@ mod tests {
         let file = std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap();
         let buf = std::io::BufReader::new(file);
         let decoder = OggDecoder::new(buf).unwrap();
-        expect_that!(&decoder.audio_format(), eq(AudioFormat::Stereo16));
+        expect_that!(&decoder.audio_format(), eq(Format::Stereo16));
         expect_that!(&decoder.byte_count(), eq(22208 * 4));
         expect_that!(&decoder.sample_count(), eq(22208));
         expect_that!(&decoder.byte_rate(), eq(44100 * 4));

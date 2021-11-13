@@ -1,5 +1,8 @@
-mod audio_format;
-pub use audio_format::*;
+mod error;
+pub use error::*;
+
+mod format;
+pub use format::*;
 
 mod decoder_error;
 pub use decoder_error::*;
@@ -15,9 +18,6 @@ pub use ogg_decoder::*;
 
 mod alto_lib;
 pub use alto_lib::*;
-
-mod error;
-pub use error::*;
 
 mod device;
 pub use device::*;
