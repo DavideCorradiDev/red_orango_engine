@@ -1,4 +1,4 @@
-use super::{Error, Format, Context, Decoder};
+use super::{Context, Decoder, Error, Format};
 
 use alto::{Mono, Stereo};
 
@@ -171,8 +171,8 @@ mod tests {
         super::{Device, OggDecoder, SourceState},
         *,
     };
-    use galvanic_assert::{matchers::*, *};
     use alto::Source;
+    use galvanic_assert::{matchers::*, *};
 
     #[test]
     #[serial_test::serial]

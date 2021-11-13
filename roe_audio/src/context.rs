@@ -1,4 +1,4 @@
-use super::{Error, ContextDesc, Device};
+use super::{ContextDesc, Device, Error};
 
 pub struct Context {
     pub(crate) value: alto::Context,

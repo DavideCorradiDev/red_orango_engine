@@ -1,4 +1,4 @@
-use super::{Error, Format, Context, Decoder};
+use super::{Context, Decoder, Error, Format};
 
 use alto::{Mono, Stereo};
 
@@ -34,10 +34,7 @@ impl Buffer {
         })
     }
 
-    pub fn from_decoder<D: Decoder>(
-        context: &Context,
-        decoder: &mut D,
-    ) -> Result<Self, Error> {
+    pub fn from_decoder<D: Decoder>(context: &Context, decoder: &mut D) -> Result<Self, Error> {
         let data = decoder.read_all()?;
         Self::new(
             context,

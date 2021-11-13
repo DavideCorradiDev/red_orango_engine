@@ -1,4 +1,4 @@
-use super::{Format, Decoder, DecoderError};
+use super::{Decoder, DecoderError, Format};
 
 use bytemuck::Zeroable;
 

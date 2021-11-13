@@ -1,4 +1,4 @@
-use super::{Format, Decoder, DecoderError};
+use super::{Decoder, DecoderError, Format};
 
 use lewton::samples::Samples;
 use ogg::reading::PacketReader;
@@ -202,8 +202,7 @@ where
 
     fn read_next_packet(&mut self) -> Result<(), DecoderError> {
         if let Some(p) = &self.packet {
-            self.packet_start_byte_pos +=
-                p.len() as u64 * self.format().bytes_per_sample() as u64;
+            self.packet_start_byte_pos += p.len() as u64 * self.format().bytes_per_sample() as u64;
         }
         self.packet = self
             .context

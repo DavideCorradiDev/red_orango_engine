@@ -1,4 +1,4 @@
-use super::{Format, DecoderError};
+use super::{DecoderError, Format};
 
 pub trait Decoder {
     fn format(&self) -> Format;

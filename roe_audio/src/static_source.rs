@@ -1,4 +1,4 @@
-use super::{Error, Format, Buffer, Context, DistanceModel, Source};
+use super::{Buffer, Context, DistanceModel, Error, Format, Source};
 
 use alto::Source as AltoSource;
 
@@ -263,7 +263,7 @@ impl std::fmt::Debug for StaticSource {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Format, Device},
+        super::{Device, Format},
         *,
     };
     use galvanic_assert::{matchers::*, *};
@@ -469,10 +469,14 @@ mod tests {
         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
         expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
 
-        source.set_time_offset(std::time::Duration::from_secs_f64(3.1)).unwrap();
+        source
+            .set_time_offset(std::time::Duration::from_secs_f64(3.1))
+            .unwrap();
         expect_that!(&source.time_offset().as_secs_f64(), close_to(3.1, 1e-6));
 
-        source.set_time_offset(std::time::Duration::from_secs_f64(0.)).unwrap();
+        source
+            .set_time_offset(std::time::Duration::from_secs_f64(0.))
+            .unwrap();
         expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
     }
 
@@ -483,7 +487,9 @@ mod tests {
         let context = create_context();
         let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
         let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-        source.set_time_offset(std::time::Duration::from_secs_f64(-1.)).unwrap();
+        source
+            .set_time_offset(std::time::Duration::from_secs_f64(-1.))
+            .unwrap();
     }
 
     #[test]
