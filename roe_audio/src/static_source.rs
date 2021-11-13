@@ -284,8 +284,6 @@ mod tests {
         StaticSource::with_buffer(&context, &buf).unwrap()
     }
 
-    // TODO: test individual properties with setters / getters.
-
     // Creation tests
 
     #[test]
@@ -327,76 +325,6 @@ mod tests {
         let context = create_context();
         let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
         let source = StaticSource::with_buffer(&context, &buf).unwrap();
-
-        expect_that!(&source.format(), eq(Format::Stereo16));
-        expect_that!(&source.sample_rate(), eq(10));
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.looping(), eq(false));
-        expect_that!(&source.sample_length(), eq(64));
-        expect_that!(&source.sample_offset(), eq(0));
-        expect_that!(&source.byte_length(), eq(256));
-        expect_that!(&source.byte_offset(), eq(0));
-        expect_that!(&source.time_length().as_secs_f64(), close_to(6.4, 1e-6));
-        expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
-
-        expect_that!(&source.gain(), close_to(1., 1e-6));
-        expect_that!(&source.min_gain(), close_to(0., 1e-6));
-        expect_that!(&source.max_gain(), close_to(1., 1e-6));
-        expect_that!(&source.reference_distance(), close_to(1., 1e-6));
-        expect_that!(&source.rolloff_factor(), close_to(1., 1e-6));
-        expect_that!(&source.pitch(), close_to(1., 1e-6));
-        expect_that!(&source.position(), eq([0., 0., 0.]));
-        expect_that!(&source.velocity(), eq([0., 0., 0.]));
-        expect_that!(&source.direction(), eq([0., 0., 0.]));
-        expect_that!(&source.cone_inner_angle(), close_to(360., 1e-6));
-        expect_that!(&source.cone_outer_angle(), close_to(360., 1e-6));
-        expect_that!(&source.cone_outer_gain(), close_to(0., 1e-6));
-        expect_that!(&source.distance_model(), eq(DistanceModel::InverseClamped));
-        expect_that!(&source.radius(), close_to(0., 1e-6));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn clear_buffer() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-        source.clear_buffer();
-
-        expect_that!(&source.format(), eq(Format::Mono8));
-        expect_that!(&source.sample_rate(), eq(1));
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.looping(), eq(false));
-        expect_that!(&source.sample_length(), eq(0));
-        expect_that!(&source.sample_offset(), eq(0));
-        expect_that!(&source.byte_length(), eq(0));
-        expect_that!(&source.byte_offset(), eq(0));
-        expect_that!(&source.time_length().as_secs_f64(), close_to(0., 1e-6));
-        expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
-
-        expect_that!(&source.gain(), close_to(1., 1e-6));
-        expect_that!(&source.min_gain(), close_to(0., 1e-6));
-        expect_that!(&source.max_gain(), close_to(1., 1e-6));
-        expect_that!(&source.reference_distance(), close_to(1., 1e-6));
-        expect_that!(&source.rolloff_factor(), close_to(1., 1e-6));
-        expect_that!(&source.pitch(), close_to(1., 1e-6));
-        expect_that!(&source.position(), eq([0., 0., 0.]));
-        expect_that!(&source.velocity(), eq([0., 0., 0.]));
-        expect_that!(&source.direction(), eq([0., 0., 0.]));
-        expect_that!(&source.cone_inner_angle(), close_to(360., 1e-6));
-        expect_that!(&source.cone_outer_angle(), close_to(360., 1e-6));
-        expect_that!(&source.cone_outer_gain(), close_to(0., 1e-6));
-        expect_that!(&source.distance_model(), eq(DistanceModel::InverseClamped));
-        expect_that!(&source.radius(), close_to(0., 1e-6));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn set_buffer() {
-        let context = create_context();
-        let mut source = StaticSource::new(&context).unwrap();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
-        source.set_buffer(&buf).unwrap();
 
         expect_that!(&source.format(), eq(Format::Stereo16));
         expect_that!(&source.sample_rate(), eq(10));
@@ -950,5 +878,109 @@ mod tests {
 
         source.set_looping(false);
         expect_that!(&source.looping(), eq(false));
+    }
+
+    // TODO: test other properties.
+
+    // Set and clear buffer.
+
+    #[test]
+    #[serial_test::serial]
+    fn set_buffer() {
+        let context = create_context();
+        let mut source = StaticSource::new(&context).unwrap();
+        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
+        source.set_buffer(&buf).unwrap();
+
+        expect_that!(&source.playing(), eq(false));
+        expect_that!(&source.format(), eq(Format::Stereo16));
+        expect_that!(&source.sample_rate(), eq(10));
+        expect_that!(&source.sample_length(), eq(64));
+        expect_that!(&source.sample_offset(), eq(0));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn set_buffer_while_playing() {
+        let context = create_context();
+        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
+        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        source.set_looping(true);
+        source.play().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        expect_that!(&source.playing(), eq(true));
+        expect_that!(&source.sample_offset(), gt(0));
+
+        source.set_buffer(&buf).unwrap();
+        expect_that!(&source.playing(), eq(false));
+        expect_that!(&source.sample_offset(), eq(0));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn set_buffer_while_paused() {
+        let context = create_context();
+        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
+        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        source.set_looping(true);
+        source.play().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        source.pause();
+        expect_that!(&source.playing(), eq(false));
+        expect_that!(&source.sample_offset(), gt(0));
+
+        source.set_buffer(&buf).unwrap();
+        expect_that!(&source.playing(), eq(false));
+        expect_that!(&source.sample_offset(), eq(0));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn clear_buffer() {
+        let context = create_context();
+        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
+        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        source.clear_buffer();
+
+        expect_that!(&source.playing(), eq(false));
+        expect_that!(&source.format(), eq(Format::Mono8));
+        expect_that!(&source.sample_rate(), eq(1));
+        expect_that!(&source.sample_length(), eq(0));
+        expect_that!(&source.sample_offset(), eq(0));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn clear_buffer_while_playing() {
+        let context = create_context();
+        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
+        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        source.set_looping(true);
+        source.play().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        expect_that!(&source.playing(), eq(true));
+        expect_that!(&source.sample_offset(), gt(0));
+
+        source.clear_buffer();
+        expect_that!(&source.playing(), eq(false));
+        expect_that!(&source.sample_offset(), eq(0));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn clear_buffer_while_paused() {
+        let context = create_context();
+        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
+        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        source.set_looping(true);
+        source.play().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        source.pause();
+        expect_that!(&source.playing(), eq(false));
+        expect_that!(&source.sample_offset(), gt(0));
+
+        source.clear_buffer();
+        expect_that!(&source.playing(), eq(false));
+        expect_that!(&source.sample_offset(), eq(0));
     }
 }
