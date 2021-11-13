@@ -1,16 +1,16 @@
-use super::{AudioError, ContextDesc, Device};
+use super::{Error, ContextDesc, Device};
 
 pub struct Context {
     pub(crate) value: alto::Context,
 }
 
 impl Context {
-    pub fn default(device: &Device) -> Result<Self, AudioError> {
+    pub fn default(device: &Device) -> Result<Self, Error> {
         let context = device.value.new_context(None)?;
         Ok(Self { value: context })
     }
 
-    pub fn new(device: &Device, desc: &ContextDesc) -> Result<Self, AudioError> {
+    pub fn new(device: &Device, desc: &ContextDesc) -> Result<Self, Error> {
         let context = device.value.new_context(Some(desc.clone()))?;
         Ok(Self { value: context })
     }

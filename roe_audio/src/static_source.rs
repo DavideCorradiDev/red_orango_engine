@@ -1,4 +1,4 @@
-use super::{AudioError, AudioFormat, Buffer, Context, DistanceModel, Source};
+use super::{Error, AudioFormat, Buffer, Context, DistanceModel, Source};
 
 use alto::Source as AltoSource;
 
@@ -18,7 +18,7 @@ impl StaticSource {
     const DEFAULT_AUDIO_FORMAT: AudioFormat = AudioFormat::Mono8;
     const DEFAULT_SAMPLE_RATE: u32 = 1;
 
-    pub fn new(context: &Context) -> Result<Self, AudioError> {
+    pub fn new(context: &Context) -> Result<Self, Error> {
         let static_source = context.value.new_static_source()?;
         Ok(Self {
             value: static_source,
@@ -28,13 +28,13 @@ impl StaticSource {
             sample_offset_override: 0,
         })
     }
-    pub fn with_buffer(context: &Context, buf: &Buffer) -> Result<Self, AudioError> {
+    pub fn with_buffer(context: &Context, buf: &Buffer) -> Result<Self, Error> {
         let mut static_source = Self::new(context)?;
         static_source.set_buffer(buf)?;
         Ok(static_source)
     }
 
-    pub fn set_buffer(&mut self, buf: &Buffer) -> Result<(), AudioError> {
+    pub fn set_buffer(&mut self, buf: &Buffer) -> Result<(), Error> {
         self.value.stop();
         self.value.set_buffer(Arc::clone(&buf.value))?;
         self.audio_format = buf.audio_format();
@@ -67,7 +67,7 @@ impl Source for StaticSource {
         self.value.state() == alto::SourceState::Playing
     }
 
-    fn play(&mut self) -> Result<(), AudioError> {
+    fn play(&mut self) -> Result<(), Error> {
         if !self.playing() {
             // Update to requested sample offset.
             self.value
@@ -114,7 +114,7 @@ impl Source for StaticSource {
         }
     }
 
-    fn set_sample_offset(&mut self, value: usize) -> Result<(), AudioError> {
+    fn set_sample_offset(&mut self, value: usize) -> Result<(), Error> {
         assert!(
             value < self.sample_length(),
             "Sample offset exceeds sample length ({} >= {})",

@@ -1,4 +1,4 @@
-use super::{AudioError, AudioFormat, Context, Decoder};
+use super::{Error, AudioFormat, Context, Decoder};
 
 use alto::{Mono, Stereo};
 
@@ -18,7 +18,7 @@ impl Buffer {
         data: &[u8],
         format: AudioFormat,
         frequency: i32,
-    ) -> Result<Self, AudioError> {
+    ) -> Result<Self, Error> {
         let buffer = match format {
             AudioFormat::Mono8 => context.value.new_buffer::<Mono<u8>, _>(data, frequency),
             AudioFormat::Stereo8 => context.value.new_buffer::<Stereo<u8>, _>(data, frequency),
@@ -37,7 +37,7 @@ impl Buffer {
     pub fn from_decoder<D: Decoder>(
         context: &Context,
         decoder: &mut D,
-    ) -> Result<Self, AudioError> {
+    ) -> Result<Self, Error> {
         let data = decoder.read_all()?;
         Self::new(
             context,

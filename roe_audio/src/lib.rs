@@ -1,5 +1,3 @@
-pub use alto::AltoError as Error;
-
 mod audio_format;
 pub use audio_format::*;
 
@@ -18,8 +16,8 @@ pub use ogg_decoder::*;
 mod alto_lib;
 pub use alto_lib::*;
 
-mod audio_error;
-pub use audio_error::*;
+mod error;
+pub use error::*;
 
 mod device;
 pub use device::*;

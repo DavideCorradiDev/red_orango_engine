@@ -1,4 +1,4 @@
-use super::{AudioError, AudioFormat, Context, Decoder};
+use super::{Error, AudioFormat, Context, Decoder};
 
 use alto::{Mono, Stereo};
 
@@ -7,7 +7,7 @@ fn create_buffer(
     buffer_byte_count: usize,
     format: AudioFormat,
     frequency: i32,
-) -> Result<alto::Buffer, AudioError> {
+) -> Result<alto::Buffer, Error> {
     let data = vec![0; buffer_byte_count];
     let buffer = match format {
         AudioFormat::Mono8 => context.value.new_buffer::<Mono<u8>, _>(data, frequency),
@@ -27,7 +27,7 @@ fn set_buffer_data_with_format(
     data: &[u8],
     format: AudioFormat,
     frequency: i32,
-) -> Result<(), AudioError> {
+) -> Result<(), Error> {
     match format {
         AudioFormat::Mono8 => buffer.set_data::<Mono<u8>, _>(data, frequency),
         AudioFormat::Stereo8 => buffer.set_data::<Stereo<u8>, _>(data, frequency),
@@ -50,7 +50,7 @@ pub struct StreamingSource<D: Decoder> {
 }
 
 impl<D: Decoder> StreamingSource<D> {
-    pub fn new(context: &Context, decoder: D) -> Result<Self, AudioError> {
+    pub fn new(context: &Context, decoder: D) -> Result<Self, Error> {
         Self::new_with_buffer_config(context, decoder, 3, 2048)
     }
 
@@ -59,7 +59,7 @@ impl<D: Decoder> StreamingSource<D> {
         decoder: D,
         buffer_count: usize,
         buffer_sample_count: usize,
-    ) -> Result<Self, AudioError> {
+    ) -> Result<Self, Error> {
         let source = context.value.new_streaming_source()?;
         let buffer_byte_count =
             buffer_sample_count * decoder.audio_format().total_bytes_per_sample() as usize;
@@ -85,7 +85,7 @@ impl<D: Decoder> StreamingSource<D> {
         Ok(source)
     }
 
-    pub fn update(&mut self) -> Result<(), AudioError> {
+    pub fn update(&mut self) -> Result<(), Error> {
         // Unqueue processed buffers.
         for _ in 0..self.value.buffers_processed() {
             self.empty_buffers.push(self.value.unqueue_buffer()?);

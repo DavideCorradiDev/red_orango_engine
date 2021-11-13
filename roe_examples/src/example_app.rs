@@ -16,7 +16,7 @@ pub enum ApplicationError {
     InstanceCreationFailed(roe_graphics::InstanceCreationError),
     RenderFrameCreationFailed(roe_graphics::SwapChainError),
     FontCreationFailed(roe_text::FontError),
-    AudioError(roe_audio::AudioError),
+    Error(roe_audio::Error),
     IoError(std::io::Error),
     CustomEventSendingError,
 }
@@ -36,7 +36,7 @@ impl std::fmt::Display for ApplicationError {
             ApplicationError::FontCreationFailed(e) => {
                 write!(f, "Font creation failed ({})", e)
             }
-            ApplicationError::AudioError(e) => {
+            ApplicationError::Error(e) => {
                 write!(f, "Audio error ({})", e)
             }
             ApplicationError::IoError(e) => {
@@ -56,7 +56,7 @@ impl std::error::Error for ApplicationError {
             ApplicationError::InstanceCreationFailed(e) => Some(e),
             ApplicationError::RenderFrameCreationFailed(e) => Some(e),
             ApplicationError::FontCreationFailed(e) => Some(e),
-            ApplicationError::AudioError(e) => Some(e),
+            ApplicationError::Error(e) => Some(e),
             ApplicationError::IoError(e) => Some(e),
             ApplicationError::CustomEventSendingError => None,
         }
@@ -87,15 +87,15 @@ impl From<roe_text::FontError> for ApplicationError {
     }
 }
 
-impl From<roe_audio::AudioError> for ApplicationError {
-    fn from(e: roe_audio::AudioError) -> Self {
-        ApplicationError::AudioError(e)
+impl From<roe_audio::Error> for ApplicationError {
+    fn from(e: roe_audio::Error) -> Self {
+        ApplicationError::Error(e)
     }
 }
 
 impl From<roe_audio::DecoderError> for ApplicationError {
     fn from(e: roe_audio::DecoderError) -> Self {
-        Self::from(roe_audio::AudioError::from(e))
+        Self::from(roe_audio::Error::from(e))
     }
 }
 
