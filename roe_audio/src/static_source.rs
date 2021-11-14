@@ -287,12 +287,17 @@ mod tests {
     struct StaticSourceGenerator {}
 
     impl StaticSourceGenerator {
-        fn create_with_buffer(sample_count: usize, sample_rate: i32) -> StaticSource {
+        fn create_empty() -> StaticSource {
+            let context = create_context();
+            StaticSource::new(&context).unwrap()
+        }
+
+        fn create_with_buffer(format: Format, sample_count: usize, sample_rate: i32) -> StaticSource {
             let context = create_context();
             let buf = Buffer::new(
                 &context,
-                vec![0; sample_count].as_ref(),
-                Format::Stereo16,
+                vec![0; sample_count * format.total_bytes_per_sample() as usize].as_ref(),
+                format,
                 sample_rate,
             )
             .unwrap();
@@ -367,162 +372,6 @@ mod tests {
         expect_that!(&source.cone_outer_gain(), close_to(0., 1e-6));
         expect_that!(&source.distance_model(), eq(DistanceModel::InverseClamped));
         expect_that!(&source.radius(), close_to(0., 1e-6));
-    }
-
-    // Offset tests
-
-    #[test]
-    #[serial_test::serial]
-    fn set_sample_offset_while_paused() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-
-        expect_that!(&source.sample_offset(), eq(0));
-        source.set_sample_offset(24).unwrap();
-        expect_that!(&source.sample_offset(), eq(24));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn set_sample_offset_while_playing() {
-        let mut source = create_source();
-        expect_that!(&source.sample_offset(), eq(0));
-        source.play().unwrap();
-        expect_that!(&source.sample_offset(), not(geq(24)));
-        source.set_sample_offset(24).unwrap();
-        expect_that!(&source.sample_offset(), geq(24));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn get_sample_offset_after_play() {
-        let mut source = create_source();
-        source.set_sample_offset(24).unwrap();
-        expect_that!(&source.sample_offset(), eq(24));
-        source.play().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        expect_that!(&source.sample_offset(), gt(24));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn get_sample_offset_after_pause() {
-        let mut source = create_source();
-        source.set_sample_offset(24).unwrap();
-        expect_that!(&source.sample_offset(), eq(24));
-        source.play().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        source.pause();
-        expect_that!(&source.sample_offset(), gt(24));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn get_sample_offset_after_stop() {
-        let mut source = create_source();
-        source.set_sample_offset(24).unwrap();
-        expect_that!(&source.sample_offset(), eq(24));
-        source.play().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        source.stop();
-        expect_that!(&source.sample_offset(), eq(0));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn get_sample_offset_after_pause_and_stop() {
-        let mut source = create_source();
-        source.set_sample_offset(24).unwrap();
-        expect_that!(&source.sample_offset(), eq(24));
-        source.play().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        source.pause();
-        source.stop();
-        expect_that!(&source.sample_offset(), eq(0));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn get_sample_offset_after_several_pauses() {
-        let mut source = create_source();
-        let pos0 = source.sample_offset();
-
-        source.play().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        source.pause();
-        let pos1 = source.sample_offset();
-
-        source.play().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        source.pause();
-        let pos2 = source.sample_offset();
-
-        source.play().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        source.pause();
-        let pos3 = source.sample_offset();
-
-        expect_that!(&pos1, gt(pos0));
-        expect_that!(&pos2, gt(pos1));
-        expect_that!(&pos3, gt(pos2));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    #[should_panic(expected = "Sample offset exceeds sample length (100 >= 64)")]
-    fn set_sample_offset_exceeds_sample_length() {
-        let mut source = create_source();
-        source.set_sample_offset(100).unwrap();
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn set_time_offset() {
-        let mut source = create_source();
-        expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
-
-        source
-            .set_time_offset(std::time::Duration::from_secs_f64(0.33))
-            .unwrap();
-        expect_that!(&source.time_offset().as_secs_f64(), close_to(0.33, 1e-6));
-
-        source
-            .set_time_offset(std::time::Duration::from_secs_f64(0.))
-            .unwrap();
-        expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    #[should_panic(expected = "underflow when converting float to duration")]
-    fn set_time_offset_negative() {
-        let mut source = create_source();
-        source
-            .set_time_offset(std::time::Duration::from_secs_f64(-1.))
-            .unwrap();
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn set_byte_offset() {
-        let mut source = create_source();
-        expect_that!(&source.byte_length(), eq(256));
-        expect_that!(&source.byte_offset(), eq(0));
-
-        source.set_byte_offset(24).unwrap();
-        expect_that!(&source.byte_offset(), eq(24));
-
-        source.set_byte_offset(0).unwrap();
-        expect_that!(&source.byte_offset(), eq(0));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    #[should_panic(expected = "Byte offset is within sample (3)")]
-    fn set_byte_offset_within_sample() {
-        let mut source = create_source();
-        source.set_byte_offset(3).unwrap();
     }
 
     // Playback tests
