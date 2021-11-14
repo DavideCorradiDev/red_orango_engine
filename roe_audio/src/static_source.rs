@@ -217,7 +217,7 @@ impl Source for StaticSource {
         self.value.radius()
     }
 
-    fn set_radius(&self, value: f32) {
+    fn set_radius(&mut self, value: f32) {
         self.value.set_radius(value).unwrap();
     }
 
@@ -281,7 +281,11 @@ mod tests {
             StaticSource::new(&context).unwrap()
         }
 
-        fn create_with_buffer(format: Format, sample_count: usize, sample_rate: i32) -> StaticSource {
+        fn create_with_buffer(
+            format: Format,
+            sample_count: usize,
+            sample_rate: u32,
+        ) -> StaticSource {
             let context = create_context();
             let buf = Buffer::new(
                 &context,

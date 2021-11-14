@@ -88,7 +88,7 @@ pub trait Source {
     fn set_cone_outer_gain(&mut self, value: f32);
 
     fn radius(&self) -> f32;
-    fn set_radius(&self, value: f32);
+    fn set_radius(&mut self, value: f32);
 
     fn distance_model(&self) -> DistanceModel;
     fn set_distance_model(&mut self, value: DistanceModel);

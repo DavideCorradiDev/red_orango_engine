@@ -12,24 +12,23 @@ pub struct Buffer {
     pub(crate) value: Arc<alto::Buffer>,
 }
 
-// TODO: change frequency to another type.
-// TODO: rename frequency to byte_rate or sample_rate.
 impl Buffer {
     pub fn new(
         context: &Context,
         data: &[u8],
         format: Format,
-        frequency: i32,
+        sample_rate: u32,
     ) -> Result<Self, Error> {
+        let sample_rate = sample_rate as i32;
         let buffer = match format {
-            Format::Mono8 => context.value.new_buffer::<Mono<u8>, _>(data, frequency),
-            Format::Stereo8 => context.value.new_buffer::<Stereo<u8>, _>(data, frequency),
+            Format::Mono8 => context.value.new_buffer::<Mono<u8>, _>(data, sample_rate),
+            Format::Stereo8 => context.value.new_buffer::<Stereo<u8>, _>(data, sample_rate),
             Format::Mono16 => context
                 .value
-                .new_buffer::<Mono<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency),
+                .new_buffer::<Mono<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), sample_rate),
             Format::Stereo16 => context
                 .value
-                .new_buffer::<Stereo<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), frequency),
+                .new_buffer::<Stereo<i16>, _>(bytemuck::cast_slice::<u8, i16>(&data), sample_rate),
         }?;
         Ok(Self {
             value: Arc::new(buffer),
@@ -42,7 +41,7 @@ impl Buffer {
             context,
             &data,
             decoder.format(),
-            decoder.sample_rate() as i32,
+            decoder.sample_rate(),
         )
     }
 
