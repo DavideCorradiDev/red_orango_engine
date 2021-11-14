@@ -189,30 +189,6 @@ impl Source for StaticSource {
         self.value.set_pitch(value).unwrap();
     }
 
-    fn position<V: From<[f32; 3]>>(&self) -> V {
-        self.value.position()
-    }
-
-    fn set_position<V: Into<[f32; 3]>>(&mut self, value: V) {
-        self.value.set_position(value).unwrap();
-    }
-
-    fn velocity<V: From<[f32; 3]>>(&self) -> V {
-        self.value.velocity()
-    }
-
-    fn set_velocity<V: Into<[f32; 3]>>(&mut self, value: V) {
-        self.value.set_velocity(value).unwrap();
-    }
-
-    fn direction<V: From<[f32; 3]>>(&self) -> V {
-        self.value.direction()
-    }
-
-    fn set_direction<V: Into<[f32; 3]>>(&mut self, value: V) {
-        self.value.set_direction(value).unwrap();
-    }
-
     fn cone_inner_angle(&self) -> f32 {
         self.value.cone_inner_angle()
     }
@@ -237,6 +213,14 @@ impl Source for StaticSource {
         self.value.set_cone_outer_gain(value).unwrap();
     }
 
+    fn radius(&self) -> f32 {
+        self.value.radius()
+    }
+
+    fn set_radius(&self, value: f32) {
+        self.value.set_radius(value).unwrap();
+    }
+
     fn distance_model(&self) -> DistanceModel {
         self.value.distance_model()
     }
@@ -245,12 +229,28 @@ impl Source for StaticSource {
         self.value.set_distance_model(value).unwrap();
     }
 
-    fn radius(&self) -> f32 {
-        self.value.radius()
+    fn position<V: From<[f32; 3]>>(&self) -> V {
+        self.value.position()
     }
 
-    fn set_radius(&self, value: f32) {
-        self.value.set_radius(value).unwrap();
+    fn set_position<V: Into<[f32; 3]>>(&mut self, value: V) {
+        self.value.set_position(value).unwrap();
+    }
+
+    fn velocity<V: From<[f32; 3]>>(&self) -> V {
+        self.value.velocity()
+    }
+
+    fn set_velocity<V: Into<[f32; 3]>>(&mut self, value: V) {
+        self.value.set_velocity(value).unwrap();
+    }
+
+    fn direction<V: From<[f32; 3]>>(&self) -> V {
+        self.value.direction()
+    }
+
+    fn set_direction<V: Into<[f32; 3]>>(&mut self, value: V) {
+        self.value.set_direction(value).unwrap();
     }
 }
 
@@ -363,16 +363,6 @@ mod tests {
         expect_that!(&source.radius(), close_to(0., 1e-6));
     }
 
-    // Playback tests
-
-
-    // Properties tests
-
-    generate_source_tests!(StaticSourceGenerator);
-    // TODO: test other properties.
-
-    // Set and clear buffer.
-
     #[test]
     #[serial_test::serial]
     fn set_buffer() {
@@ -472,4 +462,6 @@ mod tests {
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.sample_offset(), eq(0));
     }
+
+    generate_source_tests!(StaticSourceGenerator);
 }

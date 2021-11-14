@@ -78,15 +78,6 @@ pub trait Source {
     fn pitch(&self) -> f32;
     fn set_pitch(&mut self, value: f32);
 
-    fn position<V: From<[f32; 3]>>(&self) -> V;
-    fn set_position<V: Into<[f32; 3]>>(&mut self, value: V);
-
-    fn velocity<V: From<[f32; 3]>>(&self) -> V;
-    fn set_velocity<V: Into<[f32; 3]>>(&mut self, value: V);
-
-    fn direction<V: From<[f32; 3]>>(&self) -> V;
-    fn set_direction<V: Into<[f32; 3]>>(&mut self, value: V);
-
     fn cone_inner_angle(&self) -> f32;
     fn set_cone_inner_angle(&mut self, value: f32);
 
@@ -96,11 +87,20 @@ pub trait Source {
     fn cone_outer_gain(&self) -> f32;
     fn set_cone_outer_gain(&mut self, value: f32);
 
+    fn radius(&self) -> f32;
+    fn set_radius(&self, value: f32);
+
     fn distance_model(&self) -> DistanceModel;
     fn set_distance_model(&mut self, value: DistanceModel);
 
-    fn radius(&self) -> f32;
-    fn set_radius(&self, value: f32);
+    fn position<V: From<[f32; 3]>>(&self) -> V;
+    fn set_position<V: Into<[f32; 3]>>(&mut self, value: V);
+
+    fn velocity<V: From<[f32; 3]>>(&self) -> V;
+    fn set_velocity<V: Into<[f32; 3]>>(&mut self, value: V);
+
+    fn direction<V: From<[f32; 3]>>(&self) -> V;
+    fn set_direction<V: Into<[f32; 3]>>(&mut self, value: V);
 }
 
 #[macro_export]
@@ -119,6 +119,231 @@ macro_rules! generate_source_tests {
 
             source.set_looping(false);
             expect_that!(&source.looping(), eq(false));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn gain() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.gain(), close_to(1., 1e-6));
+            source.set_gain(0.5);
+            expect_that!(&source.gain(), close_to(0.5, 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        #[should_panic(expected = "InvalidValue")]
+        fn negative_gain() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_gain(-1.);
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn min_gain() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.min_gain(), close_to(0., 1e-6));
+            source.set_min_gain(0.5);
+            expect_that!(&source.min_gain(), close_to(0.5, 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        #[should_panic(expected = "InvalidValue")]
+        fn negative_min_gain() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_min_gain(-1.);
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn max_gain() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.max_gain(), close_to(1., 1e-6));
+            source.set_max_gain(0.5);
+            expect_that!(&source.max_gain(), close_to(0.5, 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        #[should_panic(expected = "InvalidValue")]
+        fn negative_max_gain() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_max_gain(-1.);
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn reference_distance() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.reference_distance(), close_to(1., 1e-6));
+            source.set_reference_distance(0.5);
+            expect_that!(&source.reference_distance(), close_to(0.5, 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        #[should_panic(expected = "InvalidValue")]
+        fn negative_reference_distance() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_reference_distance(-1.);
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn rolloff_factor() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.rolloff_factor(), close_to(1., 1e-6));
+            source.set_rolloff_factor(0.5);
+            expect_that!(&source.rolloff_factor(), close_to(0.5, 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        #[should_panic(expected = "InvalidValue")]
+        fn negative_rolloff_factor() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_rolloff_factor(-1.);
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn max_distance() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.max_distance(), close_to(34028235e31, 1e-6));
+            source.set_max_distance(0.5);
+            expect_that!(&source.max_distance(), close_to(0.5, 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        #[should_panic(expected = "InvalidValue")]
+        fn negative_max_distance() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_max_distance(-1.);
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn pitch() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.pitch(), close_to(1., 1e-6));
+            source.set_pitch(0.5);
+            expect_that!(&source.pitch(), close_to(0.5, 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        #[should_panic(expected = "InvalidValue")]
+        fn negative_pitch() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_pitch(-1.);
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn cone_inner_angle() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            // TODO: change to radians.
+            expect_that!(&source.cone_inner_angle(), close_to(360., 1e-6));
+            source.set_cone_inner_angle(0.5);
+            expect_that!(&source.cone_inner_angle(), close_to(0.5, 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        #[should_panic(expected = "InvalidValue")]
+        fn negative_cone_inner_angle() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_cone_inner_angle(-1.);
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn cone_outer_angle() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            // TODO: change to radians.
+            expect_that!(&source.cone_outer_angle(), close_to(360., 1e-6));
+            source.set_cone_outer_angle(0.5);
+            expect_that!(&source.cone_outer_angle(), close_to(0.5, 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        #[should_panic(expected = "InvalidValue")]
+        fn negative_cone_outer_angle() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_cone_outer_angle(-1.);
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn cone_outer_gain() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.cone_outer_gain(), close_to(0., 1e-6));
+            source.set_cone_outer_gain(0.5);
+            expect_that!(&source.cone_outer_gain(), close_to(0.5, 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        #[should_panic(expected = "InvalidValue")]
+        fn negative_cone_outer_gain() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_cone_outer_gain(-1.);
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn radius() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.radius(), close_to(0., 1e-6));
+            source.set_radius(0.5);
+            expect_that!(&source.radius(), close_to(0.5, 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        #[should_panic(expected = "InvalidValue")]
+        fn negative_radius() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_radius(-1.);
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn distance_model() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.distance_model(), eq(DistanceModel::InverseClamped));
+            source.set_distance_model(DistanceModel::Exponent);
+            expect_that!(&source.distance_model(), eq(DistanceModel::Exponent));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn position() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.position(), eq([0., 0., 0.]));
+            source.set_position([1., 2., 3.]);
+            expect_that!(&source.position(), eq([1., 2., 3.]));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn velocity() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.velocity(), eq([0., 0., 0.]));
+            source.set_velocity([1., 2., 3.]);
+            expect_that!(&source.velocity(), eq([1., 2., 3.]));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn direction() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.direction(), eq([0., 0., 0.]));
+            source.set_direction([1., 2., 3.]);
+            expect_that!(&source.direction(), eq([1., 2., 3.]));
         }
 
         // Offset tests.
