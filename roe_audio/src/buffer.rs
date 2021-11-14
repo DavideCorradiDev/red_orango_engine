@@ -37,12 +37,7 @@ impl Buffer {
 
     pub fn from_decoder<D: Decoder>(context: &Context, decoder: &mut D) -> Result<Self, Error> {
         let data = decoder.read_all()?;
-        Self::new(
-            context,
-            &data,
-            decoder.format(),
-            decoder.sample_rate(),
-        )
+        Self::new(context, &data, decoder.format(), decoder.sample_rate())
     }
 
     pub fn format(&self) -> Format {

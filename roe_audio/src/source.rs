@@ -106,7 +106,6 @@ pub trait Source {
 #[macro_export]
 macro_rules! generate_source_tests {
     ($SourceGenerator:ty) => {
-
         // Properties tests.
 
         #[test]
@@ -245,7 +244,10 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         fn cone_inner_angle() {
             let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
-            expect_that!(&source.cone_inner_angle(), close_to(2. * std::f32::consts::PI, 1e-6));
+            expect_that!(
+                &source.cone_inner_angle(),
+                close_to(2. * std::f32::consts::PI, 1e-6)
+            );
             source.set_cone_inner_angle(0.5);
             expect_that!(&source.cone_inner_angle(), close_to(0.5, 1e-6));
         }
@@ -262,7 +264,10 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         fn cone_outer_angle() {
             let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
-            expect_that!(&source.cone_outer_angle(), close_to(2. * std::f32::consts::PI, 1e-6));
+            expect_that!(
+                &source.cone_outer_angle(),
+                close_to(2. * std::f32::consts::PI, 1e-6)
+            );
             source.set_cone_outer_angle(0.5);
             expect_that!(&source.cone_outer_angle(), close_to(0.5, 1e-6));
         }
@@ -347,7 +352,6 @@ macro_rules! generate_source_tests {
 
         // Offset tests.
 
-        // TODO: test length.
         #[test]
         #[serial_test::serial]
         fn length_mono8() {
