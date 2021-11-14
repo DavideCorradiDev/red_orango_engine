@@ -348,6 +348,50 @@ macro_rules! generate_source_tests {
         // Offset tests.
 
         // TODO: test length.
+        #[test]
+        #[serial_test::serial]
+        fn length_mono8() {
+            let source = <$SourceGenerator>::create_with_buffer(Format::Mono8, 64, 64);
+            expect_that!(&source.sample_length(), eq(64));
+            expect_that!(&source.byte_length(), eq(64));
+            expect_that!(&source.time_length().as_secs_f32(), close_to(1., 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn length_mono16() {
+            let source = <$SourceGenerator>::create_with_buffer(Format::Mono16, 64, 64);
+            expect_that!(&source.sample_length(), eq(64));
+            expect_that!(&source.byte_length(), eq(128));
+            expect_that!(&source.time_length().as_secs_f32(), close_to(1., 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn length_stereo8() {
+            let source = <$SourceGenerator>::create_with_buffer(Format::Stereo8, 64, 64);
+            expect_that!(&source.sample_length(), eq(64));
+            expect_that!(&source.byte_length(), eq(128));
+            expect_that!(&source.time_length().as_secs_f32(), close_to(1., 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn length_stereo16() {
+            let source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            expect_that!(&source.sample_length(), eq(64));
+            expect_that!(&source.byte_length(), eq(256));
+            expect_that!(&source.time_length().as_secs_f32(), close_to(1., 1e-6));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn length_double_sample_rate() {
+            let source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 128);
+            expect_that!(&source.sample_length(), eq(64));
+            expect_that!(&source.byte_length(), eq(256));
+            expect_that!(&source.time_length().as_secs_f32(), close_to(0.5, 1e-6));
+        }
 
         #[test]
         #[serial_test::serial]
