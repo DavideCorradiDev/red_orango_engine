@@ -102,3 +102,22 @@ pub trait Source {
     fn radius(&self) -> f32;
     fn set_radius(&self, value: f32);
 }
+
+// TODO: Restrict to test target.
+#[macro_export]
+macro_rules! generate_source_tests {
+ ($SourceGenerator:ty) => {
+    #[test]
+    #[serial_test::serial]
+    fn looping() {
+        let mut source = <$SourceGenerator>::create_with_buffer(64, 64);
+        expect_that!(&source.looping(), eq(false));
+
+        source.set_looping(true);
+        expect_that!(&source.looping(), eq(true));
+
+        source.set_looping(false);
+        expect_that!(&source.looping(), eq(false));
+    }
+ }
+}

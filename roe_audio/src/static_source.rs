@@ -263,7 +263,7 @@ impl std::fmt::Debug for StaticSource {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Device, Format},
+        super::{generate_source_tests, Device, Format},
         *,
     };
     use galvanic_assert::{matchers::*, *};
@@ -282,6 +282,22 @@ mod tests {
         let context = create_context();
         let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
         StaticSource::with_buffer(&context, &buf).unwrap()
+    }
+
+    struct StaticSourceGenerator {}
+
+    impl StaticSourceGenerator {
+        fn create_with_buffer(sample_count: usize, sample_rate: i32) -> StaticSource {
+            let context = create_context();
+            let buf = Buffer::new(
+                &context,
+                vec![0; sample_count].as_ref(),
+                Format::Stereo16,
+                sample_rate,
+            )
+            .unwrap();
+            StaticSource::with_buffer(&context, &buf).unwrap()
+        }
     }
 
     // Creation tests
@@ -520,7 +536,6 @@ mod tests {
         source.play().unwrap();
         let pos1 = source.sample_offset();
         expect_that!(&source.playing(), eq(true));
-        
         expect_that!(&pos1, geq(pos0));
     }
 
@@ -582,7 +597,6 @@ mod tests {
         source.play().unwrap();
         let pos3 = source.sample_offset();
         expect_that!(&source.playing(), eq(true));
-        
         expect_that!(&pos1, geq(pos0));
         expect_that!(&pos2, eq(0));
         expect_that!(&pos3, geq(pos2));
@@ -598,7 +612,6 @@ mod tests {
         source.pause();
         let pos1 = source.sample_offset();
         expect_that!(&source.playing(), eq(false));
-        
         expect_that!(&pos1, eq(pos0));
     }
 
@@ -675,7 +688,6 @@ mod tests {
         source.stop();
         let pos1 = source.sample_offset();
         expect_that!(&source.playing(), eq(false));
-        
         expect_that!(&pos1, eq(0));
     }
 
@@ -752,7 +764,6 @@ mod tests {
         source.replay().unwrap();
         let pos1 = source.sample_offset();
         expect_that!(&source.playing(), eq(true));
-        
         expect_that!(&pos1, geq(pos0));
     }
 
@@ -816,7 +827,6 @@ mod tests {
         source.replay().unwrap();
         let pos3 = source.sample_offset();
         expect_that!(&source.playing(), eq(true));
-        
         expect_that!(&pos1, geq(pos0));
         expect_that!(&pos2, eq(0));
         expect_that!(&pos3, geq(0));
@@ -867,19 +877,7 @@ mod tests {
 
     // Properties tests
 
-    #[test]
-    #[serial_test::serial]
-    fn looping() {
-        let mut source = create_source();
-        expect_that!(&source.looping(), eq(false));
-
-        source.set_looping(true);
-        expect_that!(&source.looping(), eq(true));
-
-        source.set_looping(false);
-        expect_that!(&source.looping(), eq(false));
-    }
-
+    generate_source_tests!(StaticSourceGenerator);
     // TODO: test other properties.
 
     // Set and clear buffer.

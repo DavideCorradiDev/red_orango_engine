@@ -12,6 +12,8 @@ pub struct Buffer {
     pub(crate) value: Arc<alto::Buffer>,
 }
 
+// TODO: change frequency to another type.
+// TODO: rename frequency to byte_rate or sample_rate.
 impl Buffer {
     pub fn new(
         context: &Context,
