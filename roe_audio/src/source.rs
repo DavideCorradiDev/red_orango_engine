@@ -106,6 +106,8 @@ pub trait Source {
 #[macro_export]
 macro_rules! generate_source_tests {
     ($SourceGenerator:ty) => {
+        // Properties tests.
+
         #[test]
         #[serial_test::serial]
         fn looping() {
@@ -118,6 +120,8 @@ macro_rules! generate_source_tests {
             source.set_looping(false);
             expect_that!(&source.looping(), eq(false));
         }
+
+        // Offset tests.
 
         #[test]
         #[serial_test::serial]
@@ -268,6 +272,352 @@ macro_rules! generate_source_tests {
         fn set_byte_offset_within_sample() {
             let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
             source.set_byte_offset(3).unwrap();
+        }
+
+        // Playback tests.
+
+        #[test]
+        #[serial_test::serial]
+        fn play_at_initial_state() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let pos0 = source.sample_offset();
+
+            source.play().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+            expect_that!(&pos1, geq(pos0));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn play_after_play() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let pos0 = source.sample_offset();
+
+            source.play().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            source.play().unwrap();
+            let pos2 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            expect_that!(&pos1, geq(pos0));
+            expect_that!(&pos2, geq(pos1));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn play_after_pause() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let pos0 = source.sample_offset();
+
+            source.play().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            source.pause();
+            let pos2 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            source.play().unwrap();
+            let pos3 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            expect_that!(&pos1, geq(pos0));
+            expect_that!(&pos2, geq(pos1));
+            expect_that!(&pos3, geq(pos2));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn play_after_stop() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let pos0 = source.sample_offset();
+
+            source.play().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            source.stop();
+            let pos2 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            source.play().unwrap();
+            let pos3 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+            expect_that!(&pos1, geq(pos0));
+            expect_that!(&pos2, eq(0));
+            expect_that!(&pos3, geq(pos2));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn pause_at_initial_state() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_sample_offset(24).unwrap();
+            let pos0 = source.sample_offset();
+
+            source.pause();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+            expect_that!(&pos1, eq(pos0));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn pause_after_play() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let pos0 = source.sample_offset();
+
+            source.play().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            source.pause();
+            let pos2 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            expect_that!(&pos1, geq(pos0));
+            expect_that!(&pos2, geq(pos1));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn pause_after_pause() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let pos0 = source.sample_offset();
+
+            source.play().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            source.pause();
+            let pos2 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            source.pause();
+            let pos3 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            expect_that!(&pos1, geq(pos0));
+            expect_that!(&pos2, geq(pos1));
+            expect_that!(&pos3, eq(pos2));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn pause_after_stop() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let pos0 = source.sample_offset();
+
+            source.play().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            source.stop();
+            let pos2 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            source.pause();
+            let pos3 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            expect_that!(&pos1, geq(pos0));
+            expect_that!(&pos2, eq(0));
+            expect_that!(&pos3, eq(0));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn stop_at_initial_state() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_sample_offset(24).unwrap();
+
+            source.stop();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+            expect_that!(&pos1, eq(0));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn stop_after_play() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let pos0 = source.sample_offset();
+
+            source.play().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            source.stop();
+            let pos2 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            expect_that!(&pos1, geq(pos0));
+            expect_that!(&pos2, eq(0));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn stop_after_pause() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let pos0 = source.sample_offset();
+
+            source.play().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            source.pause();
+            let pos2 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            source.stop();
+            let pos3 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            expect_that!(&pos1, geq(pos0));
+            expect_that!(&pos2, geq(pos1));
+            expect_that!(&pos3, eq(0));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn stop_after_stop() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let pos0 = source.sample_offset();
+
+            source.play().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            source.stop();
+            let pos2 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            source.stop();
+            let pos3 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            expect_that!(&pos1, geq(pos0));
+            expect_that!(&pos2, eq(0));
+            expect_that!(&pos3, eq(0));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn replay_at_initial_state() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let pos0 = source.sample_offset();
+
+            source.replay().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+            expect_that!(&pos1, geq(pos0));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn replay_after_play() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_sample_offset(24).unwrap();
+            let pos0 = source.sample_offset();
+
+            source.play().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            source.replay().unwrap();
+            let pos2 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            expect_that!(&pos1, geq(pos0));
+            expect_that!(&pos2, lt(pos1));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn replay_after_pause() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            source.set_sample_offset(24).unwrap();
+            let pos0 = source.sample_offset();
+
+            source.play().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            source.pause();
+            let pos2 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            source.replay().unwrap();
+            let pos3 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            expect_that!(&pos1, geq(pos0));
+            expect_that!(&pos2, geq(pos1));
+            expect_that!(&pos3, lt(pos2));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn replay_after_stop() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let pos0 = source.sample_offset();
+
+            source.play().unwrap();
+            let pos1 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+
+            source.stop();
+            let pos2 = source.sample_offset();
+            expect_that!(&source.playing(), eq(false));
+
+            source.replay().unwrap();
+            let pos3 = source.sample_offset();
+            expect_that!(&source.playing(), eq(true));
+            expect_that!(&pos1, geq(pos0));
+            expect_that!(&pos2, eq(0));
+            expect_that!(&pos3, geq(0));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn play_looping() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 4000);
+            source.set_looping(true);
+            source.play().unwrap();
+            expect_that!(&source.playing(), eq(true));
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            expect_that!(&source.playing(), eq(true));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn set_loping_while_playing() {
+            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 4000);
+            source.play().unwrap();
+            expect_that!(&source.playing(), eq(true));
+            source.set_looping(true);
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            expect_that!(&source.playing(), eq(true));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn play_with_no_buffer_not_looping() {
+            let mut source = <$SourceGenerator>::create_empty();
+            source.play().unwrap();
+            expect_that!(&source.playing(), eq(false));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn play_with_no_buffer_looping() {
+            let mut source = <$SourceGenerator>::create_empty();
+            source.set_looping(true);
+            source.play().unwrap();
+            expect_that!(&source.playing(), eq(false));
         }
     };
 }
