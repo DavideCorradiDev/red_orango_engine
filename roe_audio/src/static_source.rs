@@ -190,19 +190,19 @@ impl Source for StaticSource {
     }
 
     fn cone_inner_angle(&self) -> f32 {
-        self.value.cone_inner_angle()
+        self.value.cone_inner_angle().to_radians()
     }
 
     fn set_cone_inner_angle(&mut self, value: f32) {
-        self.value.set_cone_inner_angle(value).unwrap();
+        self.value.set_cone_inner_angle(value.to_degrees()).unwrap();
     }
 
     fn cone_outer_angle(&self) -> f32 {
-        self.value.cone_outer_angle()
+        self.value.cone_outer_angle().to_radians()
     }
 
     fn set_cone_outer_angle(&mut self, value: f32) {
-        self.value.set_cone_outer_angle(value).unwrap();
+        self.value.set_cone_outer_angle(value.to_degrees()).unwrap();
     }
 
     fn cone_outer_gain(&self) -> f32 {
@@ -306,31 +306,11 @@ mod tests {
         let context = create_context();
         let source = StaticSource::new(&context).unwrap();
 
+        expect_that!(&source.playing(), eq(false));
         expect_that!(&source.format(), eq(Format::Mono8));
         expect_that!(&source.sample_rate(), eq(1));
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.looping(), eq(false));
         expect_that!(&source.sample_length(), eq(0));
         expect_that!(&source.sample_offset(), eq(0));
-        expect_that!(&source.byte_length(), eq(0));
-        expect_that!(&source.byte_offset(), eq(0));
-        expect_that!(&source.time_length().as_secs_f64(), close_to(0., 1e-6));
-        expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
-
-        expect_that!(&source.gain(), close_to(1., 1e-6));
-        expect_that!(&source.min_gain(), close_to(0., 1e-6));
-        expect_that!(&source.max_gain(), close_to(1., 1e-6));
-        expect_that!(&source.reference_distance(), close_to(1., 1e-6));
-        expect_that!(&source.rolloff_factor(), close_to(1., 1e-6));
-        expect_that!(&source.pitch(), close_to(1., 1e-6));
-        expect_that!(&source.position(), eq([0., 0., 0.]));
-        expect_that!(&source.velocity(), eq([0., 0., 0.]));
-        expect_that!(&source.direction(), eq([0., 0., 0.]));
-        expect_that!(&source.cone_inner_angle(), close_to(360., 1e-6));
-        expect_that!(&source.cone_outer_angle(), close_to(360., 1e-6));
-        expect_that!(&source.cone_outer_gain(), close_to(0., 1e-6));
-        expect_that!(&source.distance_model(), eq(DistanceModel::InverseClamped));
-        expect_that!(&source.radius(), close_to(0., 1e-6));
     }
 
     #[test]
@@ -340,31 +320,11 @@ mod tests {
         let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
         let source = StaticSource::with_buffer(&context, &buf).unwrap();
 
+        expect_that!(&source.playing(), eq(false));
         expect_that!(&source.format(), eq(Format::Stereo16));
         expect_that!(&source.sample_rate(), eq(10));
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.looping(), eq(false));
         expect_that!(&source.sample_length(), eq(64));
         expect_that!(&source.sample_offset(), eq(0));
-        expect_that!(&source.byte_length(), eq(256));
-        expect_that!(&source.byte_offset(), eq(0));
-        expect_that!(&source.time_length().as_secs_f64(), close_to(6.4, 1e-6));
-        expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
-
-        expect_that!(&source.gain(), close_to(1., 1e-6));
-        expect_that!(&source.min_gain(), close_to(0., 1e-6));
-        expect_that!(&source.max_gain(), close_to(1., 1e-6));
-        expect_that!(&source.reference_distance(), close_to(1., 1e-6));
-        expect_that!(&source.rolloff_factor(), close_to(1., 1e-6));
-        expect_that!(&source.pitch(), close_to(1., 1e-6));
-        expect_that!(&source.position(), eq([0., 0., 0.]));
-        expect_that!(&source.velocity(), eq([0., 0., 0.]));
-        expect_that!(&source.direction(), eq([0., 0., 0.]));
-        expect_that!(&source.cone_inner_angle(), close_to(360., 1e-6));
-        expect_that!(&source.cone_outer_angle(), close_to(360., 1e-6));
-        expect_that!(&source.cone_outer_gain(), close_to(0., 1e-6));
-        expect_that!(&source.distance_model(), eq(DistanceModel::InverseClamped));
-        expect_that!(&source.radius(), close_to(0., 1e-6));
     }
 
     #[test]
