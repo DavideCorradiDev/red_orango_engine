@@ -6,25 +6,16 @@ use std::sync::Arc;
 
 pub struct StaticSource {
     value: alto::StaticSource,
-    format: Format,
-    sample_length: usize,
-    sample_rate: u32,
     // Variable used to ensure consistency when retrieving the current sample offset when the source
     // is not playing.
     sample_offset_override: usize,
 }
 
 impl StaticSource {
-    const DEFAULT_AUDIO_FORMAT: Format = Format::Mono8;
-    const DEFAULT_SAMPLE_RATE: u32 = 1;
-
     pub fn new(context: &Context) -> Result<Self, Error> {
         let static_source = context.value.new_static_source()?;
         Ok(Self {
             value: static_source,
-            format: Self::DEFAULT_AUDIO_FORMAT,
-            sample_length: 0,
-            sample_rate: Self::DEFAULT_SAMPLE_RATE,
             sample_offset_override: 0,
         })
     }
@@ -37,9 +28,6 @@ impl StaticSource {
     pub fn set_buffer(&mut self, buf: &Buffer) -> Result<(), Error> {
         self.value.stop();
         self.value.set_buffer(Arc::clone(&buf.value))?;
-        self.format = buf.format();
-        self.sample_length = buf.sample_count();
-        self.sample_rate = buf.sample_rate();
         self.sample_offset_override = 0;
         Ok(())
     }
@@ -47,20 +35,26 @@ impl StaticSource {
     pub fn clear_buffer(&mut self) {
         self.value.stop();
         self.value.clear_buffer();
-        self.format = Self::DEFAULT_AUDIO_FORMAT;
-        self.sample_length = 0;
-        self.sample_rate = Self::DEFAULT_SAMPLE_RATE;
         self.sample_offset_override = 0;
     }
 }
 
 impl Source for StaticSource {
     fn format(&self) -> Format {
-        self.format
+        match self.value.buffer() {
+            Some(b) => {
+                let bytes_per_sample = b.bits() / 8;
+                Format::new(b.channels() as u32, bytes_per_sample as u32)
+            }
+            None => Format::Mono8,
+        }
     }
 
     fn sample_rate(&self) -> u32 {
-        self.sample_rate
+        match self.value.buffer() {
+            Some(b) => b.frequency() as u32,
+            None => 1,
+        }
     }
 
     fn playing(&self) -> bool {
@@ -102,8 +96,18 @@ impl Source for StaticSource {
         self.value.set_looping(value)
     }
 
+    fn byte_length(&self) -> usize {
+        match self.value.buffer() {
+            Some(b) => b.size() as usize,
+            None => 0
+        }
+    }
+
     fn sample_length(&self) -> usize {
-        self.sample_length
+        let byte_length = self.byte_length();
+        let tbps = self.format().total_bytes_per_sample() as usize;
+        assert!(byte_length % tbps == 0);
+        byte_length / tbps
     }
 
     fn sample_offset(&self) -> usize {

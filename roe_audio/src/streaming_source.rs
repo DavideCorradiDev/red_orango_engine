@@ -78,18 +78,16 @@ impl<D: Decoder> StreamingSource<D> {
         })
     }
 
-    fn sample_length_internal(& self) -> usize
-    {
+    fn sample_length_internal(&self) -> usize {
         match &self.decoder {
             Some(d) => d.sample_count(),
-            None => 0
+            None => 0,
         }
     }
 
     // fn set_sample_offset_internal(&mut self, value: usize) {
     //     self.sample_offset = value;
     // }
-
 
     // pub fn new_with_buffer_config(
     //     context: &Context,
