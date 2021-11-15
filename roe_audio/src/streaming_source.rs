@@ -45,8 +45,11 @@ pub struct StreamingSource<D: Decoder> {
     value: alto::StreamingSource,
     decoder: Option<D>,
     empty_buffers: Vec<alto::Buffer>,
+    sample_offset: usize,
+    sample_offset_override: usize,
     buffer_sample_count: usize,
     looping: bool,
+    processing_buffer_queue: bool,
 }
 
 impl<D: Decoder> StreamingSource<D> {
@@ -73,16 +76,65 @@ impl<D: Decoder> StreamingSource<D> {
             value: source,
             decoder: None,
             empty_buffers: Vec::new(),
+            sample_offset: 0,
+            sample_offset_override: 0,
             buffer_sample_count,
             looping: false,
+            processing_buffer_queue: false,
         })
     }
 
-    fn sample_length_internal(&self) -> usize {
+    pub fn with_decoder(
+        context: &Context,
+        decoder: D,
+        buffer_count: usize,
+        buffer_sample_count: usize,
+    ) -> Result<Self, Error> {
+        let mut source = Self::new(context, buffer_count, buffer_sample_count)?;
+        source.set_decoder(decoder);
+        Ok(source)
+    }
+
+    pub fn set_decoder(&mut self, decoder: D) {
+        self.stop();
+        self.decoder = Some(decoder);
+        self.set_stream_sample_offset(0)?;
+    }
+
+    pub fn clear_decoder(&mut self, decoder: D) {
+        self.stop();
+        self.decoder = None;
+        self.sample_offset = 0;
+    }
+
+    fn stop(&mut self) {
+        self.processing_buffer_queue = false;
+        self.value.stop();
+        self.sample_offset_override = 0;
+    }
+
+    fn sample_length(&self) -> usize {
         match &self.decoder {
             Some(d) => d.sample_count(),
             None => 0,
         }
+    }
+
+    // TODO: rename decoder counts to lengths?
+    // TODO: replace all usizes with u64s for lengths?
+    fn set_stream_sample_offset(&mut self, value: usize) -> Result<(), Error> {
+        let sample_length = self.sample_length();
+        assert!(
+            value < sample_length,
+            "Sample offset exceeds sample length ({} >= {})",
+            value,
+            sample_length
+        );
+        self.sample_offset = value;
+        if let Some(d) = &mut self.decoder {
+            d.sample_seek(std::io::SeekFrom::Start(value as u64))?;
+        }
+        Ok(())
     }
 
     // fn set_sample_offset_internal(&mut self, value: usize) {
@@ -120,28 +172,28 @@ impl<D: Decoder> StreamingSource<D> {
     //     Ok(source)
     // }
 
-    pub fn set_decoder(&mut self, decoder: D) -> Result<(), Error> {
-        self.value.stop();
+    // pub fn set_decoder(&mut self, decoder: D) -> Result<(), Error> {
+    //     self.value.stop();
 
-        println!(
-            "Clearing buffers (queued buffers: {}, processed buffers: {})",
-            self.value.buffers_queued(),
-            self.value.buffers_processed()
-        );
-        for _ in 0..self.value.buffers_processed() {
-            println!("Unqueueing buffer");
-            self.empty_buffers.push(self.value.unqueue_buffer()?);
-        }
-        println!(
-            "Buffers cleared! (queued buffers: {}, processed buffers: {})",
-            self.value.buffers_queued(),
-            self.value.buffers_processed()
-        );
+    //     println!(
+    //         "Clearing buffers (queued buffers: {}, processed buffers: {})",
+    //         self.value.buffers_queued(),
+    //         self.value.buffers_processed()
+    //     );
+    //     for _ in 0..self.value.buffers_processed() {
+    //         println!("Unqueueing buffer");
+    //         self.empty_buffers.push(self.value.unqueue_buffer()?);
+    //     }
+    //     println!(
+    //         "Buffers cleared! (queued buffers: {}, processed buffers: {})",
+    //         self.value.buffers_queued(),
+    //         self.value.buffers_processed()
+    //     );
 
-        self.decoder = Some(decoder);
+    //     self.decoder = Some(decoder);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
     // pub fn update(&mut self) -> Result<(), Error> {
     //     let decoder = match &mut self.decoder {
@@ -206,6 +258,7 @@ impl<D: Decoder> std::fmt::Debug for StreamingSource<D> {
         write!(f, "StreamingSource {{ }}")
     }
 }
+
 
 #[cfg(test)]
 mod tests {
