@@ -1,6 +1,6 @@
 use super::{Context, Decoder, Error, Format};
 
-use alto::{Mono, Source, Stereo};
+use alto::{Mono, Source, SourceState, Stereo};
 
 fn create_buffer(
     context: &Context,
@@ -60,7 +60,6 @@ impl<D: Decoder> StreamingSource<D> {
         buffer_sample_count: usize,
     ) -> Result<Self, Error> {
         let source = context.value.new_streaming_source()?;
-        let buffer_byte_count = 1;
         let format = Format::Mono8;
         let sample_rate = 1;
         let mut empty_buffers = Vec::new();
@@ -91,21 +90,51 @@ impl<D: Decoder> StreamingSource<D> {
         buffer_sample_count: usize,
     ) -> Result<Self, Error> {
         let mut source = Self::new(context, buffer_count, buffer_sample_count)?;
-        source.set_decoder(decoder);
+        source.set_decoder(decoder)?;
         Ok(source)
     }
 
-    pub fn set_decoder(&mut self, decoder: D) {
+    pub fn set_decoder(&mut self, decoder: D) -> Result<(), Error> {
         self.stop();
         self.decoder = Some(decoder);
-        self.set_stream_sample_offset(0)?;
+        self.set_stream_sample_offset(0)
     }
 
-    pub fn clear_decoder(&mut self, decoder: D) {
+    pub fn clear_decoder(&mut self) {
         self.stop();
         self.decoder = None;
         self.sample_offset = 0;
     }
+
+    pub fn update_buffers(&mut self) -> Result<(), Error> {
+        if self.processing_buffer_queue {
+            self.free_buffers()?;
+            self.fill_buffers();
+
+            // If self.processing_buffer_queue was true but the source is not playing, it means that
+            // the buffers weren't refilled fast enough. Force the source to restart playing.
+            if self.value.state() != SourceState::Playing {
+                self.value.play();
+            }
+        }
+        Ok(())
+    }
+
+    fn free_buffers(&mut self) -> Result<(), Error> {
+        let mut processed_byte_count = 0;
+        for _ in 0..self.value.buffers_processed() {
+            let buffer = self.value.unqueue_buffer()?;
+            processed_byte_count += buffer.size();
+            self.empty_buffers.push(buffer);
+        }
+        self.set_sample_offset(
+            self.sample_offset
+                + processed_byte_count as usize / self.format().total_bytes_per_sample() as usize,
+        );
+        Ok(())
+    }
+
+    fn fill_buffers(&mut self) {}
 
     fn stop(&mut self) {
         self.processing_buffer_queue = false;
@@ -113,11 +142,23 @@ impl<D: Decoder> StreamingSource<D> {
         self.sample_offset_override = 0;
     }
 
+    fn format(&self) -> Format {
+        match &self.decoder {
+            Some(d) => d.format(),
+            None => Format::Mono8
+        }
+    }
+
     fn sample_length(&self) -> usize {
         match &self.decoder {
             Some(d) => d.sample_count(),
             None => 0,
         }
+    }
+
+    fn set_sample_offset(&mut self, value: usize) {
+        // TODO: normalize value.
+        self.sample_offset = value;
     }
 
     // TODO: rename decoder counts to lengths?
@@ -130,7 +171,7 @@ impl<D: Decoder> StreamingSource<D> {
             value,
             sample_length
         );
-        self.sample_offset = value;
+        self.set_sample_offset(value);
         if let Some(d) = &mut self.decoder {
             d.sample_seek(std::io::SeekFrom::Start(value as u64))?;
         }
@@ -258,7 +299,6 @@ impl<D: Decoder> std::fmt::Debug for StreamingSource<D> {
         write!(f, "StreamingSource {{ }}")
     }
 }
-
 
 #[cfg(test)]
 mod tests {
