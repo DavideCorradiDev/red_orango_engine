@@ -92,15 +92,45 @@ impl<D: Decoder> StreamingSource<D> {
     //     Ok(source)
     // }
 
-    // pub fn set_decoder(&mut self, decoder: D, buffer_count: usize, buffer_sample_count: usize)
-    // {
-    //     // TODO: how to unqueue remaining buffers from the source? Check with some test...
-    //     // Hopefully yes, otherwise it is kind of a mess in general? Also when stopping we should retrieve the buffers and store them in the "empty_buffers" variable.
-    //     self.value.stop();
-    //     let buffer_byte_count =
-    //         buffer_sample_count * decoder.format().total_bytes_per_sample() as usize;
-    //     self.empty_buffers.clear();
-    // }
+    pub fn set_decoder(
+        &mut self,
+        context: &Context,
+        decoder: D,
+        buffer_count: usize,
+        buffer_sample_count: usize,
+    ) -> Result<(), Error> {
+        self.value.stop();
+
+        println!(
+            "Clearing buffers (queued buffers: {}, processed buffers: {})",
+            self.value.buffers_queued(),
+            self.value.buffers_processed()
+        );
+        for _ in 0..self.value.buffers_processed() {
+            println!("Unqueueing buffer");
+            self.value.unqueue_buffer()?;
+        }
+        println!("Deleting {} buffers", self.empty_buffers.len());
+        self.empty_buffers.clear();
+        println!("Done!");
+
+        self.buffer_byte_count =
+            buffer_sample_count * decoder.format().total_bytes_per_sample() as usize;
+        for _ in 0..buffer_count {
+            self.empty_buffers.push(create_buffer(
+                context,
+                self.buffer_byte_count,
+                decoder.format(),
+                decoder.sample_rate() as i32,
+            )?);
+        }
+
+        self.decoder = Some(decoder);
+
+        self.update()?;
+
+        Ok(())
+    }
 
     pub fn update(&mut self) -> Result<(), Error> {
         let decoder = match &mut self.decoder {
@@ -182,6 +212,37 @@ mod tests {
     };
     use alto::Source;
     use galvanic_assert::{matchers::*, *};
+
+    #[test]
+    #[serial_test::serial]
+    fn dummy() {
+        let device = Device::default().unwrap();
+        let context = Context::default(&device).unwrap();
+        let mut source = StreamingSource::new(&context).unwrap();
+        source
+            .set_decoder(
+                &context,
+                OggDecoder::new(std::io::BufReader::new(
+                    std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap(),
+                ))
+                .unwrap(),
+                3,
+                2048,
+            )
+            .unwrap();
+        source.value.play();
+        source
+            .set_decoder(
+                &context,
+                OggDecoder::new(std::io::BufReader::new(
+                    std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap(),
+                ))
+                .unwrap(),
+                3,
+                2048,
+            )
+            .unwrap();
+    }
 
     // #[test]
     // #[serial_test::serial]
