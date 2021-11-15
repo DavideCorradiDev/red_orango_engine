@@ -22,7 +22,7 @@ fn create_buffer(
     Ok(buffer)
 }
 
-fn set_buffer_data_with_format(
+fn set_buffer_data(
     buffer: &mut alto::Buffer,
     data: &[u8],
     format: Format,
@@ -45,18 +45,35 @@ pub struct StreamingSource<D: Decoder> {
     value: alto::StreamingSource,
     decoder: Option<D>,
     empty_buffers: Vec<alto::Buffer>,
-    buffer_byte_count: usize,
+    buffer_sample_count: usize,
     looping: bool,
 }
 
 impl<D: Decoder> StreamingSource<D> {
-    pub fn new(context: &Context) -> Result<Self, Error> {
+    // TODO: descriptor.
+    pub fn new(
+        context: &Context,
+        buffer_count: usize,
+        buffer_sample_count: usize,
+    ) -> Result<Self, Error> {
         let source = context.value.new_streaming_source()?;
+        let buffer_byte_count = 1;
+        let format = Format::Mono8;
+        let sample_rate = 1;
+        let mut empty_buffers = Vec::new();
+        for _ in 0..buffer_count {
+            empty_buffers.push(create_buffer(
+                context,
+                buffer_sample_count * format.total_bytes_per_sample() as usize,
+                format,
+                sample_rate,
+            )?);
+        }
         Ok(Self {
             value: source,
             decoder: None,
             empty_buffers: Vec::new(),
-            buffer_byte_count: 0,
+            buffer_sample_count,
             looping: false,
         })
     }
@@ -92,13 +109,7 @@ impl<D: Decoder> StreamingSource<D> {
     //     Ok(source)
     // }
 
-    pub fn set_decoder(
-        &mut self,
-        context: &Context,
-        decoder: D,
-        buffer_count: usize,
-        buffer_sample_count: usize,
-    ) -> Result<(), Error> {
+    pub fn set_decoder(&mut self, decoder: D) -> Result<(), Error> {
         self.value.stop();
 
         println!(
@@ -108,94 +119,75 @@ impl<D: Decoder> StreamingSource<D> {
         );
         for _ in 0..self.value.buffers_processed() {
             println!("Unqueueing buffer");
-            self.value.unqueue_buffer()?;
+            self.empty_buffers.push(self.value.unqueue_buffer()?);
         }
-        println!("Deleting {} buffers", self.empty_buffers.len());
-        self.empty_buffers.clear();
-        println!("Done!");
-
-        self.buffer_byte_count =
-            buffer_sample_count * decoder.format().total_bytes_per_sample() as usize;
-        for _ in 0..buffer_count {
-            self.empty_buffers.push(create_buffer(
-                context,
-                self.buffer_byte_count,
-                decoder.format(),
-                decoder.sample_rate() as i32,
-            )?);
-        }
+        println!(
+            "Buffers cleared! (queued buffers: {}, processed buffers: {})",
+            self.value.buffers_queued(),
+            self.value.buffers_processed()
+        );
 
         self.decoder = Some(decoder);
 
-        self.update()?;
-
         Ok(())
     }
 
-    pub fn update(&mut self) -> Result<(), Error> {
-        let decoder = match &mut self.decoder {
-            Some(d) => d,
-            None => return Ok(()),
-        };
+    // pub fn update(&mut self) -> Result<(), Error> {
+    //     let decoder = match &mut self.decoder {
+    //         Some(d) => d,
+    //         None => return Ok(()),
+    //     };
 
-        // Unqueue processed buffers.
-        for _ in 0..self.value.buffers_processed() {
-            self.empty_buffers.push(self.value.unqueue_buffer()?);
-        }
+    //     // Unqueue processed buffers.
+    //     for _ in 0..self.value.buffers_processed() {
+    //         self.empty_buffers.push(self.value.unqueue_buffer()?);
+    //     }
 
-        // TODO: simplify the following.
-        // Read new data into empty buffers.
-        let mut empty_buffer_count = self.empty_buffers.len();
-        for audio_buf in self.empty_buffers.iter_mut().rev() {
-            if self.looping {
-                let mut mem_buf = vec![0; self.buffer_byte_count];
-                let mut read_byte_count = 0;
-                while read_byte_count < self.buffer_byte_count {
-                    read_byte_count += decoder.read(&mut mem_buf[read_byte_count..])?;
-                    if read_byte_count < self.buffer_byte_count {
-                        decoder.byte_seek(std::io::SeekFrom::Start(0))?;
-                    }
-                }
-                set_buffer_data_with_format(
-                    audio_buf,
-                    &mem_buf,
-                    decoder.format(),
-                    decoder.sample_rate() as i32,
-                )?;
-                empty_buffer_count -= 1;
-            } else {
-                let mut mem_buf = vec![0; self.buffer_byte_count];
-                let read_byte_count = decoder.read(&mut mem_buf)?;
-                if read_byte_count == 0 {
-                    break;
-                }
-                mem_buf.resize(read_byte_count, 0);
-                set_buffer_data_with_format(
-                    audio_buf,
-                    &mem_buf,
-                    decoder.format(),
-                    decoder.sample_rate() as i32,
-                )?;
-                empty_buffer_count -= 1;
-            }
-        }
+    //     // TODO: simplify the following.
+    //     // Read new data into empty buffers.
+    //     let mut empty_buffer_count = self.empty_buffers.len();
+    //     for audio_buf in self.empty_buffers.iter_mut().rev() {
+    //         if self.looping {
+    //             let mut mem_buf = vec![0; self.buffer_byte_count];
+    //             let mut read_byte_count = 0;
+    //             while read_byte_count < self.buffer_byte_count {
+    //                 read_byte_count += decoder.read(&mut mem_buf[read_byte_count..])?;
+    //                 if read_byte_count < self.buffer_byte_count {
+    //                     decoder.byte_seek(std::io::SeekFrom::Start(0))?;
+    //                 }
+    //             }
+    //             set_buffer_data(
+    //                 audio_buf,
+    //                 &mem_buf,
+    //                 decoder.format(),
+    //                 decoder.sample_rate() as i32,
+    //             )?;
+    //             empty_buffer_count -= 1;
+    //         } else {
+    //             let mut mem_buf = vec![0; self.buffer_byte_count];
+    //             let read_byte_count = decoder.read(&mut mem_buf)?;
+    //             if read_byte_count == 0 {
+    //                 break;
+    //             }
+    //             mem_buf.resize(read_byte_count, 0);
+    //             set_buffer_data(
+    //                 audio_buf,
+    //                 &mem_buf,
+    //                 decoder.format(),
+    //                 decoder.sample_rate() as i32,
+    //             )?;
+    //             empty_buffer_count -= 1;
+    //         }
+    //     }
 
-        // Queue populated buffers.
-        let non_empty_buffers = self.empty_buffers.split_off(empty_buffer_count);
-        for audio_buf in non_empty_buffers.into_iter().rev() {
-            self.value.queue_buffer(audio_buf)?;
-        }
+    //     // Queue populated buffers.
+    //     let non_empty_buffers = self.empty_buffers.split_off(empty_buffer_count);
+    //     for audio_buf in non_empty_buffers.into_iter().rev() {
+    //         self.value.queue_buffer(audio_buf)?;
+    //     }
 
-        Ok(())
-    }
-
-    pub fn looping(&self) -> bool {
-        self.looping
-    }
-
-    pub fn set_looping(&mut self, value: bool) {
-        self.looping = value
-    }
+    //     Ok(())
+    // }
 }
 
 impl<D: Decoder> std::fmt::Debug for StreamingSource<D> {
