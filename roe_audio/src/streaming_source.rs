@@ -47,7 +47,6 @@ pub struct StreamingSource<D: Decoder> {
     empty_buffers: Vec<alto::Buffer>,
     sample_offset: usize,
     sample_offset_override: usize,
-    buffer_to_queue_count: usize,
     buffer_sample_count: usize,
     looping: bool,
     processing_buffer_queue: bool,
@@ -78,7 +77,6 @@ impl<D: Decoder> StreamingSource<D> {
             empty_buffers: Vec::new(),
             sample_offset: 0,
             sample_offset_override: 0,
-            buffer_to_queue_count: 0,
             buffer_sample_count,
             looping: false,
             processing_buffer_queue: false,
@@ -145,8 +143,7 @@ impl<D: Decoder> StreamingSource<D> {
             None => return Ok(()),
         };
 
-        while self.buffer_to_queue_count > 0 && self.empty_buffers.len() > 0 {
-            
+        while self.processing_buffer_queue && self.empty_buffers.len() > 0 {
             let mut mem_buf = vec![0; buffer_byte_count];
             if self.looping {
                 let mut read_byte_count = 0;
@@ -158,7 +155,9 @@ impl<D: Decoder> StreamingSource<D> {
                 }
             } else {
                 let read_byte_count = decoder.read(&mut mem_buf)?;
-                assert!(read_byte_count > 0);
+                if read_byte_count == 0 {
+                    self.processing_buffer_queue = false;
+                }
                 mem_buf.resize(read_byte_count, 0);
             }
 
@@ -171,31 +170,38 @@ impl<D: Decoder> StreamingSource<D> {
             )?;
 
             self.value.queue_buffer(audio_buf)?;
-            self.buffer_to_queue_count -= 1;
-
-            // If looping, reset the stream to the beginning and the number of buffers
-            // to queue, so that the buffer queueing will continue from the beginning of
-            // the stream.
-            if self.looping && self.buffer_to_queue_count == 0 {
-                decoder.byte_seek(std::io::SeekFrom::Start(0))?;
-                self.set_buffers_to_queue_count(0);
-                // self.sample_offset shouldn't be updated here, it is updated in free_buffers.
-            }
-        }
-
-        // If the loop ended and the number of buffers to queue is 0, it means that
-        // the buffer queu processing was ended.
-        if self.buffer_to_queue_count == 0 {
-            self.processing_buffer_queue = false;
         }
 
         Ok(())
+    }
+
+    fn playing(&self) -> bool {
+        self.processing_buffer_queue || self.value.state() == SourceState::Playing
     }
 
     fn stop(&mut self) {
         self.processing_buffer_queue = false;
         self.value.stop();
         self.sample_offset_override = 0;
+    }
+
+    fn pause(&mut self) {
+        if self.playing() {
+            self.processing_buffer_queue = false;
+            self.value.pause();
+            self.sample_offset_override = self.value.sample_offset() as usize;
+            // Actually stop the source to reduce the number of states to be managed.
+            self.value.stop();
+        }
+    }
+
+    fn play(&mut self) {
+        if !self.playing() {
+            self.processing_buffer_queue = true;
+            self.set_sample_offset(self.sample_offset_override);
+            self.sample_offset_override = 0;
+            self.value.play();
+        }
     }
 
     fn format(&self) -> Format {
@@ -212,10 +218,18 @@ impl<D: Decoder> StreamingSource<D> {
         }
     }
 
+    fn sample_offset(&self) -> usize {
+        let sample_length = self.sample_length();
+        if sample_length == 0 {
+            0
+        } else {
+            (self.sample_offset + self.value.sample_offset() as usize) % sample_length
+        }
+    }
+
     fn set_sample_offset(&mut self, value: usize) -> Result<(), Error> {
         self.free_buffers()?;
         self.set_sample_offset_var_and_stream(value)?;
-        self.set_buffers_to_queue_count(value);
         self.fill_buffers()?;
         Ok(())
     }
@@ -241,130 +255,6 @@ impl<D: Decoder> StreamingSource<D> {
         }
         Ok(())
     }
-
-    fn set_buffers_to_queue_count(&mut self, value: usize) {
-        let samples_to_end = self.sample_length() - value;
-        self.buffer_to_queue_count = if samples_to_end > 0 && self.buffer_sample_count > 0 {
-            1 + (samples_to_end - 1) / self.buffer_sample_count
-        } else {
-            0
-        }
-    }
-
-    // fn set_sample_offset_internal(&mut self, value: usize) {
-    //     self.sample_offset = value;
-    // }
-
-    // pub fn new_with_buffer_config(
-    //     context: &Context,
-    //     decoder: D,
-    //     buffer_count: usize,
-    //     buffer_sample_count: usize,
-    // ) -> Result<Self, Error> {
-    //     let source = context.value.new_streaming_source()?;
-    //     let buffer_byte_count =
-    //         buffer_sample_count * decoder.format().total_bytes_per_sample() as usize;
-    //     let mut empty_buffers = Vec::new();
-    //     for _ in 0..buffer_count {
-    //         empty_buffers.push(create_buffer(
-    //             context,
-    //             buffer_byte_count,
-    //             decoder.format(),
-    //             decoder.sample_rate() as i32,
-    //         )?);
-    //     }
-
-    //     let mut source = Self {
-    //         value: source,
-    //         decoder,
-    //         empty_buffers,
-    //         buffer_byte_count,
-    //         looping: false,
-    //     };
-    //     source.update()?;
-
-    //     Ok(source)
-    // }
-
-    // pub fn set_decoder(&mut self, decoder: D) -> Result<(), Error> {
-    //     self.value.stop();
-
-    //     println!(
-    //         "Clearing buffers (queued buffers: {}, processed buffers: {})",
-    //         self.value.buffers_queued(),
-    //         self.value.buffers_processed()
-    //     );
-    //     for _ in 0..self.value.buffers_processed() {
-    //         println!("Unqueueing buffer");
-    //         self.empty_buffers.push(self.value.unqueue_buffer()?);
-    //     }
-    //     println!(
-    //         "Buffers cleared! (queued buffers: {}, processed buffers: {})",
-    //         self.value.buffers_queued(),
-    //         self.value.buffers_processed()
-    //     );
-
-    //     self.decoder = Some(decoder);
-
-    //     Ok(())
-    // }
-
-    // pub fn update(&mut self) -> Result<(), Error> {
-    //     let decoder = match &mut self.decoder {
-    //         Some(d) => d,
-    //         None => return Ok(()),
-    //     };
-
-    //     // Unqueue processed buffers.
-    //     for _ in 0..self.value.buffers_processed() {
-    //         self.empty_buffers.push(self.value.unqueue_buffer()?);
-    //     }
-
-    //     // TODO: simplify the following.
-    //     // Read new data into empty buffers.
-    //     let mut empty_buffer_count = self.empty_buffers.len();
-    //     for audio_buf in self.empty_buffers.iter_mut().rev() {
-    //         if self.looping {
-    //             let mut mem_buf = vec![0; self.buffer_byte_count];
-    //             let mut read_byte_count = 0;
-    //             while read_byte_count < self.buffer_byte_count {
-    //                 read_byte_count += decoder.read(&mut mem_buf[read_byte_count..])?;
-    //                 if read_byte_count < self.buffer_byte_count {
-    //                     decoder.byte_seek(std::io::SeekFrom::Start(0))?;
-    //                 }
-    //             }
-    //             set_buffer_data(
-    //                 audio_buf,
-    //                 &mem_buf,
-    //                 decoder.format(),
-    //                 decoder.sample_rate() as i32,
-    //             )?;
-    //             empty_buffer_count -= 1;
-    //         } else {
-    //             let mut mem_buf = vec![0; self.buffer_byte_count];
-    //             let read_byte_count = decoder.read(&mut mem_buf)?;
-    //             if read_byte_count == 0 {
-    //                 break;
-    //             }
-    //             mem_buf.resize(read_byte_count, 0);
-    //             set_buffer_data(
-    //                 audio_buf,
-    //                 &mem_buf,
-    //                 decoder.format(),
-    //                 decoder.sample_rate() as i32,
-    //             )?;
-    //             empty_buffer_count -= 1;
-    //         }
-    //     }
-
-    //     // Queue populated buffers.
-    //     let non_empty_buffers = self.empty_buffers.split_off(empty_buffer_count);
-    //     for audio_buf in non_empty_buffers.into_iter().rev() {
-    //         self.value.queue_buffer(audio_buf)?;
-    //     }
-
-    //     Ok(())
-    // }
 }
 
 impl<D: Decoder> std::fmt::Debug for StreamingSource<D> {
