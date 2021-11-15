@@ -78,6 +78,19 @@ impl<D: Decoder> StreamingSource<D> {
         })
     }
 
+    fn sample_length_internal(& self) -> usize
+    {
+        match &self.decoder {
+            Some(d) => d.sample_count(),
+            None => 0
+        }
+    }
+
+    // fn set_sample_offset_internal(&mut self, value: usize) {
+    //     self.sample_offset = value;
+    // }
+
+
     // pub fn new_with_buffer_config(
     //     context: &Context,
     //     decoder: D,
@@ -205,36 +218,36 @@ mod tests {
     use alto::Source;
     use galvanic_assert::{matchers::*, *};
 
-    #[test]
-    #[serial_test::serial]
-    fn dummy() {
-        let device = Device::default().unwrap();
-        let context = Context::default(&device).unwrap();
-        let mut source = StreamingSource::new(&context).unwrap();
-        source
-            .set_decoder(
-                &context,
-                OggDecoder::new(std::io::BufReader::new(
-                    std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap(),
-                ))
-                .unwrap(),
-                3,
-                2048,
-            )
-            .unwrap();
-        source.value.play();
-        source
-            .set_decoder(
-                &context,
-                OggDecoder::new(std::io::BufReader::new(
-                    std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap(),
-                ))
-                .unwrap(),
-                3,
-                2048,
-            )
-            .unwrap();
-    }
+    // #[test]
+    // #[serial_test::serial]
+    // fn dummy() {
+    //     let device = Device::default().unwrap();
+    //     let context = Context::default(&device).unwrap();
+    //     let mut source = StreamingSource::new(&context).unwrap();
+    //     source
+    //         .set_decoder(
+    //             &context,
+    //             OggDecoder::new(std::io::BufReader::new(
+    //                 std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap(),
+    //             ))
+    //             .unwrap(),
+    //             3,
+    //             2048,
+    //         )
+    //         .unwrap();
+    //     source.value.play();
+    //     source
+    //         .set_decoder(
+    //             &context,
+    //             OggDecoder::new(std::io::BufReader::new(
+    //                 std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap(),
+    //             ))
+    //             .unwrap(),
+    //             3,
+    //             2048,
+    //         )
+    //         .unwrap();
+    // }
 
     // #[test]
     // #[serial_test::serial]
