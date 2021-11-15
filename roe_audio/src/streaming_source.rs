@@ -139,17 +139,16 @@ impl<D: Decoder> StreamingSource<D> {
     fn fill_buffers(&mut self) -> Result<(), Error> {
         let buffer_byte_count =
             self.buffer_sample_count * self.format().total_bytes_per_sample() as usize;
+
         let decoder = match &mut self.decoder {
             Some(d) => d,
             None => return Ok(()),
         };
 
-        // TODO: simplify the following.
-        // Read new data into empty buffers.
-        let mut empty_buffer_count = self.empty_buffers.len();
-        for audio_buf in self.empty_buffers.iter_mut().rev() {
+        while self.buffer_to_queue_count > 0 && self.empty_buffers.len() > 0 {
+            
+            let mut mem_buf = vec![0; buffer_byte_count];
             if self.looping {
-                let mut mem_buf = vec![0; buffer_byte_count];
                 let mut read_byte_count = 0;
                 while read_byte_count < buffer_byte_count {
                     read_byte_count += decoder.read(&mut mem_buf[read_byte_count..])?;
@@ -157,28 +156,37 @@ impl<D: Decoder> StreamingSource<D> {
                         decoder.byte_seek(std::io::SeekFrom::Start(0))?;
                     }
                 }
-                set_buffer_data(
-                    audio_buf,
-                    &mem_buf,
-                    decoder.format(),
-                    decoder.sample_rate() as i32,
-                )?;
-                empty_buffer_count -= 1;
             } else {
-                let mut mem_buf = vec![0; buffer_byte_count];
                 let read_byte_count = decoder.read(&mut mem_buf)?;
-                if read_byte_count == 0 {
-                    break;
-                }
+                assert!(read_byte_count > 0);
                 mem_buf.resize(read_byte_count, 0);
-                set_buffer_data(
-                    audio_buf,
-                    &mem_buf,
-                    decoder.format(),
-                    decoder.sample_rate() as i32,
-                )?;
-                empty_buffer_count -= 1;
             }
+
+            let mut audio_buf = self.empty_buffers.pop().unwrap();
+            set_buffer_data(
+                &mut audio_buf,
+                &mem_buf,
+                decoder.format(),
+                decoder.sample_rate() as i32,
+            )?;
+
+            self.value.queue_buffer(audio_buf)?;
+            self.buffer_to_queue_count -= 1;
+
+            // If looping, reset the stream to the beginning and the number of buffers
+            // to queue, so that the buffer queueing will continue from the beginning of
+            // the stream.
+            if self.looping && self.buffer_to_queue_count == 0 {
+                decoder.byte_seek(std::io::SeekFrom::Start(0))?;
+                self.set_buffers_to_queue_count(0);
+                // self.sample_offset shouldn't be updated here, it is updated in free_buffers.
+            }
+        }
+
+        // If the loop ended and the number of buffers to queue is 0, it means that
+        // the buffer queu processing was ended.
+        if self.buffer_to_queue_count == 0 {
+            self.processing_buffer_queue = false;
         }
 
         Ok(())
@@ -234,14 +242,11 @@ impl<D: Decoder> StreamingSource<D> {
         Ok(())
     }
 
-    fn set_buffers_to_queue_count(&mut self, value: usize)
-    {
+    fn set_buffers_to_queue_count(&mut self, value: usize) {
         let samples_to_end = self.sample_length() - value;
         self.buffer_to_queue_count = if samples_to_end > 0 && self.buffer_sample_count > 0 {
             1 + (samples_to_end - 1) / self.buffer_sample_count
-        }
-        else
-        {
+        } else {
             0
         }
     }
