@@ -1,6 +1,6 @@
-use super::{Context, Decoder, Error, Format};
+use super::{Context, Decoder, DistanceModel, Error, Format, Source};
 
-use alto::{Mono, Source, SourceState, Stereo};
+use alto::{Mono, Source as AltoSource, SourceState, Stereo};
 
 fn create_buffer(
     context: &Context,
@@ -127,10 +127,8 @@ impl<D: Decoder> StreamingSource<D> {
             processed_byte_count += buffer.size();
             self.empty_buffers.push(buffer);
         }
-        self.set_sample_offset_var(
-            self.sample_offset
-                + processed_byte_count as usize / self.format().total_bytes_per_sample() as usize,
-        );
+        self.sample_offset +=
+            processed_byte_count as usize / self.format().total_bytes_per_sample() as usize;
         Ok(())
     }
 
@@ -175,8 +173,66 @@ impl<D: Decoder> StreamingSource<D> {
         Ok(())
     }
 
+    // TODO: rename decoder counts to lengths?
+    // TODO: replace all usizes with u64s for lengths?
+    fn set_sample_offset_var_and_stream(&mut self, value: usize) -> Result<(), Error> {
+        let sample_length = self.sample_length();
+        assert!(
+            value < sample_length,
+            "Sample offset exceeds sample length ({} >= {})",
+            value,
+            sample_length
+        );
+        self.sample_offset = value;
+        if let Some(d) = &mut self.decoder {
+            d.sample_seek(std::io::SeekFrom::Start(value as u64))?;
+        }
+        Ok(())
+    }
+}
+
+impl<D: Decoder> std::fmt::Debug for StreamingSource<D> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "StreamingSource {{ }}")
+    }
+}
+
+impl<D: Decoder> Source for StreamingSource<D> {
+    fn format(&self) -> Format {
+        match &self.decoder {
+            Some(d) => d.format(),
+            None => Format::Mono8,
+        }
+    }
+
+    fn sample_rate(&self) -> u32 {
+        match &self.decoder {
+            Some(d) => d.sample_rate(),
+            None => 1,
+        }
+    }
+
     fn playing(&self) -> bool {
         self.processing_buffer_queue || self.value.state() == SourceState::Playing
+    }
+
+    fn play(&mut self) -> Result<(), Error> {
+        if !self.playing() {
+            self.processing_buffer_queue = true;
+            self.set_sample_offset(self.sample_offset_override);
+            self.sample_offset_override = 0;
+            self.value.play();
+        }
+        Ok(())
+    }
+
+    fn pause(&mut self) {
+        if self.playing() {
+            self.processing_buffer_queue = false;
+            self.value.pause();
+            self.sample_offset_override = self.value.sample_offset() as usize;
+            self.value.stop();
+        }
     }
 
     fn stop(&mut self) {
@@ -185,30 +241,12 @@ impl<D: Decoder> StreamingSource<D> {
         self.sample_offset_override = 0;
     }
 
-    fn pause(&mut self) {
-        if self.playing() {
-            self.processing_buffer_queue = false;
-            self.value.pause();
-            self.sample_offset_override = self.value.sample_offset() as usize;
-            // Actually stop the source to reduce the number of states to be managed.
-            self.value.stop();
-        }
+    fn looping(&self) -> bool {
+        self.looping
     }
 
-    fn play(&mut self) {
-        if !self.playing() {
-            self.processing_buffer_queue = true;
-            self.set_sample_offset(self.sample_offset_override);
-            self.sample_offset_override = 0;
-            self.value.play();
-        }
-    }
-
-    fn format(&self) -> Format {
-        match &self.decoder {
-            Some(d) => d.format(),
-            None => Format::Mono8,
-        }
+    fn set_looping(&mut self, value: bool) {
+        self.looping = value
     }
 
     fn sample_length(&self) -> usize {
@@ -234,32 +272,124 @@ impl<D: Decoder> StreamingSource<D> {
         Ok(())
     }
 
-    fn set_sample_offset_var(&mut self, value: usize) {
-        // TODO: normalize value.
-        self.sample_offset = value;
+    fn gain(&self) -> f32 {
+        self.value.gain()
     }
 
-    // TODO: rename decoder counts to lengths?
-    // TODO: replace all usizes with u64s for lengths?
-    fn set_sample_offset_var_and_stream(&mut self, value: usize) -> Result<(), Error> {
-        let sample_length = self.sample_length();
-        assert!(
-            value < sample_length,
-            "Sample offset exceeds sample length ({} >= {})",
-            value,
-            sample_length
-        );
-        self.set_sample_offset_var(value);
-        if let Some(d) = &mut self.decoder {
-            d.sample_seek(std::io::SeekFrom::Start(value as u64))?;
-        }
-        Ok(())
+    fn set_gain(&mut self, value: f32) {
+        self.value.set_gain(value).unwrap()
     }
-}
 
-impl<D: Decoder> std::fmt::Debug for StreamingSource<D> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "StreamingSource {{ }}")
+    fn min_gain(&self) -> f32 {
+        self.value.min_gain()
+    }
+
+    fn set_min_gain(&mut self, value: f32) {
+        self.value.set_min_gain(value).unwrap();
+    }
+
+    fn max_gain(&self) -> f32 {
+        self.value.max_gain()
+    }
+
+    fn set_max_gain(&mut self, value: f32) {
+        self.value.set_max_gain(value).unwrap();
+    }
+
+    fn reference_distance(&self) -> f32 {
+        self.value.reference_distance()
+    }
+
+    fn set_reference_distance(&mut self, value: f32) {
+        self.value.set_reference_distance(value).unwrap();
+    }
+
+    fn rolloff_factor(&self) -> f32 {
+        self.value.rolloff_factor()
+    }
+
+    fn set_rolloff_factor(&mut self, value: f32) {
+        self.value.set_rolloff_factor(value).unwrap();
+    }
+
+    fn max_distance(&self) -> f32 {
+        self.value.max_distance()
+    }
+
+    fn set_max_distance(&mut self, value: f32) {
+        self.value.set_max_distance(value).unwrap();
+    }
+
+    fn pitch(&self) -> f32 {
+        self.value.pitch()
+    }
+
+    fn set_pitch(&mut self, value: f32) {
+        self.value.set_pitch(value).unwrap();
+    }
+
+    fn cone_inner_angle(&self) -> f32 {
+        self.value.cone_inner_angle().to_radians()
+    }
+
+    fn set_cone_inner_angle(&mut self, value: f32) {
+        self.value.set_cone_inner_angle(value.to_degrees()).unwrap();
+    }
+
+    fn cone_outer_angle(&self) -> f32 {
+        self.value.cone_outer_angle().to_radians()
+    }
+
+    fn set_cone_outer_angle(&mut self, value: f32) {
+        self.value.set_cone_outer_angle(value.to_degrees()).unwrap();
+    }
+
+    fn cone_outer_gain(&self) -> f32 {
+        self.value.cone_outer_gain()
+    }
+
+    fn set_cone_outer_gain(&mut self, value: f32) {
+        self.value.set_cone_outer_gain(value).unwrap();
+    }
+
+    fn radius(&self) -> f32 {
+        self.value.radius()
+    }
+
+    fn set_radius(&mut self, value: f32) {
+        self.value.set_radius(value).unwrap();
+    }
+
+    fn distance_model(&self) -> DistanceModel {
+        self.value.distance_model()
+    }
+
+    fn set_distance_model(&mut self, value: DistanceModel) {
+        self.value.set_distance_model(value).unwrap();
+    }
+
+    fn position<V: From<[f32; 3]>>(&self) -> V {
+        self.value.position()
+    }
+
+    fn set_position<V: Into<[f32; 3]>>(&mut self, value: V) {
+        self.value.set_position(value).unwrap();
+    }
+
+    fn velocity<V: From<[f32; 3]>>(&self) -> V {
+        self.value.velocity()
+    }
+
+    fn set_velocity<V: Into<[f32; 3]>>(&mut self, value: V) {
+        self.value.set_velocity(value).unwrap();
+    }
+
+    fn direction<V: From<[f32; 3]>>(&self) -> V {
+        self.value.direction()
+    }
+
+    fn set_direction<V: Into<[f32; 3]>>(&mut self, value: V) {
+        self.value.set_direction(value).unwrap();
     }
 }
 
