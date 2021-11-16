@@ -44,11 +44,11 @@ fn set_buffer_data(
 pub struct StreamingSource<D: Decoder> {
     value: alto::StreamingSource,
     decoder: Option<D>,
+    buffer_sample_count: u64,
     empty_buffers: Vec<alto::Buffer>,
+    looping: bool,
     sample_offset: u64,
     sample_offset_override: u64,
-    buffer_sample_count: u64,
-    looping: bool,
     processing_buffer_queue: bool,
 }
 
@@ -74,11 +74,11 @@ impl<D: Decoder> StreamingSource<D> {
         Ok(Self {
             value: source,
             decoder: None,
+            buffer_sample_count,
             empty_buffers: Vec::new(),
+            looping: false,
             sample_offset: 0,
             sample_offset_override: 0,
-            buffer_sample_count,
-            looping: false,
             processing_buffer_queue: false,
         })
     }
@@ -173,7 +173,6 @@ impl<D: Decoder> StreamingSource<D> {
         Ok(())
     }
 
-    // TODO: rename decoder counts to lengths?
     fn set_sample_offset_var_and_stream(&mut self, value: u64) -> Result<(), Error> {
         let sample_length = self.sample_length();
         assert!(
@@ -256,11 +255,15 @@ impl<D: Decoder> Source for StreamingSource<D> {
     }
 
     fn sample_offset(&self) -> u64 {
-        let sample_length = self.sample_length();
-        if sample_length == 0 {
-            0
+        if self.playing() {
+            let sample_length = self.sample_length();
+            if sample_length == 0 {
+                0
+            } else {
+                (self.sample_offset + self.value.sample_offset() as u64) % sample_length
+            }
         } else {
-            (self.sample_offset + self.value.sample_offset() as u64) % sample_length
+            self. sample_offset_override
         }
     }
 
