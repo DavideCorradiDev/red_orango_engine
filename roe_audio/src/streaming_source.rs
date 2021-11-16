@@ -47,8 +47,8 @@ pub struct StreamingSource<D: Decoder> {
     buffer_sample_count: u64,
     empty_buffers: Vec<alto::Buffer>,
     looping: bool,
-    sample_offset: u64,
-    sample_offset_override: u64,
+    processed_sample_count: u64,
+    paused_sample_offset: u64,
     processing_buffer_queue: bool,
 }
 
@@ -77,8 +77,8 @@ impl<D: Decoder> StreamingSource<D> {
             buffer_sample_count,
             empty_buffers: Vec::new(),
             looping: false,
-            sample_offset: 0,
-            sample_offset_override: 0,
+            processed_sample_count: 0,
+            paused_sample_offset: 0,
             processing_buffer_queue: false,
         })
     }
@@ -94,16 +94,18 @@ impl<D: Decoder> StreamingSource<D> {
         Ok(source)
     }
 
-    pub fn set_decoder(&mut self, decoder: D) -> Result<(), Error> {
+    pub fn set_decoder(&mut self, mut decoder: D) -> Result<(), Error> {
         self.stop();
+        decoder.sample_seek(std::io::SeekFrom::Start(0))?;
         self.decoder = Some(decoder);
-        self.set_sample_offset_var_and_stream(0)
+        self.processed_sample_count = 0;
+        Ok(())
     }
 
     pub fn clear_decoder(&mut self) {
         self.stop();
         self.decoder = None;
-        self.sample_offset = 0;
+        self.processed_sample_count = 0;
     }
 
     pub fn update_buffers(&mut self) -> Result<(), Error> {
@@ -127,7 +129,7 @@ impl<D: Decoder> StreamingSource<D> {
             processed_byte_count += buffer.size();
             self.empty_buffers.push(buffer);
         }
-        self.sample_offset +=
+        self.processed_sample_count +=
             processed_byte_count as u64 / self.format().total_bytes_per_sample() as u64;
         Ok(())
     }
@@ -173,7 +175,7 @@ impl<D: Decoder> StreamingSource<D> {
         Ok(())
     }
 
-    fn set_sample_offset_var_and_stream(&mut self, value: u64) -> Result<(), Error> {
+    fn set_sample_offset_internal(&mut self, value: u64) -> Result<(), Error> {
         let sample_length = self.sample_length();
         assert!(
             value < sample_length,
@@ -181,10 +183,13 @@ impl<D: Decoder> StreamingSource<D> {
             value,
             sample_length
         );
-        self.sample_offset = value;
+
+        self.free_buffers()?;
+        self.processed_sample_count = value;
         if let Some(d) = &mut self.decoder {
             d.sample_seek(std::io::SeekFrom::Start(value))?;
         }
+        self.fill_buffers()?;
         Ok(())
     }
 }
@@ -217,8 +222,8 @@ impl<D: Decoder> Source for StreamingSource<D> {
     fn play(&mut self) -> Result<(), Error> {
         if !self.playing() {
             self.processing_buffer_queue = true;
-            self.set_sample_offset(self.sample_offset_override)?;
-            self.sample_offset_override = 0;
+            self.set_sample_offset_internal(self.paused_sample_offset)?;
+            self.paused_sample_offset = 0;
             self.value.play();
         }
         Ok(())
@@ -228,7 +233,7 @@ impl<D: Decoder> Source for StreamingSource<D> {
         if self.playing() {
             self.processing_buffer_queue = false;
             self.value.pause();
-            self.sample_offset_override = self.value.sample_offset() as u64;
+            self.paused_sample_offset = self.value.sample_offset() as u64;
             self.value.stop();
         }
     }
@@ -236,7 +241,7 @@ impl<D: Decoder> Source for StreamingSource<D> {
     fn stop(&mut self) {
         self.processing_buffer_queue = false;
         self.value.stop();
-        self.sample_offset_override = 0;
+        self.paused_sample_offset = 0;
     }
 
     fn looping(&self) -> bool {
@@ -256,21 +261,27 @@ impl<D: Decoder> Source for StreamingSource<D> {
 
     fn sample_offset(&self) -> u64 {
         if self.playing() {
-            let sample_length = self.sample_length();
-            if sample_length == 0 {
-                0
-            } else {
-                (self.sample_offset + self.value.sample_offset() as u64) % sample_length
-            }
+            self.processed_sample_count + self.value.sample_offset() as u64
         } else {
-            self. sample_offset_override
+            self.paused_sample_offset
         }
     }
 
     fn set_sample_offset(&mut self, value: u64) -> Result<(), Error> {
-        self.free_buffers()?;
-        self.set_sample_offset_var_and_stream(value)?;
-        self.fill_buffers()?;
+        assert!(
+            value < self.sample_length(),
+            "Sample offset exceeds sample length ({} >= {})",
+            value,
+            self.sample_length()
+        );
+        if self.playing() {
+            self.value.stop();
+            self.set_sample_offset_internal(value)?;
+            self.value.play();
+        }
+        else {
+            self.paused_sample_offset = value;
+        }
         Ok(())
     }
 

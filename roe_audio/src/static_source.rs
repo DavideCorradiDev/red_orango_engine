@@ -6,9 +6,7 @@ use std::sync::Arc;
 
 pub struct StaticSource {
     value: alto::StaticSource,
-    // Variable used to ensure consistency when retrieving the current sample offset when the source
-    // is not playing.
-    sample_offset_override: u64,
+    paused_sample_offset: u64,
 }
 
 impl StaticSource {
@@ -16,7 +14,7 @@ impl StaticSource {
         let static_source = context.value.new_static_source()?;
         Ok(Self {
             value: static_source,
-            sample_offset_override: 0,
+            paused_sample_offset: 0,
         })
     }
     pub fn with_buffer(context: &Context, buf: &Buffer) -> Result<Self, Error> {
@@ -28,14 +26,14 @@ impl StaticSource {
     pub fn set_buffer(&mut self, buf: &Buffer) -> Result<(), Error> {
         self.stop();
         self.value.set_buffer(Arc::clone(&buf.value))?;
-        self.sample_offset_override = 0;
+        self.paused_sample_offset = 0;
         Ok(())
     }
 
     pub fn clear_buffer(&mut self) {
         self.stop();
         self.value.clear_buffer();
-        self.sample_offset_override = 0;
+        self.paused_sample_offset = 0;
     }
 }
 
@@ -63,11 +61,8 @@ impl Source for StaticSource {
 
     fn play(&mut self) -> Result<(), Error> {
         if !self.playing() {
-            // Update to requested sample offset.
-            self.value
-                .set_sample_offset(self.sample_offset_override as i32)?;
-            // Set requested sample offset to 0 in case playback ends on its own.
-            self.sample_offset_override = 0;
+            self.value.set_sample_offset(self.paused_sample_offset as i32)?;
+            self.paused_sample_offset = 0;
             self.value.play();
         }
         Ok(())
@@ -75,17 +70,15 @@ impl Source for StaticSource {
 
     fn pause(&mut self) {
         if self.playing() {
-            // Pause and save current offset.
             self.value.pause();
-            self.sample_offset_override = self.value.sample_offset() as u64;
-            // Actually stop the source to reduce the number of states to be managed.
+            self.paused_sample_offset = self.value.sample_offset() as u64;
             self.value.stop();
         }
     }
 
     fn stop(&mut self) {
         self.value.stop();
-        self.sample_offset_override = 0;
+        self.paused_sample_offset = 0;
     }
 
     fn looping(&self) -> bool {
@@ -114,7 +107,7 @@ impl Source for StaticSource {
         if self.playing() {
             self.value.sample_offset() as u64
         } else {
-            self.sample_offset_override
+            self.paused_sample_offset
         }
     }
 
@@ -126,13 +119,11 @@ impl Source for StaticSource {
             self.sample_length()
         );
         if self.playing() {
-            // If currently playing, stop, set offset, and resume.
             self.value.stop();
             self.value.set_sample_offset(value as alto::sys::ALint)?;
             self.value.play();
         } else {
-            // If not currently playing, store the requested offset.
-            self.sample_offset_override = std::cmp::min(value, self.sample_length());
+            self.paused_sample_offset = value;
         }
         Ok(())
     }
@@ -301,8 +292,6 @@ mod tests {
             StaticSource::with_buffer(&context, &buf).unwrap()
         }
     }
-
-    // Creation tests
 
     #[test]
     #[serial_test::serial]
