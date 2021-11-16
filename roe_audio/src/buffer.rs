@@ -49,16 +49,16 @@ impl Buffer {
         self.sample_rate() * self.format().total_bytes_per_sample()
     }
 
-    pub fn byte_count(&self) -> usize {
-        self.value.size() as usize
+    pub fn byte_length(&self) -> u64 {
+        self.value.size() as u64
     }
 
     pub fn sample_rate(&self) -> u32 {
         self.value.frequency() as u32
     }
 
-    pub fn sample_count(&self) -> usize {
-        self.byte_count() / self.format().total_bytes_per_sample() as usize
+    pub fn sample_length(&self) -> u64 {
+        self.byte_length() / self.format().total_bytes_per_sample() as u64
     }
 }
 
@@ -91,8 +91,8 @@ mod tests {
         expect_that!(&buffer.format(), eq(Format::Mono8));
         expect_that!(&buffer.byte_rate(), eq(5));
         expect_that!(&buffer.sample_rate(), eq(5));
-        expect_that!(&buffer.byte_count(), eq(8));
-        expect_that!(&buffer.sample_count(), eq(8));
+        expect_that!(&buffer.byte_length(), eq(8));
+        expect_that!(&buffer.sample_length(), eq(8));
     }
 
     #[test]
@@ -110,8 +110,8 @@ mod tests {
         expect_that!(&buffer.format(), eq(Format::Mono16));
         expect_that!(&buffer.byte_rate(), eq(10));
         expect_that!(&buffer.sample_rate(), eq(5));
-        expect_that!(&buffer.byte_count(), eq(8));
-        expect_that!(&buffer.sample_count(), eq(4));
+        expect_that!(&buffer.byte_length(), eq(8));
+        expect_that!(&buffer.sample_length(), eq(4));
     }
 
     #[test]
@@ -129,8 +129,8 @@ mod tests {
         expect_that!(&buffer.format(), eq(Format::Stereo8));
         expect_that!(&buffer.byte_rate(), eq(10));
         expect_that!(&buffer.sample_rate(), eq(5));
-        expect_that!(&buffer.byte_count(), eq(8));
-        expect_that!(&buffer.sample_count(), eq(4));
+        expect_that!(&buffer.byte_length(), eq(8));
+        expect_that!(&buffer.sample_length(), eq(4));
     }
 
     #[test]
@@ -148,8 +148,8 @@ mod tests {
         expect_that!(&buffer.format(), eq(Format::Stereo16));
         expect_that!(&buffer.byte_rate(), eq(20));
         expect_that!(&buffer.sample_rate(), eq(5));
-        expect_that!(&buffer.byte_count(), eq(8));
-        expect_that!(&buffer.sample_count(), eq(2));
+        expect_that!(&buffer.byte_length(), eq(8));
+        expect_that!(&buffer.sample_length(), eq(2));
     }
 
     #[test]
@@ -166,7 +166,7 @@ mod tests {
         expect_that!(&buffer.format(), eq(Format::Stereo16));
         expect_that!(&buffer.byte_rate(), eq(44100 * 4));
         expect_that!(&buffer.sample_rate(), eq(44100));
-        expect_that!(&buffer.byte_count(), eq(21231 * 4));
-        expect_that!(&buffer.sample_count(), eq(21231));
+        expect_that!(&buffer.byte_length(), eq(21231 * 4));
+        expect_that!(&buffer.sample_length(), eq(21231));
     }
 }
