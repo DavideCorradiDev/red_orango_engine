@@ -26,14 +26,14 @@ impl StaticSource {
     }
 
     pub fn set_buffer(&mut self, buf: &Buffer) -> Result<(), Error> {
-        self.value.stop();
+        self.stop();
         self.value.set_buffer(Arc::clone(&buf.value))?;
         self.sample_offset_override = 0;
         Ok(())
     }
 
     pub fn clear_buffer(&mut self) {
-        self.value.stop();
+        self.stop();
         self.value.clear_buffer();
         self.sample_offset_override = 0;
     }
