@@ -19,20 +19,20 @@ pub trait Source {
     fn looping(&self) -> bool;
     fn set_looping(&mut self, value: bool);
 
-    fn sample_length(&self) -> usize;
-    fn sample_offset(&self) -> usize;
-    fn set_sample_offset(&mut self, value: usize) -> Result<(), Error>;
+    fn sample_length(&self) -> u64;
+    fn sample_offset(&self) -> u64;
+    fn set_sample_offset(&mut self, value: u64) -> Result<(), Error>;
 
-    fn byte_length(&self) -> usize {
-        self.sample_length() * self.format().total_bytes_per_sample() as usize
+    fn byte_length(&self) -> u64 {
+        self.sample_length() * self.format().total_bytes_per_sample() as u64
     }
 
-    fn byte_offset(&self) -> usize {
-        self.sample_offset() * self.format().total_bytes_per_sample() as usize
+    fn byte_offset(&self) -> u64 {
+        self.sample_offset() * self.format().total_bytes_per_sample() as u64
     }
 
-    fn set_byte_offset(&mut self, value: usize) -> Result<(), Error> {
-        let tbps = self.format().total_bytes_per_sample() as usize;
+    fn set_byte_offset(&mut self, value: u64) -> Result<(), Error> {
+        let tbps = self.format().total_bytes_per_sample() as u64;
         assert!(
             value % tbps == 0,
             "Byte offset is within sample ({})",
@@ -54,7 +54,7 @@ pub trait Source {
     }
 
     fn set_time_offset(&mut self, value: std::time::Duration) -> Result<(), Error> {
-        self.set_sample_offset((value.as_secs_f64() * self.sample_rate() as f64) as usize)
+        self.set_sample_offset((value.as_secs_f64() * self.sample_rate() as f64) as u64)
     }
 
     fn gain(&self) -> f32;

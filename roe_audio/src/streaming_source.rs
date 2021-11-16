@@ -4,11 +4,11 @@ use alto::{Mono, Source as AltoSource, SourceState, Stereo};
 
 fn create_buffer(
     context: &Context,
-    buffer_byte_count: usize,
+    buffer_byte_length: usize,
     format: Format,
     frequency: i32,
 ) -> Result<alto::Buffer, Error> {
-    let data = vec![0; buffer_byte_count];
+    let data = vec![0; buffer_byte_length];
     let buffer = match format {
         Format::Mono8 => context.value.new_buffer::<Mono<u8>, _>(data, frequency),
         Format::Stereo8 => context.value.new_buffer::<Stereo<u8>, _>(data, frequency),
@@ -45,9 +45,9 @@ pub struct StreamingSource<D: Decoder> {
     value: alto::StreamingSource,
     decoder: Option<D>,
     empty_buffers: Vec<alto::Buffer>,
-    sample_offset: usize,
-    sample_offset_override: usize,
-    buffer_sample_count: usize,
+    sample_offset: u64,
+    sample_offset_override: u64,
+    buffer_sample_count: u64,
     looping: bool,
     processing_buffer_queue: bool,
 }
@@ -56,8 +56,8 @@ impl<D: Decoder> StreamingSource<D> {
     // TODO: descriptor.
     pub fn new(
         context: &Context,
-        buffer_count: usize,
-        buffer_sample_count: usize,
+        buffer_count: u64,
+        buffer_sample_count: u64,
     ) -> Result<Self, Error> {
         let source = context.value.new_streaming_source()?;
         let format = Format::Mono8;
@@ -66,7 +66,7 @@ impl<D: Decoder> StreamingSource<D> {
         for _ in 0..buffer_count {
             empty_buffers.push(create_buffer(
                 context,
-                buffer_sample_count * format.total_bytes_per_sample() as usize,
+                buffer_sample_count as usize * format.total_bytes_per_sample() as usize,
                 format,
                 sample_rate,
             )?);
@@ -86,8 +86,8 @@ impl<D: Decoder> StreamingSource<D> {
     pub fn with_decoder(
         context: &Context,
         decoder: D,
-        buffer_count: usize,
-        buffer_sample_count: usize,
+        buffer_count: u64,
+        buffer_sample_count: u64,
     ) -> Result<Self, Error> {
         let mut source = Self::new(context, buffer_count, buffer_sample_count)?;
         source.set_decoder(decoder)?;
@@ -128,13 +128,13 @@ impl<D: Decoder> StreamingSource<D> {
             self.empty_buffers.push(buffer);
         }
         self.sample_offset +=
-            processed_byte_count as usize / self.format().total_bytes_per_sample() as usize;
+            processed_byte_count as u64 / self.format().total_bytes_per_sample() as u64;
         Ok(())
     }
 
     fn fill_buffers(&mut self) -> Result<(), Error> {
         let buffer_byte_count =
-            self.buffer_sample_count * self.format().total_bytes_per_sample() as usize;
+            self.buffer_sample_count as usize * self.format().total_bytes_per_sample() as usize;
 
         let decoder = match &mut self.decoder {
             Some(d) => d,
@@ -174,8 +174,7 @@ impl<D: Decoder> StreamingSource<D> {
     }
 
     // TODO: rename decoder counts to lengths?
-    // TODO: replace all usizes with u64s for lengths?
-    fn set_sample_offset_var_and_stream(&mut self, value: usize) -> Result<(), Error> {
+    fn set_sample_offset_var_and_stream(&mut self, value: u64) -> Result<(), Error> {
         let sample_length = self.sample_length();
         assert!(
             value < sample_length,
@@ -185,7 +184,7 @@ impl<D: Decoder> StreamingSource<D> {
         );
         self.sample_offset = value;
         if let Some(d) = &mut self.decoder {
-            d.sample_seek(std::io::SeekFrom::Start(value as u64))?;
+            d.sample_seek(std::io::SeekFrom::Start(value))?;
         }
         Ok(())
     }
@@ -219,7 +218,7 @@ impl<D: Decoder> Source for StreamingSource<D> {
     fn play(&mut self) -> Result<(), Error> {
         if !self.playing() {
             self.processing_buffer_queue = true;
-            self.set_sample_offset(self.sample_offset_override);
+            self.set_sample_offset(self.sample_offset_override)?;
             self.sample_offset_override = 0;
             self.value.play();
         }
@@ -230,7 +229,7 @@ impl<D: Decoder> Source for StreamingSource<D> {
         if self.playing() {
             self.processing_buffer_queue = false;
             self.value.pause();
-            self.sample_offset_override = self.value.sample_offset() as usize;
+            self.sample_offset_override = self.value.sample_offset() as u64;
             self.value.stop();
         }
     }
@@ -249,23 +248,23 @@ impl<D: Decoder> Source for StreamingSource<D> {
         self.looping = value
     }
 
-    fn sample_length(&self) -> usize {
+    fn sample_length(&self) -> u64 {
         match &self.decoder {
-            Some(d) => d.sample_count(),
+            Some(d) => d.sample_count() as u64,
             None => 0,
         }
     }
 
-    fn sample_offset(&self) -> usize {
+    fn sample_offset(&self) -> u64 {
         let sample_length = self.sample_length();
         if sample_length == 0 {
             0
         } else {
-            (self.sample_offset + self.value.sample_offset() as usize) % sample_length
+            (self.sample_offset + self.value.sample_offset() as u64) % sample_length
         }
     }
 
-    fn set_sample_offset(&mut self, value: usize) -> Result<(), Error> {
+    fn set_sample_offset(&mut self, value: u64) -> Result<(), Error> {
         self.free_buffers()?;
         self.set_sample_offset_var_and_stream(value)?;
         self.fill_buffers()?;

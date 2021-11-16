@@ -8,7 +8,7 @@ pub struct StaticSource {
     value: alto::StaticSource,
     // Variable used to ensure consistency when retrieving the current sample offset when the source
     // is not playing.
-    sample_offset_override: usize,
+    sample_offset_override: u64,
 }
 
 impl StaticSource {
@@ -77,7 +77,7 @@ impl Source for StaticSource {
         if self.playing() {
             // Pause and save current offset.
             self.value.pause();
-            self.sample_offset_override = self.value.sample_offset() as usize;
+            self.sample_offset_override = self.value.sample_offset() as u64;
             // Actually stop the source to reduce the number of states to be managed.
             self.value.stop();
         }
@@ -96,29 +96,29 @@ impl Source for StaticSource {
         self.value.set_looping(value)
     }
 
-    fn byte_length(&self) -> usize {
+    fn byte_length(&self) -> u64 {
         match self.value.buffer() {
-            Some(b) => b.size() as usize,
+            Some(b) => b.size() as u64,
             None => 0
         }
     }
 
-    fn sample_length(&self) -> usize {
+    fn sample_length(&self) -> u64 {
         let byte_length = self.byte_length();
-        let tbps = self.format().total_bytes_per_sample() as usize;
+        let tbps = self.format().total_bytes_per_sample() as u64;
         assert!(byte_length % tbps == 0);
         byte_length / tbps
     }
 
-    fn sample_offset(&self) -> usize {
+    fn sample_offset(&self) -> u64 {
         if self.playing() {
-            self.value.sample_offset() as usize
+            self.value.sample_offset() as u64
         } else {
             self.sample_offset_override
         }
     }
 
-    fn set_sample_offset(&mut self, value: usize) -> Result<(), Error> {
+    fn set_sample_offset(&mut self, value: u64) -> Result<(), Error> {
         assert!(
             value < self.sample_length(),
             "Sample offset exceeds sample length ({} >= {})",
