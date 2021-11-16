@@ -276,7 +276,7 @@ mod tests {
             StaticSource::new(&context).unwrap()
         }
 
-        fn create_with_buffer(
+        fn create_non_empty(
             format: Format,
             sample_count: usize,
             sample_rate: u32,

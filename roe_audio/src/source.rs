@@ -111,7 +111,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn looping() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.looping(), eq(false));
 
             source.set_looping(true);
@@ -124,7 +124,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn gain() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.gain(), close_to(1., 1e-6));
             source.set_gain(0.5);
             expect_that!(&source.gain(), close_to(0.5, 1e-6));
@@ -134,14 +134,14 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "InvalidValue")]
         fn negative_gain() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_gain(-1.);
         }
 
         #[test]
         #[serial_test::serial]
         fn min_gain() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.min_gain(), close_to(0., 1e-6));
             source.set_min_gain(0.5);
             expect_that!(&source.min_gain(), close_to(0.5, 1e-6));
@@ -151,14 +151,14 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "InvalidValue")]
         fn negative_min_gain() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_min_gain(-1.);
         }
 
         #[test]
         #[serial_test::serial]
         fn max_gain() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.max_gain(), close_to(1., 1e-6));
             source.set_max_gain(0.5);
             expect_that!(&source.max_gain(), close_to(0.5, 1e-6));
@@ -168,14 +168,14 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "InvalidValue")]
         fn negative_max_gain() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_max_gain(-1.);
         }
 
         #[test]
         #[serial_test::serial]
         fn reference_distance() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.reference_distance(), close_to(1., 1e-6));
             source.set_reference_distance(0.5);
             expect_that!(&source.reference_distance(), close_to(0.5, 1e-6));
@@ -185,14 +185,14 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "InvalidValue")]
         fn negative_reference_distance() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_reference_distance(-1.);
         }
 
         #[test]
         #[serial_test::serial]
         fn rolloff_factor() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.rolloff_factor(), close_to(1., 1e-6));
             source.set_rolloff_factor(0.5);
             expect_that!(&source.rolloff_factor(), close_to(0.5, 1e-6));
@@ -202,14 +202,14 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "InvalidValue")]
         fn negative_rolloff_factor() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_rolloff_factor(-1.);
         }
 
         #[test]
         #[serial_test::serial]
         fn max_distance() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.max_distance(), close_to(34028235e31, 1e-6));
             source.set_max_distance(0.5);
             expect_that!(&source.max_distance(), close_to(0.5, 1e-6));
@@ -219,14 +219,14 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "InvalidValue")]
         fn negative_max_distance() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_max_distance(-1.);
         }
 
         #[test]
         #[serial_test::serial]
         fn pitch() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.pitch(), close_to(1., 1e-6));
             source.set_pitch(0.5);
             expect_that!(&source.pitch(), close_to(0.5, 1e-6));
@@ -236,14 +236,14 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "InvalidValue")]
         fn negative_pitch() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_pitch(-1.);
         }
 
         #[test]
         #[serial_test::serial]
         fn cone_inner_angle() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(
                 &source.cone_inner_angle(),
                 close_to(2. * std::f32::consts::PI, 1e-6)
@@ -256,14 +256,14 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "InvalidValue")]
         fn negative_cone_inner_angle() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_cone_inner_angle(-1.);
         }
 
         #[test]
         #[serial_test::serial]
         fn cone_outer_angle() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(
                 &source.cone_outer_angle(),
                 close_to(2. * std::f32::consts::PI, 1e-6)
@@ -276,14 +276,14 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "InvalidValue")]
         fn negative_cone_outer_angle() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_cone_outer_angle(-1.);
         }
 
         #[test]
         #[serial_test::serial]
         fn cone_outer_gain() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.cone_outer_gain(), close_to(0., 1e-6));
             source.set_cone_outer_gain(0.5);
             expect_that!(&source.cone_outer_gain(), close_to(0.5, 1e-6));
@@ -293,14 +293,14 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "InvalidValue")]
         fn negative_cone_outer_gain() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_cone_outer_gain(-1.);
         }
 
         #[test]
         #[serial_test::serial]
         fn radius() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.radius(), close_to(0., 1e-6));
             source.set_radius(0.5);
             expect_that!(&source.radius(), close_to(0.5, 1e-6));
@@ -310,14 +310,14 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "InvalidValue")]
         fn negative_radius() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_radius(-1.);
         }
 
         #[test]
         #[serial_test::serial]
         fn distance_model() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.distance_model(), eq(DistanceModel::InverseClamped));
             source.set_distance_model(DistanceModel::Exponent);
             expect_that!(&source.distance_model(), eq(DistanceModel::Exponent));
@@ -326,7 +326,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn position() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.position(), eq([0., 0., 0.]));
             source.set_position([1., 2., 3.]);
             expect_that!(&source.position(), eq([1., 2., 3.]));
@@ -335,7 +335,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn velocity() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.velocity(), eq([0., 0., 0.]));
             source.set_velocity([1., 2., 3.]);
             expect_that!(&source.velocity(), eq([1., 2., 3.]));
@@ -344,7 +344,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn direction() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.direction(), eq([0., 0., 0.]));
             source.set_direction([1., 2., 3.]);
             expect_that!(&source.direction(), eq([1., 2., 3.]));
@@ -355,7 +355,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn length_mono8() {
-            let source = <$SourceGenerator>::create_with_buffer(Format::Mono8, 64, 64);
+            let source = <$SourceGenerator>::create_non_empty(Format::Mono8, 64, 64);
             expect_that!(&source.sample_length(), eq(64));
             expect_that!(&source.byte_length(), eq(64));
             expect_that!(&source.time_length().as_secs_f32(), close_to(1., 1e-6));
@@ -364,7 +364,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn length_mono16() {
-            let source = <$SourceGenerator>::create_with_buffer(Format::Mono16, 64, 64);
+            let source = <$SourceGenerator>::create_non_empty(Format::Mono16, 64, 64);
             expect_that!(&source.sample_length(), eq(64));
             expect_that!(&source.byte_length(), eq(128));
             expect_that!(&source.time_length().as_secs_f32(), close_to(1., 1e-6));
@@ -373,7 +373,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn length_stereo8() {
-            let source = <$SourceGenerator>::create_with_buffer(Format::Stereo8, 64, 64);
+            let source = <$SourceGenerator>::create_non_empty(Format::Stereo8, 64, 64);
             expect_that!(&source.sample_length(), eq(64));
             expect_that!(&source.byte_length(), eq(128));
             expect_that!(&source.time_length().as_secs_f32(), close_to(1., 1e-6));
@@ -382,7 +382,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn length_stereo16() {
-            let source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.sample_length(), eq(64));
             expect_that!(&source.byte_length(), eq(256));
             expect_that!(&source.time_length().as_secs_f32(), close_to(1., 1e-6));
@@ -391,7 +391,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn length_double_sample_rate() {
-            let source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 128);
+            let source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 128);
             expect_that!(&source.sample_length(), eq(64));
             expect_that!(&source.byte_length(), eq(256));
             expect_that!(&source.time_length().as_secs_f32(), close_to(0.5, 1e-6));
@@ -400,7 +400,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn set_sample_offset_while_paused() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.sample_offset(), eq(0));
             source.set_sample_offset(24).unwrap();
             expect_that!(&source.sample_offset(), eq(24));
@@ -409,7 +409,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn set_sample_offset_while_playing() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.sample_offset(), eq(0));
             source.play().unwrap();
             expect_that!(&source.sample_offset(), not(geq(24)));
@@ -420,7 +420,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn get_sample_offset_after_play() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_sample_offset(24).unwrap();
             expect_that!(&source.sample_offset(), eq(24));
             source.play().unwrap();
@@ -431,7 +431,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn get_sample_offset_after_pause() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_sample_offset(24).unwrap();
             expect_that!(&source.sample_offset(), eq(24));
             source.play().unwrap();
@@ -443,7 +443,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn get_sample_offset_after_stop() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_sample_offset(24).unwrap();
             expect_that!(&source.sample_offset(), eq(24));
             source.play().unwrap();
@@ -455,7 +455,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn get_sample_offset_after_pause_and_stop() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_sample_offset(24).unwrap();
             expect_that!(&source.sample_offset(), eq(24));
             source.play().unwrap();
@@ -468,7 +468,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn get_sample_offset_after_several_pauses() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             let pos0 = source.sample_offset();
 
             source.play().unwrap();
@@ -495,14 +495,14 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "Sample offset exceeds sample length (100 >= 64)")]
         fn set_sample_offset_exceeds_sample_length() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_sample_offset(100).unwrap();
         }
 
         #[test]
         #[serial_test::serial]
         fn set_time_offset() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.time_offset().as_secs_f64(), close_to(0., 1e-6));
 
             source
@@ -520,7 +520,7 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "underflow when converting float to duration")]
         fn set_time_offset_negative() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source
                 .set_time_offset(std::time::Duration::from_secs_f64(-1.))
                 .unwrap();
@@ -529,7 +529,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn set_byte_offset() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             expect_that!(&source.byte_length(), eq(256));
             expect_that!(&source.byte_offset(), eq(0));
 
@@ -544,7 +544,7 @@ macro_rules! generate_source_tests {
         #[serial_test::serial]
         #[should_panic(expected = "Byte offset is within sample (3)")]
         fn set_byte_offset_within_sample() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_byte_offset(3).unwrap();
         }
 
@@ -553,7 +553,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn play_at_initial_state() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             let pos0 = source.sample_offset();
 
             source.play().unwrap();
@@ -565,7 +565,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn play_after_play() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             let pos0 = source.sample_offset();
 
             source.play().unwrap();
@@ -583,7 +583,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn play_after_pause() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             let pos0 = source.sample_offset();
 
             source.play().unwrap();
@@ -606,7 +606,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn play_after_stop() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             let pos0 = source.sample_offset();
 
             source.play().unwrap();
@@ -628,7 +628,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn pause_at_initial_state() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_sample_offset(24).unwrap();
             let pos0 = source.sample_offset();
 
@@ -641,7 +641,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn pause_after_play() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             let pos0 = source.sample_offset();
 
             source.play().unwrap();
@@ -659,7 +659,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn pause_after_pause() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             let pos0 = source.sample_offset();
 
             source.play().unwrap();
@@ -682,7 +682,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn pause_after_stop() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             let pos0 = source.sample_offset();
 
             source.play().unwrap();
@@ -705,7 +705,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn stop_at_initial_state() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_sample_offset(24).unwrap();
 
             source.stop();
@@ -717,7 +717,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn stop_after_play() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             let pos0 = source.sample_offset();
 
             source.play().unwrap();
@@ -735,7 +735,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn stop_after_pause() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             let pos0 = source.sample_offset();
 
             source.play().unwrap();
@@ -758,7 +758,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn stop_after_stop() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             let pos0 = source.sample_offset();
 
             source.play().unwrap();
@@ -781,7 +781,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn replay_at_initial_state() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             let pos0 = source.sample_offset();
 
             source.replay().unwrap();
@@ -793,7 +793,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn replay_after_play() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_sample_offset(24).unwrap();
             let pos0 = source.sample_offset();
 
@@ -812,7 +812,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn replay_after_pause() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             source.set_sample_offset(24).unwrap();
             let pos0 = source.sample_offset();
 
@@ -836,7 +836,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn replay_after_stop() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 64);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 64);
             let pos0 = source.sample_offset();
 
             source.play().unwrap();
@@ -858,7 +858,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn play_looping() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 4000);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 4000);
             source.set_looping(true);
             source.play().unwrap();
             expect_that!(&source.playing(), eq(true));
@@ -869,7 +869,7 @@ macro_rules! generate_source_tests {
         #[test]
         #[serial_test::serial]
         fn set_loping_while_playing() {
-            let mut source = <$SourceGenerator>::create_with_buffer(Format::Stereo16, 64, 4000);
+            let mut source = <$SourceGenerator>::create_non_empty(Format::Stereo16, 64, 4000);
             source.play().unwrap();
             expect_that!(&source.playing(), eq(true));
             source.set_looping(true);

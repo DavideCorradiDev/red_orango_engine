@@ -41,9 +41,9 @@ fn set_buffer_data(
     Ok(())
 }
 
-pub struct StreamingSource<D: Decoder> {
+pub struct StreamingSource {
     value: alto::StreamingSource,
-    decoder: Option<D>,
+    decoder: Option<Box<dyn Decoder>>,
     buffer_sample_count: u64,
     empty_buffers: Vec<alto::Buffer>,
     looping: bool,
@@ -52,8 +52,7 @@ pub struct StreamingSource<D: Decoder> {
     processing_buffer_queue: bool,
 }
 
-// TODO: dyn decoder.
-impl<D: Decoder> StreamingSource<D> {
+impl StreamingSource {
     // TODO: descriptor.
     pub fn new(
         context: &Context,
@@ -86,16 +85,16 @@ impl<D: Decoder> StreamingSource<D> {
 
     pub fn with_decoder(
         context: &Context,
-        decoder: D,
+        decoder: Box<dyn Decoder>,
         buffer_count: u64,
         buffer_sample_count: u64,
     ) -> Result<Self, Error> {
-        let mut source = Self::new(context, buffer_count, buffer_sample_count)?;
+        let mut source =Self::new(context, buffer_count, buffer_sample_count)?;
         source.set_decoder(decoder)?;
         Ok(source)
     }
 
-    pub fn set_decoder(&mut self, mut decoder: D) -> Result<(), Error> {
+    pub fn set_decoder(&mut self, mut decoder: Box<dyn Decoder>) -> Result<(), Error> {
         self.stop();
         decoder.sample_seek(std::io::SeekFrom::Start(0))?;
         self.decoder = Some(decoder);
@@ -204,13 +203,13 @@ impl<D: Decoder> StreamingSource<D> {
     }
 }
 
-impl<D: Decoder> std::fmt::Debug for StreamingSource<D> {
+impl std::fmt::Debug for StreamingSource {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "StreamingSource {{ }}")
     }
 }
 
-impl<D: Decoder> Source for StreamingSource<D> {
+impl Source for StreamingSource {
     fn format(&self) -> Format {
         match &self.decoder {
             Some(d) => d.format(),
@@ -428,6 +427,36 @@ mod tests {
     };
     use alto::Source;
     use galvanic_assert::{matchers::*, *};
+
+    fn create_context() -> Context {
+        let device = Device::default().unwrap();
+        Context::default(&device).unwrap()
+    }
+
+    // struct StreamingSourceGenerator {}
+
+    // impl StreamingSourceGenerator {
+    //     fn create_empty() -> StreamingSource {
+    //         let context = create_context();
+    //         StreamingSource::new(&context, 3, 32).unwrap()
+    //     }
+
+    //     fn create_non_empty(
+    //         format: Format,
+    //         sample_count: usize,
+    //         sample_rate: u32,
+    //     ) -> StreamingSource {
+    //         let context = create_context();
+    //         let buf = Buffer::new(
+    //             &context,
+    //             vec![0; sample_count * format.total_bytes_per_sample() as usize].as_ref(),
+    //             format,
+    //             sample_rate,
+    //         )
+    //         .unwrap();
+    //         StreamingSource::with_buffer(&context, &buf).unwrap()
+    //     }
+    // }
 
     // #[test]
     // #[serial_test::serial]
