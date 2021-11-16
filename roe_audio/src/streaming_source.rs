@@ -52,6 +52,7 @@ pub struct StreamingSource<D: Decoder> {
     processing_buffer_queue: bool,
 }
 
+// TODO: dyn decoder.
 impl<D: Decoder> StreamingSource<D> {
     // TODO: descriptor.
     pub fn new(
@@ -129,8 +130,10 @@ impl<D: Decoder> StreamingSource<D> {
             processed_byte_count += buffer.size();
             self.empty_buffers.push(buffer);
         }
-        self.processed_sample_count +=
-            processed_byte_count as u64 / self.format().total_bytes_per_sample() as u64;
+        let tbps = self.format().total_bytes_per_sample() as i32;
+        assert!(processed_byte_count % tbps == 0);
+        let processed_sample_count = (processed_byte_count / tbps) as u64;
+        self.processed_sample_count += processed_sample_count;
         Ok(())
     }
 
@@ -140,7 +143,10 @@ impl<D: Decoder> StreamingSource<D> {
 
         let decoder = match &mut self.decoder {
             Some(d) => d,
-            None => return Ok(()),
+            None => {
+                self.processing_buffer_queue = false;
+                return Ok(());
+            }
         };
 
         while self.processing_buffer_queue && self.empty_buffers.len() > 0 {
@@ -150,13 +156,17 @@ impl<D: Decoder> StreamingSource<D> {
                 while read_byte_count < buffer_byte_count {
                     read_byte_count += decoder.read(&mut mem_buf[read_byte_count..])?;
                     if read_byte_count < buffer_byte_count {
+                        // TODO: must normalize the sample position.
                         decoder.byte_seek(std::io::SeekFrom::Start(0))?;
                     }
                 }
             } else {
                 let read_byte_count = decoder.read(&mut mem_buf)?;
-                if read_byte_count == 0 {
+                if read_byte_count < buffer_byte_count {
                     self.processing_buffer_queue = false;
+                }
+                if read_byte_count == 0 {
+                    return Ok(());
                 }
                 mem_buf.resize(read_byte_count, 0);
             }
@@ -261,7 +271,12 @@ impl<D: Decoder> Source for StreamingSource<D> {
 
     fn sample_offset(&self) -> u64 {
         if self.playing() {
-            self.processed_sample_count + self.value.sample_offset() as u64
+            let sample_length = self.sample_length();
+            if sample_length == 0 {
+                0
+            } else {
+                (self.processed_sample_count + self.value.sample_offset() as u64) % sample_length
+            }
         } else {
             self.paused_sample_offset
         }
@@ -278,8 +293,7 @@ impl<D: Decoder> Source for StreamingSource<D> {
             self.value.stop();
             self.set_sample_offset_internal(value)?;
             self.value.play();
-        }
-        else {
+        } else {
             self.paused_sample_offset = value;
         }
         Ok(())
