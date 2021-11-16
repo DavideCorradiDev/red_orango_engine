@@ -7,15 +7,15 @@ pub trait Decoder {
         self.sample_rate() * self.format().total_bytes_per_sample()
     }
 
-    fn byte_count(&self) -> usize {
-        self.sample_count() * self.format().total_bytes_per_sample() as usize
+    fn byte_length(&self) -> u64 {
+        self.sample_length() * self.format().total_bytes_per_sample() as u64
     }
 
     fn byte_stream_position(&mut self) -> Result<u64, DecoderError>;
     fn byte_seek(&mut self, pos: std::io::SeekFrom) -> Result<u64, DecoderError>;
 
     fn sample_rate(&self) -> u32;
-    fn sample_count(&self) -> usize;
+    fn sample_length(&self) -> u64;
 
     fn sample_stream_position(&mut self) -> Result<u64, DecoderError> {
         let byte_stream_position = self.byte_stream_position()?;
@@ -38,8 +38,11 @@ pub trait Decoder {
     fn read(&mut self, buf: &mut [u8]) -> Result<usize, DecoderError>;
 
     fn read_to_end(&mut self) -> Result<Vec<u8>, DecoderError> {
+        let byte_length = self.byte_length() as usize;
+        let byte_offset = self.byte_stream_position()? as usize;
+        assert!(byte_length >= byte_offset);
+        let size = byte_length - byte_offset;
         let tbps = self.format().total_bytes_per_sample() as usize;
-        let size = self.byte_count() - self.byte_stream_position()? as usize;
         assert!(size % tbps == 0);
         let mut buf = vec![0; size];
         self.read(&mut buf[..])?;

@@ -73,7 +73,7 @@ pub struct WavDecoder<T: std::io::Read + std::io::Seek> {
     input: T,
     format: Format,
     sample_rate: u32,
-    sample_count: usize,
+    sample_length: u64,
     byte_data_offset: u64,
 }
 
@@ -146,7 +146,7 @@ where
         let format = Format::new(format_chunk.channels as u32, bytes_per_sample as u32);
         let sample_rate = format_chunk.sample_rate;
 
-        let byte_count = loop {
+        let byte_length = loop {
             let mut chunk_signature = WavChunkSignature::zeroed();
             input.read_exact(bytemuck::bytes_of_mut(&mut chunk_signature))?;
             let chunk_id = std::str::from_utf8(&chunk_signature.id).unwrap();
@@ -157,20 +157,20 @@ where
         } as usize;
 
         let tbps = format.total_bytes_per_sample() as usize;
-        if byte_count % tbps != 0 {
+        if byte_length % tbps != 0 {
             return Err(DecoderError::InvalidData(format!(
                 "The number of data bytes ({}) is incompatible with the audio format ({:?})",
-                byte_count, format
+                byte_length, format
             )));
         }
-        let sample_count = byte_count / tbps;
+        let sample_length = (byte_length / tbps) as u64;
 
         let byte_data_offset = input.stream_position()?;
         Ok(Self {
             input,
             format,
             sample_rate,
-            sample_count,
+            sample_length,
             byte_data_offset,
         })
     }
@@ -188,8 +188,8 @@ where
         self.sample_rate
     }
 
-    fn sample_count(&self) -> usize {
-        self.sample_count
+    fn sample_length(&self) -> u64 {
+        self.sample_length
     }
 
     fn byte_stream_position(&mut self) -> Result<u64, DecoderError> {
@@ -199,13 +199,13 @@ where
     }
 
     fn byte_seek(&mut self, pos: std::io::SeekFrom) -> Result<u64, DecoderError> {
-        let byte_count = self.byte_count() as i64;
+        let byte_length = self.byte_length() as i64;
         let target_pos = match pos {
             std::io::SeekFrom::Start(v) => v as i64,
-            std::io::SeekFrom::End(v) => byte_count + v,
+            std::io::SeekFrom::End(v) => byte_length + v,
             std::io::SeekFrom::Current(v) => self.byte_stream_position()? as i64 + v,
         };
-        let target_pos = std::cmp::max(0, std::cmp::min(target_pos, byte_count)) as u64;
+        let target_pos = std::cmp::max(0, std::cmp::min(target_pos, byte_length)) as u64;
 
         let tbps = self.format().total_bytes_per_sample() as u64;
         assert!(
@@ -262,8 +262,8 @@ mod tests {
         let buf = std::io::BufReader::new(file);
         let decoder = WavDecoder::new(buf).unwrap();
         expect_that!(&decoder.format(), eq(Format::Mono8));
-        expect_that!(&decoder.byte_count(), eq(21231));
-        expect_that!(&decoder.sample_count(), eq(21231));
+        expect_that!(&decoder.byte_length(), eq(21231));
+        expect_that!(&decoder.sample_length(), eq(21231));
         expect_that!(&decoder.byte_rate(), eq(44100));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
@@ -422,7 +422,7 @@ mod tests {
         let mut decoder = WavDecoder::new(buf).unwrap();
         decoder.byte_seek(std::io::SeekFrom::Start(573)).unwrap();
         let content = decoder.read_to_end().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count() - 573));
+        expect_that!(&content.len(), eq(decoder.byte_length() as usize - 573));
     }
 
     #[test]
@@ -432,7 +432,7 @@ mod tests {
         let mut decoder = WavDecoder::new(buf).unwrap();
         decoder.byte_seek(std::io::SeekFrom::Start(573)).unwrap();
         let content = decoder.read_all().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count()));
+        expect_that!(&content.len(), eq(decoder.byte_length() as usize));
     }
 
     #[test]
@@ -441,8 +441,8 @@ mod tests {
         let buf = std::io::BufReader::new(file);
         let decoder = WavDecoder::new(buf).unwrap();
         expect_that!(&decoder.format(), eq(Format::Mono16));
-        expect_that!(&decoder.byte_count(), eq(21231 * 2));
-        expect_that!(&decoder.sample_count(), eq(21231));
+        expect_that!(&decoder.byte_length(), eq(21231 * 2));
+        expect_that!(&decoder.sample_length(), eq(21231));
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
@@ -620,7 +620,7 @@ mod tests {
         let mut decoder = WavDecoder::new(buf).unwrap();
         decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
         let content = decoder.read_to_end().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count() - 572));
+        expect_that!(&content.len(), eq(decoder.byte_length() as usize - 572));
     }
 
     #[test]
@@ -630,7 +630,7 @@ mod tests {
         let mut decoder = WavDecoder::new(buf).unwrap();
         decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
         let content = decoder.read_all().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count()));
+        expect_that!(&content.len(), eq(decoder.byte_length() as usize));
     }
 
     #[test]
@@ -639,8 +639,8 @@ mod tests {
         let buf = std::io::BufReader::new(file);
         let decoder = WavDecoder::new(buf).unwrap();
         expect_that!(&decoder.format(), eq(Format::Stereo8));
-        expect_that!(&decoder.byte_count(), eq(21231 * 2));
-        expect_that!(&decoder.sample_count(), eq(21231));
+        expect_that!(&decoder.byte_length(), eq(21231 * 2));
+        expect_that!(&decoder.sample_length(), eq(21231));
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
@@ -818,7 +818,7 @@ mod tests {
         let mut decoder = WavDecoder::new(buf).unwrap();
         decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
         let content = decoder.read_to_end().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count() - 572));
+        expect_that!(&content.len(), eq(decoder.byte_length() as usize - 572));
     }
 
     #[test]
@@ -828,7 +828,7 @@ mod tests {
         let mut decoder = WavDecoder::new(buf).unwrap();
         decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
         let content = decoder.read_all().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count()));
+        expect_that!(&content.len(), eq(decoder.byte_length() as usize));
     }
 
     #[test]
@@ -837,8 +837,8 @@ mod tests {
         let buf = std::io::BufReader::new(file);
         let decoder = WavDecoder::new(buf).unwrap();
         expect_that!(&decoder.format(), eq(Format::Stereo16));
-        expect_that!(&decoder.byte_count(), eq(21231 * 4));
-        expect_that!(&decoder.sample_count(), eq(21231));
+        expect_that!(&decoder.byte_length(), eq(21231 * 4));
+        expect_that!(&decoder.sample_length(), eq(21231));
         expect_that!(&decoder.byte_rate(), eq(44100 * 4));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
@@ -1016,7 +1016,7 @@ mod tests {
         let mut decoder = WavDecoder::new(buf).unwrap();
         decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
         let content = decoder.read_to_end().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count() - 572));
+        expect_that!(&content.len(), eq(decoder.byte_length() as usize - 572));
     }
 
     #[test]
@@ -1026,6 +1026,6 @@ mod tests {
         let mut decoder = WavDecoder::new(buf).unwrap();
         decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
         let content = decoder.read_all().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count()));
+        expect_that!(&content.len(), eq(decoder.byte_length() as usize));
     }
 }

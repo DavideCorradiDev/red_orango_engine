@@ -150,7 +150,7 @@ where
     context: OggContext,
     format: Format,
     sample_rate: u32,
-    sample_count: usize,
+    sample_length: u64,
     packet: Option<Vec<i16>>,
     packet_start_byte_pos: u64,
     packet_current_byte_pos: u64,
@@ -162,7 +162,7 @@ where
 {
     pub fn new(input: T) -> Result<Self, DecoderError> {
         let mut packet_reader = PacketReader::new(input);
-        let sample_count = Self::compute_sample_count(&mut packet_reader)?;
+        let sample_length = Self::compute_sample_count(&mut packet_reader)?;
         let context = OggContext::new(&mut packet_reader)?;
         const BYTES_PER_SAMPLE: u32 = 2;
         let format = Format::new(context.ident_header.audio_channels as u32, BYTES_PER_SAMPLE);
@@ -172,24 +172,24 @@ where
             context,
             format,
             sample_rate,
-            sample_count,
+            sample_length,
             packet: None,
             packet_start_byte_pos: 0,
             packet_current_byte_pos: 0,
         })
     }
 
-    fn compute_sample_count(packet_reader: &mut PacketReader<T>) -> Result<usize, DecoderError> {
-        let mut sample_count = 0;
+    fn compute_sample_count(packet_reader: &mut PacketReader<T>) -> Result<u64, DecoderError> {
+        let mut sample_length = 0;
         let mut context = OggContext::new(packet_reader)?;
         loop {
             let packet = match context.read_next_decoded_packet(packet_reader)? {
                 Some(p) => p,
                 None => break,
             };
-            sample_count += packet[0].len();
+            sample_length += packet[0].len();
         }
-        Ok(sample_count)
+        Ok(sample_length as u64)
     }
 
     fn reset_to_stream_begin(&mut self) -> Result<(), DecoderError> {
@@ -221,13 +221,13 @@ where
     }
 
     fn byte_seek(&mut self, pos: std::io::SeekFrom) -> Result<u64, DecoderError> {
-        let byte_count = self.byte_count() as i64;
+        let byte_length = self.byte_length() as i64;
         let target_pos = match pos {
             std::io::SeekFrom::Start(v) => v as i64,
-            std::io::SeekFrom::End(v) => byte_count + v,
+            std::io::SeekFrom::End(v) => byte_length + v,
             std::io::SeekFrom::Current(v) => self.byte_stream_position()? as i64 + v,
         };
-        let target_pos = std::cmp::max(0, std::cmp::min(target_pos, byte_count)) as u64;
+        let target_pos = std::cmp::max(0, std::cmp::min(target_pos, byte_length)) as u64;
 
         let tbps = self.format().total_bytes_per_sample() as u64;
         assert!(
@@ -237,7 +237,7 @@ where
         );
 
         self.reset_to_stream_begin()?;
-        while self.packet_start_byte_pos < self.byte_count() as u64 {
+        while self.packet_start_byte_pos < self.byte_length() as u64 {
             match &self.packet {
                 Some(p) => {
                     let packet_end_byte_pos = self.packet_start_byte_pos
@@ -260,8 +260,8 @@ where
         self.sample_rate
     }
 
-    fn sample_count(&self) -> usize {
-        self.sample_count
+    fn sample_length(&self) -> u64 {
+        self.sample_length
     }
 
     fn byte_stream_position(&mut self) -> Result<u64, DecoderError> {
@@ -369,8 +369,8 @@ mod tests {
         let buf = std::io::BufReader::new(file);
         let decoder = OggDecoder::new(buf).unwrap();
         expect_that!(&decoder.format(), eq(Format::Mono16));
-        expect_that!(&decoder.byte_count(), eq(22208 * 2));
-        expect_that!(&decoder.sample_count(), eq(22208));
+        expect_that!(&decoder.byte_length(), eq(22208 * 2));
+        expect_that!(&decoder.sample_length(), eq(22208));
         expect_that!(&decoder.byte_rate(), eq(44100 * 2));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
@@ -411,29 +411,29 @@ mod tests {
         // From end.
         expect_that!(
             &decoder.byte_seek(std::io::SeekFrom::End(-12)).unwrap(),
-            eq(decoder.byte_count() as u64 - 12)
+            eq(decoder.byte_length() - 12)
         );
         expect_that!(
             &decoder.byte_stream_position().unwrap(),
-            eq(decoder.byte_count() as u64 - 12)
+            eq(decoder.byte_length() - 12)
         );
         expect_that!(
             &decoder.sample_stream_position().unwrap(),
-            eq(decoder.sample_count() as u64 - 6)
+            eq(decoder.sample_length() - 6)
         );
 
         // Beyond end.
         expect_that!(
             &decoder.byte_seek(std::io::SeekFrom::End(40)).unwrap(),
-            eq(decoder.byte_count() as u64)
+            eq(decoder.byte_length())
         );
         expect_that!(
             &decoder.byte_stream_position().unwrap(),
-            eq(decoder.byte_count() as u64)
+            eq(decoder.byte_length())
         );
         expect_that!(
             &decoder.sample_stream_position().unwrap(),
-            eq(decoder.sample_count() as u64)
+            eq(decoder.sample_length())
         );
 
         // Before start.
@@ -494,29 +494,29 @@ mod tests {
         // From end.
         expect_that!(
             &decoder.sample_seek(std::io::SeekFrom::End(-3)).unwrap(),
-            eq(decoder.sample_count() as u64 - 3)
+            eq(decoder.sample_length() - 3)
         );
         expect_that!(
             &decoder.byte_stream_position().unwrap(),
-            eq(decoder.byte_count() as u64 - 6)
+            eq(decoder.byte_length() - 6)
         );
         expect_that!(
             &decoder.sample_stream_position().unwrap(),
-            eq(decoder.sample_count() as u64 - 3)
+            eq(decoder.sample_length() - 3)
         );
 
         // Beyond end.
         expect_that!(
             &decoder.sample_seek(std::io::SeekFrom::End(10)).unwrap(),
-            eq(decoder.sample_count() as u64)
+            eq(decoder.sample_length())
         );
         expect_that!(
             &decoder.byte_stream_position().unwrap(),
-            eq(decoder.byte_count() as u64)
+            eq(decoder.byte_length())
         );
         expect_that!(
             &decoder.sample_stream_position().unwrap(),
-            eq(decoder.sample_count() as u64)
+            eq(decoder.sample_length())
         );
 
         // Before start.
@@ -572,7 +572,7 @@ mod tests {
         let mut decoder = OggDecoder::new(buf).unwrap();
         decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
         let content = decoder.read_to_end().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count() - 572));
+        expect_that!(&content.len(), eq(decoder.byte_length() as usize - 572));
     }
 
     #[test]
@@ -582,7 +582,7 @@ mod tests {
         let mut decoder = OggDecoder::new(buf).unwrap();
         decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
         let content = decoder.read_all().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count()));
+        expect_that!(&content.len(), eq(decoder.byte_length() as usize));
     }
 
     #[test]
@@ -591,8 +591,8 @@ mod tests {
         let buf = std::io::BufReader::new(file);
         let decoder = OggDecoder::new(buf).unwrap();
         expect_that!(&decoder.format(), eq(Format::Stereo16));
-        expect_that!(&decoder.byte_count(), eq(22208 * 4));
-        expect_that!(&decoder.sample_count(), eq(22208));
+        expect_that!(&decoder.byte_length(), eq(22208 * 4));
+        expect_that!(&decoder.sample_length(), eq(22208));
         expect_that!(&decoder.byte_rate(), eq(44100 * 4));
         expect_that!(&decoder.sample_rate(), eq(44100));
     }
@@ -633,29 +633,29 @@ mod tests {
         // From end.
         expect_that!(
             &decoder.byte_seek(std::io::SeekFrom::End(-12)).unwrap(),
-            eq(decoder.byte_count() as u64 - 12)
+            eq(decoder.byte_length() - 12)
         );
         expect_that!(
             &decoder.byte_stream_position().unwrap(),
-            eq(decoder.byte_count() as u64 - 12)
+            eq(decoder.byte_length() - 12)
         );
         expect_that!(
             &decoder.sample_stream_position().unwrap(),
-            eq(decoder.sample_count() as u64 - 3)
+            eq(decoder.sample_length() - 3)
         );
 
         // Beyond end.
         expect_that!(
             &decoder.byte_seek(std::io::SeekFrom::End(40)).unwrap(),
-            eq(decoder.byte_count() as u64)
+            eq(decoder.byte_length())
         );
         expect_that!(
             &decoder.byte_stream_position().unwrap(),
-            eq(decoder.byte_count() as u64)
+            eq(decoder.byte_length())
         );
         expect_that!(
             &decoder.sample_stream_position().unwrap(),
-            eq(decoder.sample_count() as u64)
+            eq(decoder.sample_length())
         );
 
         // Before start.
@@ -716,29 +716,29 @@ mod tests {
         // From end.
         expect_that!(
             &decoder.sample_seek(std::io::SeekFrom::End(-3)).unwrap(),
-            eq(decoder.sample_count() as u64 - 3)
+            eq(decoder.sample_length() - 3)
         );
         expect_that!(
             &decoder.byte_stream_position().unwrap(),
-            eq(decoder.byte_count() as u64 - 12)
+            eq(decoder.byte_length() - 12)
         );
         expect_that!(
             &decoder.sample_stream_position().unwrap(),
-            eq(decoder.sample_count() as u64 - 3)
+            eq(decoder.sample_length() - 3)
         );
 
         // Beyond end.
         expect_that!(
             &decoder.sample_seek(std::io::SeekFrom::End(10)).unwrap(),
-            eq(decoder.sample_count() as u64)
+            eq(decoder.sample_length())
         );
         expect_that!(
             &decoder.byte_stream_position().unwrap(),
-            eq(decoder.byte_count() as u64)
+            eq(decoder.byte_length())
         );
         expect_that!(
             &decoder.sample_stream_position().unwrap(),
-            eq(decoder.sample_count() as u64)
+            eq(decoder.sample_length())
         );
 
         // Before start.
@@ -770,11 +770,11 @@ mod tests {
         decoder.byte_seek(std::io::SeekFrom::End(-4)).unwrap();
         expect_that!(
             &decoder.byte_stream_position().unwrap(),
-            eq(decoder.byte_count() as u64 - 4)
+            eq(decoder.byte_length() - 4)
         );
         expect_that!(
             &decoder.sample_stream_position().unwrap(),
-            eq(decoder.sample_count() as u64 - 1)
+            eq(decoder.sample_length() - 1)
         );
 
         // Unable to read the whole buffer because at the end: the remaining elements
@@ -800,7 +800,7 @@ mod tests {
         let mut decoder = OggDecoder::new(buf).unwrap();
         decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
         let content = decoder.read_to_end().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count() - 572));
+        expect_that!(&content.len(), eq(decoder.byte_length() as usize - 572));
     }
 
     #[test]
@@ -810,6 +810,6 @@ mod tests {
         let mut decoder = OggDecoder::new(buf).unwrap();
         decoder.byte_seek(std::io::SeekFrom::Start(572)).unwrap();
         let content = decoder.read_all().unwrap();
-        expect_that!(&content.len(), eq(decoder.byte_count()));
+        expect_that!(&content.len(), eq(decoder.byte_length() as usize));
     }
 }

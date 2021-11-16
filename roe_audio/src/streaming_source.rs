@@ -250,7 +250,7 @@ impl<D: Decoder> Source for StreamingSource<D> {
 
     fn sample_length(&self) -> u64 {
         match &self.decoder {
-            Some(d) => d.sample_count() as u64,
+            Some(d) => d.sample_length(),
             None => 0,
         }
     }

@@ -99,7 +99,7 @@ impl Source for StaticSource {
     fn byte_length(&self) -> u64 {
         match self.value.buffer() {
             Some(b) => b.size() as u64,
-            None => 0
+            None => 0,
         }
     }
 
