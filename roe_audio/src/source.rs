@@ -141,7 +141,7 @@ macro_rules! generate_source_tests {
 
         #[test]
         #[serial_test::serial]
-        fn set_buffer() {
+        fn set_data() {
             let context = create_context();
             let mut source = <$TestFixture>::create_empty(&context);
             <$TestFixture>::set_data(&context, &mut source, Format::Stereo16, 64, 10);
@@ -154,7 +154,7 @@ macro_rules! generate_source_tests {
 
         #[test]
         #[serial_test::serial]
-        fn set_buffer_while_playing() {
+        fn set_data_while_playing() {
             let context = create_context();
             let mut source = <$TestFixture>::create_with_data(&context, Format::Stereo16, 256, 100);
             source.set_looping(true);
@@ -169,7 +169,7 @@ macro_rules! generate_source_tests {
 
         #[test]
         #[serial_test::serial]
-        fn set_buffer_while_paused() {
+        fn set_data_while_paused() {
             let context = create_context();
             let mut source = <$TestFixture>::create_with_data(&context, Format::Stereo16, 256, 100);
             source.set_looping(true);
@@ -185,7 +185,7 @@ macro_rules! generate_source_tests {
 
         #[test]
         #[serial_test::serial]
-        fn clear_buffer() {
+        fn clear_data() {
             let context = create_context();
             let mut source = <$TestFixture>::create_with_data(&context, Format::Stereo16, 256, 100);
             <$TestFixture>::clear_data(&mut source);
@@ -198,7 +198,7 @@ macro_rules! generate_source_tests {
 
         #[test]
         #[serial_test::serial]
-        fn clear_buffer_while_playing() {
+        fn clear_data_while_playing() {
             let context = create_context();
             let mut source = <$TestFixture>::create_with_data(&context, Format::Stereo16, 256, 100);
             source.set_looping(true);
@@ -213,7 +213,7 @@ macro_rules! generate_source_tests {
 
         #[test]
         #[serial_test::serial]
-        fn clear_buffer_while_paused() {
+        fn clear_data_while_paused() {
             let context = create_context();
             let mut source = <$TestFixture>::create_with_data(&context, Format::Stereo16, 256, 100);
             source.set_looping(true);
@@ -1050,7 +1050,7 @@ macro_rules! generate_source_tests {
 
         #[test]
         #[serial_test::serial]
-        fn set_loping_while_playing() {
+        fn set_looping_while_playing() {
             let context = create_context();
             let mut source = <$TestFixture>::create_with_data(&context, Format::Stereo16, 64, 4000);
             source.play().unwrap();
@@ -1062,7 +1062,7 @@ macro_rules! generate_source_tests {
 
         #[test]
         #[serial_test::serial]
-        fn play_with_no_buffer_not_looping() {
+        fn play_with_no_data_not_looping() {
             let context = create_context();
             let mut source = <$TestFixture>::create_empty(&context);
             source.play().unwrap();
@@ -1071,7 +1071,7 @@ macro_rules! generate_source_tests {
 
         #[test]
         #[serial_test::serial]
-        fn play_with_no_buffer_looping() {
+        fn play_with_no_data_looping() {
             let context = create_context();
             let mut source = <$TestFixture>::create_empty(&context);
             source.set_looping(true);

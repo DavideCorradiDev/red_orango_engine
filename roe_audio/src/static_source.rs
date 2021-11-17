@@ -60,7 +60,7 @@ impl Source for StaticSource {
     }
 
     fn play(&mut self) -> Result<(), Error> {
-        if !self.playing() {
+        if !self.playing() && self.sample_length() > 0 {
             self.value
                 .set_sample_offset(self.paused_sample_offset as i32)?;
             self.paused_sample_offset = 0;

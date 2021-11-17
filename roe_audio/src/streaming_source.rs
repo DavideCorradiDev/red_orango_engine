@@ -253,7 +253,7 @@ impl Source for StreamingSource {
     }
 
     fn play(&mut self) -> Result<(), Error> {
-        if !self.playing() {
+        if !self.playing() && self.sample_length() > 0 {
             println!("PLAY!");
             self.processing_buffer_queue = true;
             self.set_sample_offset_internal(self.paused_sample_offset)?;
