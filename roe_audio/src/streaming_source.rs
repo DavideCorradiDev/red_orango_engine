@@ -422,10 +422,9 @@ impl Source for StreamingSource {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{DecoderError, Device, OggDecoder, SourceState},
+        super::{generate_source_tests, DecoderError, Device, Format},
         *,
     };
-    use alto::Source;
     use galvanic_assert::{matchers::*, *};
 
     struct DummyDecoder {
@@ -506,9 +505,7 @@ mod tests {
     struct TestFixture {}
 
     impl TestFixture {
-        fn create_empty(
-            context: &Context,
-        ) -> StreamingSource {
+        fn create_empty(context: &Context) -> StreamingSource {
             StreamingSource::new(context, 3, 32).unwrap()
         }
 
@@ -532,14 +529,19 @@ mod tests {
         }
 
         fn set_data(
-            context: &Context,
+            _context: &Context,
             source: &mut StreamingSource,
             format: Format,
             sample_count: usize,
             sample_rate: u32,
         ) {
-            source.set_decoder(Box::new(DummyDecoder::new(format, sample_count, sample_rate)));
+            source.set_decoder(Box::new(DummyDecoder::new(
+                format,
+                sample_count,
+                sample_rate,
+            ))).unwrap();
         }
     }
 
+    generate_source_tests!(TestFixture);
 }
