@@ -89,7 +89,7 @@ impl StreamingSource {
         buffer_count: u64,
         buffer_sample_count: u64,
     ) -> Result<Self, Error> {
-        let mut source =Self::new(context, buffer_count, buffer_sample_count)?;
+        let mut source = Self::new(context, buffer_count, buffer_sample_count)?;
         source.set_decoder(decoder)?;
         Ok(source)
     }
@@ -422,41 +422,116 @@ impl Source for StreamingSource {
 #[cfg(test)]
 mod tests {
     use super::{
-        super::{Device, OggDecoder, SourceState},
+        super::{DecoderError, Device, OggDecoder, SourceState},
         *,
     };
     use alto::Source;
     use galvanic_assert::{matchers::*, *};
+
+    struct DummyDecoder {
+        data: Vec<u8>,
+        format: Format,
+        sample_rate: u32,
+        byte_stream_position: u64,
+    }
+
+    impl DummyDecoder {
+        fn new(format: Format, sample_count: usize, sample_rate: u32) -> Self {
+            Self {
+                data: vec![0; sample_count],
+                format,
+                sample_rate,
+                byte_stream_position: 0,
+            }
+        }
+    }
+
+    impl Decoder for DummyDecoder {
+        fn format(&self) -> Format {
+            self.format
+        }
+
+        fn sample_rate(&self) -> u32 {
+            self.sample_rate
+        }
+
+        fn sample_length(&self) -> u64 {
+            let tbps = self.format.total_bytes_per_sample() as usize;
+            assert!(self.data.len() % tbps == 0);
+            (self.data.len() / tbps) as u64
+        }
+
+        fn byte_stream_position(&mut self) -> Result<u64, DecoderError> {
+            Ok(self.byte_stream_position)
+        }
+
+        fn byte_seek(&mut self, pos: std::io::SeekFrom) -> Result<u64, DecoderError> {
+            let byte_length = self.byte_length() as i64;
+            let target_pos = match pos {
+                std::io::SeekFrom::Start(v) => v as i64,
+                std::io::SeekFrom::End(v) => byte_length + v,
+                std::io::SeekFrom::Current(v) => self.byte_stream_position()? as i64 + v,
+            };
+            let target_pos = std::cmp::max(0, std::cmp::min(target_pos, byte_length)) as u64;
+
+            let tbps = self.format().total_bytes_per_sample() as u64;
+            assert!(
+                target_pos % tbps == 0,
+                "Invalid seek offset ({})",
+                target_pos
+            );
+            self.byte_stream_position = target_pos;
+            Ok(target_pos)
+        }
+
+        // TODO: read should return u64.
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize, DecoderError> {
+            let tbps = self.format().total_bytes_per_sample() as usize;
+            assert!(
+                buf.len() % tbps == 0,
+                "Invalid buffer length ({})",
+                buf.len()
+            );
+
+            let leftover_byte_count = (self.byte_length() - self.byte_stream_position) as usize;
+            let byte_to_read_count = std::cmp::min(buf.len(), leftover_byte_count) as usize;
+            let byte_stream_position = self.byte_stream_position as usize;
+            buf[0..byte_to_read_count].clone_from_slice(
+                &self.data[byte_stream_position..byte_stream_position + byte_to_read_count],
+            );
+
+            Ok(byte_to_read_count)
+        }
+    }
 
     fn create_context() -> Context {
         let device = Device::default().unwrap();
         Context::default(&device).unwrap()
     }
 
-    // struct StreamingSourceGenerator {}
+    struct StreamingSourceGenerator {}
 
-    // impl StreamingSourceGenerator {
-    //     fn create_empty() -> StreamingSource {
-    //         let context = create_context();
-    //         StreamingSource::new(&context, 3, 32).unwrap()
-    //     }
+    impl StreamingSourceGenerator {
+        fn create_empty() -> StreamingSource {
+            let context = create_context();
+            StreamingSource::new(&context, 3, 32).unwrap()
+        }
 
-    //     fn create_non_empty(
-    //         format: Format,
-    //         sample_count: usize,
-    //         sample_rate: u32,
-    //     ) -> StreamingSource {
-    //         let context = create_context();
-    //         let buf = Buffer::new(
-    //             &context,
-    //             vec![0; sample_count * format.total_bytes_per_sample() as usize].as_ref(),
-    //             format,
-    //             sample_rate,
-    //         )
-    //         .unwrap();
-    //         StreamingSource::with_buffer(&context, &buf).unwrap()
-    //     }
-    // }
+        fn create_non_empty(
+            format: Format,
+            sample_count: usize,
+            sample_rate: u32,
+        ) -> StreamingSource {
+            let context = create_context();
+            StreamingSource::with_decoder(
+                &context,
+                Box::new(DummyDecoder::new(format, sample_count, sample_rate)),
+                3,
+                32,
+            )
+            .unwrap()
+        }
+    }
 
     // #[test]
     // #[serial_test::serial]
