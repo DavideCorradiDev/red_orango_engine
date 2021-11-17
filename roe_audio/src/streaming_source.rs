@@ -503,85 +503,43 @@ mod tests {
         }
     }
 
-    fn create_context() -> Context {
-        let device = Device::default().unwrap();
-        Context::default(&device).unwrap()
-    }
+    struct TestFixture {}
 
-    struct StreamingSourceGenerator {}
-
-    impl StreamingSourceGenerator {
-        fn create_empty() -> StreamingSource {
-            let context = create_context();
-            StreamingSource::new(&context, 3, 32).unwrap()
+    impl TestFixture {
+        fn create_empty(
+            context: &Context,
+        ) -> StreamingSource {
+            StreamingSource::new(context, 3, 32).unwrap()
         }
 
-        fn create_non_empty(
+        fn create_with_data(
+            context: &Context,
             format: Format,
             sample_count: usize,
             sample_rate: u32,
         ) -> StreamingSource {
-            let context = create_context();
             StreamingSource::with_decoder(
-                &context,
+                context,
                 Box::new(DummyDecoder::new(format, sample_count, sample_rate)),
                 3,
                 32,
             )
             .unwrap()
         }
+
+        fn clear_data(source: &mut StreamingSource) {
+            source.clear_decoder();
+        }
+
+        fn set_data(
+            context: &Context,
+            source: &mut StreamingSource,
+            format: Format,
+            sample_count: usize,
+            sample_rate: u32,
+        ) {
+            source.set_decoder(Box::new(DummyDecoder::new(format, sample_count, sample_rate)));
+        }
     }
 
-    // #[test]
-    // #[serial_test::serial]
-    // fn dummy() {
-    //     let device = Device::default().unwrap();
-    //     let context = Context::default(&device).unwrap();
-    //     let mut source = StreamingSource::new(&context).unwrap();
-    //     source
-    //         .set_decoder(
-    //             &context,
-    //             OggDecoder::new(std::io::BufReader::new(
-    //                 std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap(),
-    //             ))
-    //             .unwrap(),
-    //             3,
-    //             2048,
-    //         )
-    //         .unwrap();
-    //     source.value.play();
-    //     source
-    //         .set_decoder(
-    //             &context,
-    //             OggDecoder::new(std::io::BufReader::new(
-    //                 std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap(),
-    //             ))
-    //             .unwrap(),
-    //             3,
-    //             2048,
-    //         )
-    //         .unwrap();
-    // }
-
-    // #[test]
-    // #[serial_test::serial]
-    // fn streaming_source_creation() {
-    //     let device = Device::default().unwrap();
-    //     let context = Context::default(&device).unwrap();
-    //     let source = StreamingSource::new(
-    //         &context,
-    //         OggDecoder::new(std::io::BufReader::new(
-    //             std::fs::File::open("data/audio/stereo-16-44100.ogg").unwrap(),
-    //         ))
-    //         .unwrap(),
-    //     )
-    //     .unwrap();
-    //     expect_that!(&source.state(), eq(SourceState::Initial));
-    //     expect_that!(&source.gain(), close_to(1., 1e-6));
-    //     expect_that!(&source.min_gain(), close_to(0., 1e-6));
-    //     expect_that!(&source.max_gain(), close_to(1., 1e-6));
-    //     expect_that!(&source.reference_distance(), close_to(1., 1e-6));
-    //     expect_that!(&source.rolloff_factor(), close_to(1., 1e-6));
-    //     expect_that!(&source.pitch(), close_to(1., 1e-6));
-    // }
 }
