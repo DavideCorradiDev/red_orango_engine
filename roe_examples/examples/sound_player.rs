@@ -14,8 +14,7 @@ struct ApplicationImpl {
     audio_device: roe_audio::Device,
     audio_context: roe_audio::Context,
     static_source: roe_audio::StaticSource,
-    streaming_source:
-        roe_audio::StreamingSource<roe_audio::OggDecoder<std::io::BufReader<std::fs::File>>>,
+    streaming_source: roe_audio::StreamingSource,
 }
 
 impl EventHandler<ApplicationError, ()> for ApplicationImpl {
@@ -39,14 +38,16 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
                 "roe_examples/data/audio/stereo-16-44100.wav",
             )?))?,
         )?;
-        let mut static_source = roe_audio::StaticSource::new(&audio_context)?;
-        static_source.set_buffer(&audio_buffer)?;
+        let static_source =
+            roe_audio::StaticSource::with_buffer(&audio_context, &audio_buffer)?;
 
-        let streaming_source = roe_audio::StreamingSource::new(
+        let mut streaming_source = roe_audio::StreamingSource::with_decoder(
             &audio_context,
-            roe_audio::OggDecoder::new(std::io::BufReader::new(std::fs::File::open(
-                "roe_examples/data/audio/bach.ogg",
-            )?))?,
+            Box::new(roe_audio::OggDecoder::new(std::io::BufReader::new(
+                std::fs::File::open("roe_examples/data/audio/bach.ogg")?,
+            ))?),
+            3,
+            1024,
         )?;
 
         Ok(Self {
@@ -70,18 +71,18 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
         if !is_repeat && wid == self.window.id() {
             if let Some(key_code) = key_code {
                 if key_code == keyboard::KeyCode::Key1 {
-                    self.static_source.play().unwrap();
+                    self.static_source.play()?;
                 }
-                // if key_code == keyboard::KeyCode::Key2 {
-                //     self.streaming_source.play();
-                // }
+                if key_code == keyboard::KeyCode::Key2 {
+                    self.streaming_source.play()?;
+                }
             }
         }
         Ok(ControlFlow::Continue)
     }
 
     fn on_fixed_update(&mut self, _: std::time::Duration) -> Result<ControlFlow, Self::Error> {
-        self.streaming_source.update()?;
+        self.streaming_source.update_buffers()?;
         Ok(ControlFlow::Continue)
     }
 }
