@@ -41,7 +41,7 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
         let static_source =
             roe_audio::StaticSource::with_buffer(&audio_context, &audio_buffer)?;
 
-        let mut streaming_source = roe_audio::StreamingSource::with_decoder(
+        let streaming_source = roe_audio::StreamingSource::with_decoder(
             &audio_context,
             Box::new(roe_audio::OggDecoder::new(std::io::BufReader::new(
                 std::fs::File::open("roe_examples/data/audio/bach.ogg")?,
@@ -59,6 +59,7 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
         })
     }
 
+    // TODO: add other controls to test more...
     fn on_key_pressed(
         &mut self,
         wid: WindowId,

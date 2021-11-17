@@ -124,7 +124,6 @@ impl StreamingSource {
     }
 
     fn free_buffers(&mut self) -> Result<(), Error> {
-        println!("Freeing {} buffers", self.value.buffers_processed());
         let mut processed_byte_count = 0;
         for _ in 0..self.value.buffers_processed() {
             let buffer = self.value.unqueue_buffer()?;
@@ -135,31 +134,22 @@ impl StreamingSource {
         assert!(processed_byte_count % tbps == 0);
         let processed_sample_count = (processed_byte_count / tbps) as u64;
         self.processed_sample_count += processed_sample_count;
-        println!("Processed sample count: {}", self.processed_sample_count);
         Ok(())
     }
 
     fn fill_buffers(&mut self) -> Result<(), Error> {
-        println!("Filling buffers");
         let buffer_byte_count =
             self.buffer_sample_count as usize * self.format().total_bytes_per_sample() as usize;
 
         let decoder = match &mut self.decoder {
             Some(d) => d,
             None => {
-                println!("No decoder!");
                 self.processing_buffer_queue = false;
                 return Ok(());
             }
         };
 
-        println!(
-            "Processing queue? {}, empty buffers {}",
-            self.processing_buffer_queue,
-            self.empty_buffers.len()
-        );
         while self.processing_buffer_queue && self.empty_buffers.len() > 0 {
-            println!("Filling buffer");
             let mut mem_buf = vec![0; buffer_byte_count];
             if self.looping {
                 let mut read_byte_count = 0;
@@ -214,11 +204,6 @@ impl StreamingSource {
 
     fn current_sample_offset(&self) -> u64 {
         let sample_length = self.sample_length();
-        println!(
-            "Sample length {}, source offset {}",
-            sample_length,
-            self.value.sample_offset()
-        );
         if sample_length == 0 {
             0
         } else {
@@ -254,7 +239,6 @@ impl Source for StreamingSource {
 
     fn play(&mut self) -> Result<(), Error> {
         if !self.playing() && self.sample_length() > 0 {
-            println!("PLAY!");
             self.processing_buffer_queue = true;
             self.set_sample_offset_internal(self.paused_sample_offset)?;
             self.paused_sample_offset = 0;
@@ -440,6 +424,7 @@ impl Source for StreamingSource {
     }
 }
 
+// TODO: test update buffers.
 #[cfg(test)]
 mod tests {
     use super::{
