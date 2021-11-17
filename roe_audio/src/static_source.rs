@@ -264,14 +264,9 @@ mod tests {
     };
     use galvanic_assert::{matchers::*, *};
 
-    fn create_context_2() -> Context {
-        let device = Device::default().unwrap();
-        Context::default(&device).unwrap()
-    }
+    struct TestFixture {}
 
-    struct StaticSourceGenerator {}
-
-    impl StaticSourceGenerator {
+    impl TestFixture {
         fn create_empty(context: &Context) -> StaticSource {
             StaticSource::new(context).unwrap()
         }
@@ -314,98 +309,5 @@ mod tests {
         }
     }
 
-    #[test]
-    #[serial_test::serial]
-    fn set_buffer() {
-        let context = create_context_2();
-        let mut source = StaticSourceGenerator::create_empty(&context);
-        StaticSourceGenerator::set_data(&context, &mut source, Format::Stereo16, 64, 10);
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.format(), eq(Format::Stereo16));
-        expect_that!(&source.sample_rate(), eq(10));
-        expect_that!(&source.sample_length(), eq(64));
-        expect_that!(&source.sample_offset(), eq(0));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn set_buffer_while_playing() {
-        let context = create_context_2();
-        let mut source =
-            StaticSourceGenerator::create_with_data(&context, Format::Stereo16, 256, 100);
-        source.set_looping(true);
-        source.play().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        expect_that!(&source.playing(), eq(true));
-        expect_that!(&source.sample_offset(), gt(0));
-        StaticSourceGenerator::set_data(&context, &mut source, Format::Stereo16, 256, 100);
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.sample_offset(), eq(0));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn set_buffer_while_paused() {
-        let context = create_context_2();
-        let mut source =
-            StaticSourceGenerator::create_with_data(&context, Format::Stereo16, 256, 100);
-        source.set_looping(true);
-        source.play().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        source.pause();
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.sample_offset(), gt(0));
-        StaticSourceGenerator::set_data(&context, &mut source, Format::Stereo16, 256, 100);
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.sample_offset(), eq(0));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn clear_buffer() {
-        let context = create_context_2();
-        let mut source =
-            StaticSourceGenerator::create_with_data(&context, Format::Stereo16, 256, 100);
-        StaticSourceGenerator::clear_data(&mut source);
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.format(), eq(Format::Mono8));
-        expect_that!(&source.sample_rate(), eq(1));
-        expect_that!(&source.sample_length(), eq(0));
-        expect_that!(&source.sample_offset(), eq(0));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn clear_buffer_while_playing() {
-        let context = create_context_2();
-        let mut source =
-            StaticSourceGenerator::create_with_data(&context, Format::Stereo16, 256, 100);
-        source.set_looping(true);
-        source.play().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        expect_that!(&source.playing(), eq(true));
-        expect_that!(&source.sample_offset(), gt(0));
-        StaticSourceGenerator::clear_data(&mut source);
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.sample_offset(), eq(0));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn clear_buffer_while_paused() {
-        let context = create_context_2();
-        let mut source =
-            StaticSourceGenerator::create_with_data(&context, Format::Stereo16, 256, 100);
-        source.set_looping(true);
-        source.play().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(50));
-        source.pause();
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.sample_offset(), gt(0));
-        StaticSourceGenerator::clear_data(&mut source);
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.sample_offset(), eq(0));
-    }
-
-    generate_source_tests!(StaticSourceGenerator);
+    generate_source_tests!(TestFixture);
 }
