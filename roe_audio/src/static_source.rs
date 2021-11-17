@@ -61,7 +61,8 @@ impl Source for StaticSource {
 
     fn play(&mut self) -> Result<(), Error> {
         if !self.playing() {
-            self.value.set_sample_offset(self.paused_sample_offset as i32)?;
+            self.value
+                .set_sample_offset(self.paused_sample_offset as i32)?;
             self.paused_sample_offset = 0;
             self.value.play();
         }
@@ -263,7 +264,7 @@ mod tests {
     };
     use galvanic_assert::{matchers::*, *};
 
-    fn create_context() -> Context {
+    fn create_context_2() -> Context {
         let device = Device::default().unwrap();
         Context::default(&device).unwrap()
     }
@@ -271,19 +272,18 @@ mod tests {
     struct StaticSourceGenerator {}
 
     impl StaticSourceGenerator {
-        fn create_empty() -> StaticSource {
-            let context = create_context();
-            StaticSource::new(&context).unwrap()
+        fn create_empty(context: &Context) -> StaticSource {
+            StaticSource::new(context).unwrap()
         }
 
-        fn create_non_empty(
+        fn create_with_data(
+            context: &Context,
             format: Format,
             sample_count: usize,
             sample_rate: u32,
         ) -> StaticSource {
-            let context = create_context();
             let buf = Buffer::new(
-                &context,
+                context,
                 vec![0; sample_count * format.total_bytes_per_sample() as usize].as_ref(),
                 format,
                 sample_rate,
@@ -291,43 +291,35 @@ mod tests {
             .unwrap();
             StaticSource::with_buffer(&context, &buf).unwrap()
         }
-    }
 
-    #[test]
-    #[serial_test::serial]
-    fn creation() {
-        let context = create_context();
-        let source = StaticSource::new(&context).unwrap();
+        fn clear_data(source: &mut StaticSource) {
+            source.clear_buffer();
+        }
 
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.format(), eq(Format::Mono8));
-        expect_that!(&source.sample_rate(), eq(1));
-        expect_that!(&source.sample_length(), eq(0));
-        expect_that!(&source.sample_offset(), eq(0));
-    }
-
-    #[test]
-    #[serial_test::serial]
-    fn creation_with_buffer() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
-        let source = StaticSource::with_buffer(&context, &buf).unwrap();
-
-        expect_that!(&source.playing(), eq(false));
-        expect_that!(&source.format(), eq(Format::Stereo16));
-        expect_that!(&source.sample_rate(), eq(10));
-        expect_that!(&source.sample_length(), eq(64));
-        expect_that!(&source.sample_offset(), eq(0));
+        fn set_data(
+            context: &Context,
+            source: &mut StaticSource,
+            format: Format,
+            sample_count: usize,
+            sample_rate: u32,
+        ) {
+            let buf = Buffer::new(
+                context,
+                vec![0; sample_count * format.total_bytes_per_sample() as usize].as_ref(),
+                format,
+                sample_rate,
+            )
+            .unwrap();
+            source.set_buffer(&buf).unwrap();
+        }
     }
 
     #[test]
     #[serial_test::serial]
     fn set_buffer() {
-        let context = create_context();
-        let mut source = StaticSource::new(&context).unwrap();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
-        source.set_buffer(&buf).unwrap();
-
+        let context = create_context_2();
+        let mut source = StaticSourceGenerator::create_empty(&context);
+        StaticSourceGenerator::set_data(&context, &mut source, Format::Stereo16, 64, 10);
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.format(), eq(Format::Stereo16));
         expect_that!(&source.sample_rate(), eq(10));
@@ -338,16 +330,15 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn set_buffer_while_playing() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        let context = create_context_2();
+        let mut source =
+            StaticSourceGenerator::create_with_data(&context, Format::Stereo16, 256, 100);
         source.set_looping(true);
         source.play().unwrap();
         std::thread::sleep(std::time::Duration::from_millis(50));
         expect_that!(&source.playing(), eq(true));
         expect_that!(&source.sample_offset(), gt(0));
-
-        source.set_buffer(&buf).unwrap();
+        StaticSourceGenerator::set_data(&context, &mut source, Format::Stereo16, 256, 100);
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.sample_offset(), eq(0));
     }
@@ -355,17 +346,16 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn set_buffer_while_paused() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        let context = create_context_2();
+        let mut source =
+            StaticSourceGenerator::create_with_data(&context, Format::Stereo16, 256, 100);
         source.set_looping(true);
         source.play().unwrap();
         std::thread::sleep(std::time::Duration::from_millis(50));
         source.pause();
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.sample_offset(), gt(0));
-
-        source.set_buffer(&buf).unwrap();
+        StaticSourceGenerator::set_data(&context, &mut source, Format::Stereo16, 256, 100);
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.sample_offset(), eq(0));
     }
@@ -373,11 +363,10 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn clear_buffer() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 10).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
-        source.clear_buffer();
-
+        let context = create_context_2();
+        let mut source =
+            StaticSourceGenerator::create_with_data(&context, Format::Stereo16, 256, 100);
+        StaticSourceGenerator::clear_data(&mut source);
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.format(), eq(Format::Mono8));
         expect_that!(&source.sample_rate(), eq(1));
@@ -388,16 +377,15 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn clear_buffer_while_playing() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        let context = create_context_2();
+        let mut source =
+            StaticSourceGenerator::create_with_data(&context, Format::Stereo16, 256, 100);
         source.set_looping(true);
         source.play().unwrap();
         std::thread::sleep(std::time::Duration::from_millis(50));
         expect_that!(&source.playing(), eq(true));
         expect_that!(&source.sample_offset(), gt(0));
-
-        source.clear_buffer();
+        StaticSourceGenerator::clear_data(&mut source);
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.sample_offset(), eq(0));
     }
@@ -405,17 +393,16 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn clear_buffer_while_paused() {
-        let context = create_context();
-        let buf = Buffer::new(&context, &[0; 256], Format::Stereo16, 100).unwrap();
-        let mut source = StaticSource::with_buffer(&context, &buf).unwrap();
+        let context = create_context_2();
+        let mut source =
+            StaticSourceGenerator::create_with_data(&context, Format::Stereo16, 256, 100);
         source.set_looping(true);
         source.play().unwrap();
         std::thread::sleep(std::time::Duration::from_millis(50));
         source.pause();
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.sample_offset(), gt(0));
-
-        source.clear_buffer();
+        StaticSourceGenerator::clear_data(&mut source);
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.sample_offset(), eq(0));
     }

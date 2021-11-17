@@ -484,7 +484,6 @@ mod tests {
             Ok(target_pos)
         }
 
-        // TODO: read should return u64.
         fn read(&mut self, buf: &mut [u8]) -> Result<usize, DecoderError> {
             let tbps = self.format().total_bytes_per_sample() as usize;
             assert!(
