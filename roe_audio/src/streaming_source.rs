@@ -218,6 +218,22 @@ impl StreamingSource {
             (self.processed_sample_count + self.value.sample_offset() as u64) % sample_length
         }
     }
+
+    fn normalize_sample_offset(&self, value: u64) -> u64 {
+        let sample_length = self.sample_length();
+        if sample_length == 0 {
+            0
+        }
+        else if self.looping() {
+            value % sample_length
+        }
+        else if value >= sample_length {
+            0
+        }
+        else {
+            value
+        }
+    }
 }
 
 impl std::fmt::Debug for StreamingSource {
@@ -294,21 +310,14 @@ impl Source for StreamingSource {
         }
     }
 
-    // TODO: clamp instead of crashing.
-    // TODO: seems not to oreally work properly...
     fn set_sample_offset(&mut self, value: u64) -> Result<(), Error> {
-        assert!(
-            value < self.sample_length(),
-            "Sample offset exceeds sample length ({} >= {})",
-            value,
-            self.sample_length()
-        );
+        let sample_offset = self.normalize_sample_offset(value);
         if self.playing() {
             self.value.stop();
-            self.set_sample_offset_internal(value)?;
+            self.set_sample_offset_internal(sample_offset)?;
             self.value.play();
         } else {
-            self.paused_sample_offset = value;
+            self.paused_sample_offset = sample_offset;
         }
         Ok(())
     }

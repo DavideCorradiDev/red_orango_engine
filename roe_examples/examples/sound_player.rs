@@ -57,7 +57,6 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
         })
     }
 
-    // TODO: add other controls to test more...
     fn on_key_pressed(
         &mut self,
         wid: WindowId,
@@ -82,9 +81,15 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
                     self.static_source.stop();
                 }
                 if key_code == keyboard::KeyCode::T {
-                    self.static_source.set_time_offset(
-                        self.static_source.time_offset() - std::time::Duration::from_secs_f64(0.1),
-                    )?;
+                    let cur_time = self.static_source.time_offset();
+                    let time_step = std::time::Duration::from_secs_f64(0.1);
+                    let new_time = if time_step > cur_time {
+                        std::time::Duration::from_millis(0)
+                    }
+                    else {
+                        cur_time - time_step
+                    };
+                    self.static_source.set_time_offset(new_time)?;
                 }
                 if key_code == keyboard::KeyCode::Y {
                     self.static_source.set_time_offset(
@@ -105,13 +110,19 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
                     self.streaming_source.stop();
                 }
                 if key_code == keyboard::KeyCode::G {
-                    self.static_source.set_time_offset(
-                        self.static_source.time_offset() - std::time::Duration::from_secs_f64(1.),
-                    )?;
+                    let cur_time = self.static_source.time_offset();
+                    let time_step = std::time::Duration::from_secs_f64(0.1);
+                    let new_time = if time_step > cur_time {
+                        std::time::Duration::from_millis(0)
+                    }
+                    else {
+                        cur_time - time_step
+                    };
+                    self.streaming_source.set_time_offset(new_time)?;
                 }
                 if key_code == keyboard::KeyCode::H {
-                    self.static_source.set_time_offset(
-                        self.static_source.time_offset() + std::time::Duration::from_secs_f64(1.),
+                    self.streaming_source.set_time_offset(
+                        self.streaming_source.time_offset() + std::time::Duration::from_secs_f64(1.),
                     )?;
                 }
             }
