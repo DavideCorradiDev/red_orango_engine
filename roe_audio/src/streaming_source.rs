@@ -294,6 +294,8 @@ impl Source for StreamingSource {
         }
     }
 
+    // TODO: clamp instead of crashing.
+    // TODO: seems not to oreally work properly...
     fn set_sample_offset(&mut self, value: u64) -> Result<(), Error> {
         assert!(
             value < self.sample_length(),

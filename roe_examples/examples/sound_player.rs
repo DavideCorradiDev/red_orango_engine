@@ -38,8 +38,7 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
                 "roe_examples/data/audio/stereo-16-44100.wav",
             )?))?,
         )?;
-        let static_source =
-            roe_audio::StaticSource::with_buffer(&audio_context, &audio_buffer)?;
+        let static_source = roe_audio::StaticSource::with_buffer(&audio_context, &audio_buffer)?;
 
         let streaming_source = roe_audio::StreamingSource::with_decoder(
             &audio_context,
@@ -70,11 +69,50 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
     ) -> Result<ControlFlow, Self::Error> {
         if !is_repeat && wid == self.window.id() {
             if let Some(key_code) = key_code {
-                if key_code == keyboard::KeyCode::Key1 {
+                if key_code == keyboard::KeyCode::Q {
                     self.static_source.play()?;
                 }
-                if key_code == keyboard::KeyCode::Key2 {
+                if key_code == keyboard::KeyCode::W {
+                    self.static_source.replay()?;
+                }
+                if key_code == keyboard::KeyCode::E {
+                    self.static_source.pause();
+                }
+                if key_code == keyboard::KeyCode::R {
+                    self.static_source.stop();
+                }
+                if key_code == keyboard::KeyCode::T {
+                    self.static_source.set_time_offset(
+                        self.static_source.time_offset() - std::time::Duration::from_secs_f64(0.1),
+                    )?;
+                }
+                if key_code == keyboard::KeyCode::Y {
+                    self.static_source.set_time_offset(
+                        self.static_source.time_offset() + std::time::Duration::from_secs_f64(0.1),
+                    )?;
+                }
+
+                if key_code == keyboard::KeyCode::A {
                     self.streaming_source.play()?;
+                }
+                if key_code == keyboard::KeyCode::S {
+                    self.streaming_source.replay()?;
+                }
+                if key_code == keyboard::KeyCode::D {
+                    self.streaming_source.pause();
+                }
+                if key_code == keyboard::KeyCode::F {
+                    self.streaming_source.stop();
+                }
+                if key_code == keyboard::KeyCode::G {
+                    self.static_source.set_time_offset(
+                        self.static_source.time_offset() - std::time::Duration::from_secs_f64(1.),
+                    )?;
+                }
+                if key_code == keyboard::KeyCode::H {
+                    self.static_source.set_time_offset(
+                        self.static_source.time_offset() + std::time::Duration::from_secs_f64(1.),
+                    )?;
                 }
             }
         }
