@@ -118,6 +118,7 @@ impl StreamingSource {
     }
 
     pub fn update_buffers(&mut self) -> Result<(), Error> {
+        println!("update_buffers()");
         if self.processing_buffer_queue {
             self.free_buffers()?;
             self.fill_buffers()?;
@@ -132,8 +133,10 @@ impl StreamingSource {
     }
 
     fn free_buffers(&mut self) -> Result<(), Error> {
+        println!("free_buffers()");
         let mut processed_byte_count = 0;
         for _ in 0..self.value.buffers_processed() {
+            println!("Freeing buffer");
             let buffer = self.value.unqueue_buffer()?;
             processed_byte_count += buffer.size();
             self.empty_buffers.push(buffer);
@@ -146,6 +149,7 @@ impl StreamingSource {
     }
 
     fn fill_buffers(&mut self) -> Result<(), Error> {
+        println!("fill_buffers()");
         let buffer_byte_count =
             self.buffer_sample_length as usize * self.format().total_bytes_per_sample() as usize;
 
@@ -158,8 +162,10 @@ impl StreamingSource {
         };
 
         while self.processing_buffer_queue && self.empty_buffers.len() > 0 {
+            println!("Filling buffer");
             let mut mem_buf = vec![0; buffer_byte_count];
             if self.looping {
+                println!("  Looping");
                 let mut read_byte_count = 0;
                 while read_byte_count < buffer_byte_count {
                     read_byte_count += decoder.read(&mut mem_buf[read_byte_count..])?;
@@ -168,15 +174,19 @@ impl StreamingSource {
                     }
                 }
             } else {
+                println!("  Not looping");
                 let read_byte_count = decoder.read(&mut mem_buf)?;
+                println!("  Read {} bytes out of {} required", read_byte_count, buffer_byte_count);
                 if read_byte_count < buffer_byte_count {
                     self.processing_buffer_queue = false;
                 }
                 if read_byte_count == 0 {
+                    println!("  EOS reached");
                     return Ok(());
                 }
                 mem_buf.resize(read_byte_count, 0);
             }
+            println!("Actually filling buffer");
 
             let mut audio_buf = self.empty_buffers.pop().unwrap();
             set_buffer_data(
@@ -246,6 +256,7 @@ impl Source for StreamingSource {
     }
 
     fn play(&mut self) -> Result<(), Error> {
+        println!("play()");
         if !self.playing() && self.sample_length() > 0 {
             self.processing_buffer_queue = true;
             self.set_sample_offset_internal(self.paused_sample_offset)?;
@@ -511,6 +522,7 @@ mod tests {
             buf[0..byte_to_read_count].clone_from_slice(
                 &self.data[byte_stream_position..byte_stream_position + byte_to_read_count],
             );
+            self.byte_stream_position += byte_to_read_count as u64;
 
             Ok(byte_to_read_count)
         }
@@ -566,6 +578,22 @@ mod tests {
                 )))
                 .unwrap();
         }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn update_buffers() {
+        let device = Device::default().unwrap();
+        let context = Context::default(&device).unwrap();
+        let mut source = TestFixture::create_with_data(&context, Format::Stereo16, 256, 6000);
+        source.play().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        expect_that!(&source.playing(), eq(true));
+        expect_that!(&source.sample_offset(), eq(192));
+        source.update_buffers().unwrap();
+        std::thread::sleep(std::time::Duration::from_millis(50));
+        expect_that!(&source.playing(), eq(false));
+        expect_that!(&source.sample_offset(), eq(0));
     }
 
     generate_source_tests!(TestFixture);
