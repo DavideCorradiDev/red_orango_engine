@@ -46,8 +46,7 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
             Box::new(roe_audio::OggDecoder::new(std::io::BufReader::new(
                 std::fs::File::open("roe_examples/data/audio/bach.ogg")?,
             ))?),
-            3,
-            1024,
+            &roe_audio::StreamingSourceDescriptor::default(),
         )?;
 
         Ok(Self {

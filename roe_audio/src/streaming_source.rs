@@ -41,11 +41,25 @@ fn set_buffer_data(
     Ok(())
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StreamingSourceDescriptor {
+    pub buffer_count: u64,
+    pub buffer_sample_length: u64,
+}
+
+impl std::default::Default for StreamingSourceDescriptor {
+    fn default() -> Self {
+        Self {
+            buffer_count: 3,
+            buffer_sample_length: 2048,
+        }
+    }
+}
+
 pub struct StreamingSource {
     value: alto::StreamingSource,
     decoder: Option<Box<dyn Decoder>>,
-    // TODO: change to usize?
-    buffer_sample_count: u64,
+    buffer_sample_length: u64,
     empty_buffers: Vec<alto::Buffer>,
     looping: bool,
     processed_sample_count: u64,
@@ -54,20 +68,15 @@ pub struct StreamingSource {
 }
 
 impl StreamingSource {
-    // TODO: descriptor.
-    pub fn new(
-        context: &Context,
-        buffer_count: u64,
-        buffer_sample_count: u64,
-    ) -> Result<Self, Error> {
+    pub fn new(context: &Context, desc: &StreamingSourceDescriptor) -> Result<Self, Error> {
         let source = context.value.new_streaming_source()?;
         let format = Format::Mono8;
         let sample_rate = 1;
         let mut empty_buffers = Vec::new();
-        for _ in 0..buffer_count {
+        for _ in 0..desc.buffer_count {
             empty_buffers.push(create_buffer(
                 context,
-                buffer_sample_count as usize * format.total_bytes_per_sample() as usize,
+                desc.buffer_sample_length as usize * format.total_bytes_per_sample() as usize,
                 format,
                 sample_rate,
             )?);
@@ -75,7 +84,7 @@ impl StreamingSource {
         Ok(Self {
             value: source,
             decoder: None,
-            buffer_sample_count,
+            buffer_sample_length: desc.buffer_sample_length,
             empty_buffers,
             looping: false,
             processed_sample_count: 0,
@@ -87,10 +96,9 @@ impl StreamingSource {
     pub fn with_decoder(
         context: &Context,
         decoder: Box<dyn Decoder>,
-        buffer_count: u64,
-        buffer_sample_count: u64,
+        desc: &StreamingSourceDescriptor,
     ) -> Result<Self, Error> {
-        let mut source = Self::new(context, buffer_count, buffer_sample_count)?;
+        let mut source = Self::new(context, desc)?;
         source.set_decoder(decoder)?;
         Ok(source)
     }
@@ -139,7 +147,7 @@ impl StreamingSource {
 
     fn fill_buffers(&mut self) -> Result<(), Error> {
         let buffer_byte_count =
-            self.buffer_sample_count as usize * self.format().total_bytes_per_sample() as usize;
+            self.buffer_sample_length as usize * self.format().total_bytes_per_sample() as usize;
 
         let decoder = match &mut self.decoder {
             Some(d) => d,
@@ -512,7 +520,14 @@ mod tests {
 
     impl TestFixture {
         fn create_empty(context: &Context) -> StreamingSource {
-            StreamingSource::new(context, 3, 32).unwrap()
+            StreamingSource::new(
+                context,
+                &StreamingSourceDescriptor {
+                    buffer_count: 3,
+                    buffer_sample_length: 32,
+                },
+            )
+            .unwrap()
         }
 
         fn create_with_data(
@@ -524,8 +539,10 @@ mod tests {
             StreamingSource::with_decoder(
                 context,
                 Box::new(DummyDecoder::new(format, sample_count, sample_rate)),
-                3,
-                sample_count as u64 / 4,
+                &StreamingSourceDescriptor {
+                    buffer_count: 3,
+                    buffer_sample_length: sample_count as u64 / 4,
+                },
             )
             .unwrap()
         }
