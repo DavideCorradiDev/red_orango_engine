@@ -35,6 +35,22 @@ impl StaticSource {
         self.value.clear_buffer();
         self.paused_sample_offset = 0;
     }
+
+    fn normalize_sample_offset(&self, value: u64) -> u64 {
+        let sample_length = self.sample_length();
+        if sample_length == 0 {
+            0
+        }
+        else if self.looping() {
+            value % sample_length
+        }
+        else if value >= sample_length {
+            0
+        }
+        else {
+            value
+        }
+    }
 }
 
 impl Source for StaticSource {
@@ -113,18 +129,14 @@ impl Source for StaticSource {
     }
 
     fn set_sample_offset(&mut self, value: u64) -> Result<(), Error> {
-        assert!(
-            value < self.sample_length(),
-            "Sample offset exceeds sample length ({} >= {})",
-            value,
-            self.sample_length()
-        );
+        let sample_offset = self.normalize_sample_offset(value);
         if self.playing() {
             self.value.stop();
-            self.value.set_sample_offset(value as alto::sys::ALint)?;
+            self.value
+                .set_sample_offset(sample_offset as alto::sys::ALint)?;
             self.value.play();
         } else {
-            self.paused_sample_offset = value;
+            self.paused_sample_offset = sample_offset;
         }
         Ok(())
     }

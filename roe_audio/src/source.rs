@@ -558,6 +558,10 @@ macro_rules! generate_source_tests {
             expect_that!(&source.sample_offset(), eq(0));
             source.set_sample_offset(24).unwrap();
             expect_that!(&source.sample_offset(), eq(24));
+            source.set_sample_offset(64).unwrap();
+            expect_that!(&source.sample_offset(), eq(0));
+            source.set_sample_offset(80).unwrap();
+            expect_that!(&source.sample_offset(), eq(0));
         }
 
         #[test]
@@ -570,6 +574,42 @@ macro_rules! generate_source_tests {
             expect_that!(&source.sample_offset(), not(geq(24)));
             source.set_sample_offset(24).unwrap();
             expect_that!(&source.sample_offset(), geq(24));
+            source.set_sample_offset(64).unwrap();
+            expect_that!(&source.sample_offset(), eq(0));
+            source.set_sample_offset(80).unwrap();
+            expect_that!(&source.sample_offset(), eq(0));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn set_sample_offset_while_looping_and_paused() {
+            let context = create_context();
+            let mut source = <$TestFixture>::create_with_data(&context, Format::Stereo16, 64, 64);
+            source.set_looping(true);
+            expect_that!(&source.sample_offset(), eq(0));
+            source.set_sample_offset(24).unwrap();
+            expect_that!(&source.sample_offset(), eq(24));
+            source.set_sample_offset(64).unwrap();
+            expect_that!(&source.sample_offset(), eq(0));
+            source.set_sample_offset(80).unwrap();
+            expect_that!(&source.sample_offset(), eq(16));
+        }
+
+        #[test]
+        #[serial_test::serial]
+        fn set_sample_offset_while_looping_and_playing() {
+            let context = create_context();
+            let mut source = <$TestFixture>::create_with_data(&context, Format::Stereo16, 64, 64);
+            source.set_looping(true);
+            expect_that!(&source.sample_offset(), eq(0));
+            source.play().unwrap();
+            expect_that!(&source.sample_offset(), not(geq(24)));
+            source.set_sample_offset(24).unwrap();
+            expect_that!(&source.sample_offset(), geq(24));
+            source.set_sample_offset(64).unwrap();
+            expect_that!(&source.sample_offset(), geq(0));
+            source.set_sample_offset(80).unwrap();
+            expect_that!(&source.sample_offset(), geq(16));
         }
 
         #[test]
@@ -649,15 +689,6 @@ macro_rules! generate_source_tests {
             expect_that!(&pos1, gt(pos0));
             expect_that!(&pos2, gt(pos1));
             expect_that!(&pos3, gt(pos2));
-        }
-
-        #[test]
-        #[serial_test::serial]
-        #[should_panic(expected = "Sample offset exceeds sample length (100 >= 64)")]
-        fn set_sample_offset_exceeds_sample_length() {
-            let context = create_context();
-            let mut source = <$TestFixture>::create_with_data(&context, Format::Stereo16, 64, 64);
-            source.set_sample_offset(100).unwrap();
         }
 
         #[test]
