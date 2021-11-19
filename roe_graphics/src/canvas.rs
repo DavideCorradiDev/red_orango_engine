@@ -128,7 +128,7 @@ impl CanvasSwapChain {
                     size: Extent3d {
                         width,
                         height,
-                        depth: 1,
+                        depth_or_array_layers: 1,
                     },
                     mip_level_count: 1,
                     sample_count: desc.sample_count,
@@ -248,7 +248,7 @@ impl CanvasColorBuffer {
             size: Extent3d {
                 width: desc.size.width(),
                 height: desc.size.height(),
-                depth: 1,
+                depth_or_array_layers: 1,
             },
             mip_level_count: 1,
             sample_count: 1,
@@ -357,7 +357,7 @@ impl CanvasDepthStencilBuffer {
                 size: Extent3d {
                     width: desc.size.width(),
                     height: desc.size.height(),
-                    depth: 1,
+                    depth_or_array_layers: 1,
                 },
                 mip_level_count: 1,
                 sample_count: desc.sample_count,

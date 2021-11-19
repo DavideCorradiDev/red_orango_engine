@@ -113,6 +113,7 @@ impl CommandSequence {
         let render_pass_desc = RenderPassDescriptor {
             color_attachments: color_attachments.as_slice(),
             depth_stencil_attachment,
+            label: None,
         };
         self.encoder.begin_render_pass(&render_pass_desc)
     }

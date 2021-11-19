@@ -14,9 +14,9 @@ use super::{
     BufferCopyView, BufferDescriptor, BufferInitDescriptor, BufferUsage, ColorF64, CommandBuffer,
     CommandEncoderDescriptor, Extent3d, Features, Limits, Maintain, MapMode, Operations, Origin3d,
     PipelineLayoutDescriptor, PowerPreference, RenderBundleEncoderDescriptor,
-    RenderPipelineDescriptor, SamplerDescriptor, ShaderModuleSource, SwapChainDescriptor,
-    TextureCopyView, TextureDataLayout, TextureDescriptor, TextureDimension, TextureFormat,
-    TextureUsage,
+    RenderPipelineDescriptor, SamplerDescriptor, ShaderModuleDescriptor, SwapChainDescriptor,
+    TextureAspect, TextureCopyView, TextureDataLayout, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureUsage,
 };
 
 pub type SampleCount = u32;
@@ -53,7 +53,7 @@ impl Default for InstanceDescriptor {
         required_limits.max_push_constant_size = 128;
         Self {
             backend: Backend::PRIMARY,
-            power_preference: PowerPreference::Default,
+            power_preference: PowerPreference::HighPerformance,
             required_features: Features::default() | Features::PUSH_CONSTANTS,
             optional_features: Features::empty(),
             required_limits,
@@ -149,6 +149,7 @@ impl Instance {
             &wgpu::RequestAdapterOptions {
                 power_preference: desc.power_preference,
                 compatible_surface,
+                force_fallback_adapter: false,
             },
         )) {
             Some(v) => v,
@@ -172,7 +173,7 @@ impl Instance {
             &wgpu::DeviceDescriptor {
                 features: (desc.optional_features & adapter.features()) | desc.required_features,
                 limits: desc.required_limits.clone(),
-                shader_validation: true,
+                label: None,
             },
             None,
         ))?;
@@ -206,9 +207,9 @@ pub struct ShaderModule {
 }
 
 impl ShaderModule {
-    pub fn new(instance: &Instance, source: ShaderModuleSource) -> Self {
+    pub fn new(instance: &Instance, desc: &ShaderModuleDescriptor) -> Self {
         Self {
-            value: instance.device.create_shader_module(source),
+            value: instance.device.create_shader_module(desc),
         }
     }
 }
@@ -469,7 +470,7 @@ impl Texture {
         let size = Extent3d {
             width: img_dimensions.0,
             height: img_dimensions.1,
-            depth: 1,
+            depth_or_array_layers: 1,
         };
         let texture = Self::new(
             instance,
@@ -490,8 +491,8 @@ impl Texture {
             img.as_flat_samples().as_slice(),
             TextureDataLayout {
                 offset: 0,
-                bytes_per_row: 4 * size.height,
-                rows_per_image: 0,
+                bytes_per_row: core::num::NonZeroU32::new(4 * size.height),
+                rows_per_image: None,
             },
             size,
         );
@@ -516,13 +517,16 @@ impl Texture {
                     texture: &self.value,
                     mip_level: 0,
                     origin: Origin3d::ZERO,
+                    aspect: TextureAspect::All,
                 },
                 BufferCopyView {
                     buffer: &output_buffer,
                     layout: TextureDataLayout {
                         offset: 0,
-                        bytes_per_row: buffer_size.padded_bytes_per_row as u32,
-                        rows_per_image: 0,
+                        bytes_per_row: core::num::NonZeroU32::new(
+                            buffer_size.padded_bytes_per_row as u32,
+                        ),
+                        rows_per_image: None,
                     },
                 },
                 *self.size(),
@@ -570,6 +574,7 @@ impl Texture {
                 texture: self,
                 mip_level,
                 origin,
+                aspect: TextureAspect::All,
             },
             data,
             data_layout,
