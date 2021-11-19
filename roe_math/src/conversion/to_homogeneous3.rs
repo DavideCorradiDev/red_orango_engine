@@ -4,7 +4,10 @@ pub trait ToHomogeneousVector3<N: RealField> {
     fn to_homogeneous3(&self) -> geometry3::HomogeneousVector<N>;
 }
 
-impl<N: RealField> ToHomogeneousVector3<N> for geometry2::HomogeneousVector<N> {
+impl<N> ToHomogeneousVector3<N> for geometry2::HomogeneousVector<N>
+where
+    N: RealField + Copy,
+{
     fn to_homogeneous3(&self) -> geometry3::HomogeneousVector<N> {
         geometry3::HomogeneousVector::<N>::new(self[0], self[1], N::zero(), self[2])
     }
@@ -14,7 +17,10 @@ pub trait ToHomogeneousMatrix3<N: RealField> {
     fn to_homogeneous3(&self) -> geometry3::HomogeneousMatrix<N>;
 }
 
-impl<N: RealField> ToHomogeneousMatrix3<N> for geometry2::HomogeneousMatrix<N> {
+impl<N> ToHomogeneousMatrix3<N> for geometry2::HomogeneousMatrix<N>
+where
+    N: RealField + Copy,
+{
     fn to_homogeneous3(&self) -> geometry3::HomogeneousMatrix<N> {
         let mut out = geometry3::HomogeneousMatrix::<N>::identity();
         out[(0, 0)] = self[(0, 0)];
@@ -29,7 +35,7 @@ impl<N: RealField> ToHomogeneousMatrix3<N> for geometry2::HomogeneousMatrix<N> {
 
 macro_rules! implement_to_homogeneous3 {
     ($StructType:ty) => {
-        impl<N: RealField> ToHomogeneousMatrix3<N> for $StructType {
+        impl<N: RealField + Copy> ToHomogeneousMatrix3<N> for $StructType {
             fn to_homogeneous3(&self) -> geometry3::HomogeneousMatrix<N> {
                 self.to_homogeneous().to_homogeneous3()
             }

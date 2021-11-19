@@ -1,7 +1,7 @@
-use nalgebra::base::helper;
+use std::mem::swap;
 
 use rand::{
-    distributions::{Distribution, Standard},
+    distributions::{uniform::SampleUniform, Distribution, Standard},
     Rng,
 };
 
@@ -14,7 +14,10 @@ pub struct OrthographicProjection<N: RealField> {
     matrix: HomogeneousMatrix<N>,
 }
 
-impl<N: RealField> OrthographicProjection<N> {
+impl<N> OrthographicProjection<N>
+where
+    N: RealField + Copy,
+{
     #[inline]
     pub fn new(left: N, right: N, bottom: N, top: N) -> Self {
         let matrix = HomogeneousMatrix::<N>::identity();
@@ -166,8 +169,9 @@ impl<N: RealField + serde::Serialize> serde::Serialize for OrthographicProjectio
 }
 
 #[cfg(feature = "serde-serialize")]
-impl<'a, N: RealField + serde::Deserialize<'a>> serde::Deserialize<'a>
-    for OrthographicProjection<N>
+impl<'a, N> serde::Deserialize<'a> for OrthographicProjection<N>
+where
+    N: RealField + Copy + serde::Deserialize<'a>,
 {
     fn deserialize<Des>(deserializer: Des) -> Result<Self, Des::Error>
     where
@@ -178,21 +182,32 @@ impl<'a, N: RealField + serde::Deserialize<'a>> serde::Deserialize<'a>
     }
 }
 
-impl<N: RealField> Distribution<OrthographicProjection<N>> for Standard
+impl<N> Distribution<OrthographicProjection<N>> for Standard
 where
     Standard: Distribution<N>,
+    N: RealField + Copy + SampleUniform,
 {
     fn sample<R: Rng + ?Sized>(&self, r: &mut R) -> OrthographicProjection<N> {
-        let left = r.gen();
-        let right = helper::reject_rand(r, |x: &N| *x > left);
-        let bottom = r.gen();
-        let top = helper::reject_rand(r, |x: &N| *x > bottom);
+        let mut left = r.gen();
+        let mut right = r.gen();
+        if left > right {
+            swap(&mut left, &mut right);
+        }
+
+        let mut bottom = r.gen();
+        let mut top = r.gen();
+        if bottom > top {
+            swap(&mut bottom, &mut top);
+        }
 
         OrthographicProjection::new(left, right, bottom, top)
     }
 }
 
-impl<N: RealField> From<OrthographicProjection<N>> for HomogeneousMatrix<N> {
+impl<N> From<OrthographicProjection<N>> for HomogeneousMatrix<N>
+where
+    N: RealField + Copy,
+{
     #[inline]
     fn from(orth: OrthographicProjection<N>) -> Self {
         orth.into_inner()

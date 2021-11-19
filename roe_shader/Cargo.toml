@@ -1,14 +1,14 @@
 [package]
 authors = ["Davide Corradi <davide.corradi.dev@gmail.com>"]
-edition = "2018"
+edition = "2021"
 name = "roe_shader"
 version = "0.1.0"
 
 [dependencies]
-shaderc = "0.6"
+shaderc = "0.7.*"
 
 [dev-dependencies]
-galvanic-assert = "0.8.7"
+galvanic-assert = "0.8.*"
 
 [[example]]
 name = "shader_compilation"

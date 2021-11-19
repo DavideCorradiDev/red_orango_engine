@@ -4,6 +4,8 @@ use roe_app::{
     window::{PhysicalSize, Size, Window, WindowBuilder, WindowId},
 };
 
+use roe_audio::Source;
+
 use roe_examples::*;
 
 #[derive(Debug)]
@@ -11,8 +13,8 @@ struct ApplicationImpl {
     window: Window,
     audio_device: roe_audio::Device,
     audio_context: roe_audio::Context,
-    audio_mixer: roe_audio::Mixer,
-    sound: roe_audio::Sound,
+    static_source: roe_audio::StaticSource,
+    streaming_source: roe_audio::StreamingSource,
 }
 
 impl EventHandler<ApplicationError, ()> for ApplicationImpl {
@@ -29,22 +31,29 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
             .build(event_loop)?;
         let audio_device = roe_audio::Device::default()?;
         let audio_context = roe_audio::Context::default(&audio_device)?;
-        let audio_mixer = roe_audio::Mixer::new(&audio_context)?;
-        // TODO: replace unwrap
-        let sound = roe_audio::Sound::from_decoder(
-            &mut roe_audio::WavDecoder::new(std::io::BufReader::new(
-                std::fs::File::open("roe_examples/data/audio/stereo-16-44100.wav").unwrap(),
-            ))
-            .unwrap(),
-        )
-        .unwrap();
+
+        let audio_buffer = roe_audio::Buffer::from_decoder(
+            &audio_context,
+            &mut roe_audio::WavDecoder::new(std::io::BufReader::new(std::fs::File::open(
+                "roe_examples/data/audio/stereo-16-44100.wav",
+            )?))?,
+        )?;
+        let static_source = roe_audio::StaticSource::with_buffer(&audio_context, &audio_buffer)?;
+
+        let streaming_source = roe_audio::StreamingSource::with_decoder(
+            &audio_context,
+            Box::new(roe_audio::OggDecoder::new(std::io::BufReader::new(
+                std::fs::File::open("roe_examples/data/audio/bach.ogg")?,
+            ))?),
+            &roe_audio::StreamingSourceDescriptor::default(),
+        )?;
 
         Ok(Self {
             window,
             audio_device,
             audio_context,
-            audio_mixer,
-            sound,
+            static_source,
+            streaming_source,
         })
     }
 
@@ -59,11 +68,69 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
     ) -> Result<ControlFlow, Self::Error> {
         if !is_repeat && wid == self.window.id() {
             if let Some(key_code) = key_code {
-                if key_code == keyboard::KeyCode::Key1 {
-                    self.audio_mixer.play(&self.audio_context, &self.sound)?;
+                if key_code == keyboard::KeyCode::Q {
+                    self.static_source.play()?;
+                }
+                if key_code == keyboard::KeyCode::W {
+                    self.static_source.replay()?;
+                }
+                if key_code == keyboard::KeyCode::E {
+                    self.static_source.pause();
+                }
+                if key_code == keyboard::KeyCode::R {
+                    self.static_source.stop();
+                }
+                if key_code == keyboard::KeyCode::T {
+                    let cur_time = self.static_source.time_offset();
+                    let time_step = std::time::Duration::from_secs_f64(0.1);
+                    let new_time = if time_step > cur_time {
+                        std::time::Duration::from_millis(0)
+                    } else {
+                        cur_time - time_step
+                    };
+                    self.static_source.set_time_offset(new_time)?;
+                }
+                if key_code == keyboard::KeyCode::Y {
+                    self.static_source.set_time_offset(
+                        self.static_source.time_offset() + std::time::Duration::from_secs_f64(0.1),
+                    )?;
+                }
+
+                if key_code == keyboard::KeyCode::A {
+                    self.streaming_source.play()?;
+                }
+                if key_code == keyboard::KeyCode::S {
+                    self.streaming_source.replay()?;
+                }
+                if key_code == keyboard::KeyCode::D {
+                    self.streaming_source.pause();
+                }
+                if key_code == keyboard::KeyCode::F {
+                    self.streaming_source.stop();
+                }
+                if key_code == keyboard::KeyCode::G {
+                    let cur_time = self.static_source.time_offset();
+                    let time_step = std::time::Duration::from_secs_f64(0.1);
+                    let new_time = if time_step > cur_time {
+                        std::time::Duration::from_millis(0)
+                    } else {
+                        cur_time - time_step
+                    };
+                    self.streaming_source.set_time_offset(new_time)?;
+                }
+                if key_code == keyboard::KeyCode::H {
+                    self.streaming_source.set_time_offset(
+                        self.streaming_source.time_offset()
+                            + std::time::Duration::from_secs_f64(1.),
+                    )?;
                 }
             }
         }
+        Ok(ControlFlow::Continue)
+    }
+
+    fn on_fixed_update(&mut self, _: std::time::Duration) -> Result<ControlFlow, Self::Error> {
+        self.streaming_source.update_buffers()?;
         Ok(ControlFlow::Continue)
     }
 }

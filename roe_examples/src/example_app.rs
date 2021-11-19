@@ -16,7 +16,8 @@ pub enum ApplicationError {
     InstanceCreationFailed(roe_graphics::InstanceCreationError),
     RenderFrameCreationFailed(roe_graphics::SwapChainError),
     FontCreationFailed(roe_text::FontError),
-    AudioBackendError(roe_audio::BackendError),
+    Error(roe_audio::Error),
+    IoError(std::io::Error),
     CustomEventSendingError,
 }
 
@@ -35,8 +36,11 @@ impl std::fmt::Display for ApplicationError {
             ApplicationError::FontCreationFailed(e) => {
                 write!(f, "Font creation failed ({})", e)
             }
-            ApplicationError::AudioBackendError(e) => {
-                write!(f, "Audio backend error ({})", e)
+            ApplicationError::Error(e) => {
+                write!(f, "Audio error ({})", e)
+            }
+            ApplicationError::IoError(e) => {
+                write!(f, "I/O error ({})", e)
             }
             ApplicationError::CustomEventSendingError => {
                 write!(f, "Failed to send custom event")
@@ -52,7 +56,8 @@ impl std::error::Error for ApplicationError {
             ApplicationError::InstanceCreationFailed(e) => Some(e),
             ApplicationError::RenderFrameCreationFailed(e) => Some(e),
             ApplicationError::FontCreationFailed(e) => Some(e),
-            ApplicationError::AudioBackendError(e) => Some(e),
+            ApplicationError::Error(e) => Some(e),
+            ApplicationError::IoError(e) => Some(e),
             ApplicationError::CustomEventSendingError => None,
         }
     }
@@ -82,9 +87,21 @@ impl From<roe_text::FontError> for ApplicationError {
     }
 }
 
-impl From<roe_audio::BackendError> for ApplicationError {
-    fn from(e: roe_audio::BackendError) -> Self {
-        ApplicationError::AudioBackendError(e)
+impl From<roe_audio::Error> for ApplicationError {
+    fn from(e: roe_audio::Error) -> Self {
+        ApplicationError::Error(e)
+    }
+}
+
+impl From<roe_audio::DecoderError> for ApplicationError {
+    fn from(e: roe_audio::DecoderError) -> Self {
+        Self::from(roe_audio::Error::from(e))
+    }
+}
+
+impl From<std::io::Error> for ApplicationError {
+    fn from(e: std::io::Error) -> Self {
+        ApplicationError::IoError(e)
     }
 }
 
@@ -147,7 +164,7 @@ impl ChangingColor {
             self.current_color.b = num::clamp(next_color[2], 0., 1.);
         } else {
             let mut rng = rand::thread_rng();
-            self.target_color = COLORS[rng.gen_range(0, COLORS.len())];
+            self.target_color = COLORS[rng.gen_range(0..COLORS.len())];
         }
     }
 }
