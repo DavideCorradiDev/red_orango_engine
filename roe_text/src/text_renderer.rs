@@ -12,7 +12,8 @@ use roe_math::{conversion::ToHomogeneousMatrix3, geometry2, geometry3};
 
 use super::{i26dot6_to_fsize, Font, GlyphRenderingInfo};
 
-fn as_push_constants_slice<T>(value: &T) -> &[u32] {
+// TODO: reuse somewhere else?
+fn as_push_constants_slice<T>(value: &T) -> &[u8] {
     let data: *const T = value;
     let data = data as *const u8;
     let data = unsafe { std::slice::from_raw_parts(data, size_of::<T>()) };
@@ -54,17 +55,20 @@ fn bind_group_layout(instance: &gfx::Instance) -> gfx::BindGroupLayout {
                 gfx::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: gfx::ShaderStage::FRAGMENT,
-                    ty: gfx::BindingType::SampledTexture {
+                    ty: gfx::BindingType::Texture {
                         multisampled: false,
-                        component_type: gfx::TextureComponentType::Float,
-                        dimension: gfx::TextureViewDimension::D2Array,
+                        sample_type: gfx::TextureSampleType::Float { filterable: true },
+                        view_dimension: gfx::TextureViewDimension::D2Array,
                     },
                     count: None,
                 },
                 gfx::BindGroupLayoutEntry {
                     binding: 1,
                     visibility: gfx::ShaderStage::FRAGMENT,
-                    ty: gfx::BindingType::Sampler { comparison: false },
+                    ty: gfx::BindingType::Sampler {
+                        filtering: true,
+                        comparison: false,
+                    },
                     count: None,
                 },
             ],
@@ -165,60 +169,64 @@ impl RenderPipeline {
         );
         let vs_module = gfx::ShaderModule::new(
             instance,
-            gfx::include_spirv!("shaders/gen/spirv/text.vert.spv"),
+            &gfx::include_spirv!("shaders/gen/spirv/text.vert.spv"),
         );
         let fs_module = gfx::ShaderModule::new(
             instance,
-            gfx::include_spirv!("shaders/gen/spirv/text.frag.spv"),
+            &gfx::include_spirv!("shaders/gen/spirv/text.frag.spv"),
         );
         let pipeline = gfx::RenderPipeline::new(
             instance,
             &gfx::RenderPipelineDescriptor {
                 label: None,
                 layout: Some(&pipeline_layout),
-                vertex_stage: gfx::ProgrammableStageDescriptor {
+                vertex: gfx::VertexState {
                     module: &vs_module,
                     entry_point: "main",
-                },
-                fragment_stage: Some(gfx::ProgrammableStageDescriptor {
-                    module: &fs_module,
-                    entry_point: "main",
-                }),
-                rasterization_state: Some(gfx::RasterizationStateDescriptor {
-                    front_face: gfx::FrontFace::Ccw,
-                    cull_mode: gfx::CullMode::Back,
-                    ..Default::default()
-                }),
-                primitive_topology: gfx::PrimitiveTopology::TriangleList,
-                color_states: &[gfx::ColorStateDescriptor {
-                    format: gfx::TextureFormat::from(desc.color_buffer_format),
-                    color_blend: desc.color_blend.clone(),
-                    alpha_blend: desc.alpha_blend.clone(),
-                    write_mask: desc.write_mask,
-                }],
-                depth_stencil_state: None,
-                vertex_state: gfx::VertexStateDescriptor {
-                    index_format: gfx::IndexFormat::Uint16,
-                    vertex_buffers: &[gfx::VertexBufferDescriptor {
-                        stride: std::mem::size_of::<Vertex>() as gfx::BufferAddress,
+                    buffers: &[gfx::VertexBufferLayout {
+                        array_stride: std::mem::size_of::<Vertex>() as gfx::BufferAddress,
                         step_mode: gfx::InputStepMode::Vertex,
                         attributes: &[
-                            gfx::VertexAttributeDescriptor {
-                                format: gfx::VertexFormat::Float2,
+                            gfx::VertexAttribute {
+                                format: gfx::VertexFormat::Float32x2,
                                 offset: 0,
                                 shader_location: 0,
                             },
-                            gfx::VertexAttributeDescriptor {
-                                format: gfx::VertexFormat::Float3,
+                            gfx::VertexAttribute {
+                                format: gfx::VertexFormat::Float32x3,
                                 offset: 8,
                                 shader_location: 1,
                             },
                         ],
                     }],
                 },
-                sample_count: desc.sample_count,
-                sample_mask: !0,
-                alpha_to_coverage_enabled: false,
+                primitive: gfx::PrimitiveState {
+                    topology: gfx::PrimitiveTopology::TriangleList,
+                    strip_index_format: None,
+                    front_face: gfx::FrontFace::Ccw,
+                    cull_mode: Some(gfx::Face::Back),
+                    clamp_depth: false,
+                    polygon_mode: gfx::PolygonMode::Fill,
+                    conservative: false,
+                },
+                depth_stencil: None,
+                multisample: gfx::MultisampleState {
+                    count: desc.sample_count,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
+                fragment: Some(gfx::FragmentState {
+                    module: &fs_module,
+                    entry_point: "main",
+                    targets: &[gfx::ColorTargetState {
+                        format: gfx::TextureFormat::from(desc.color_buffer_format),
+                        blend: Some(gfx::BlendState {
+                            color: desc.color_blend.clone(),
+                            alpha: desc.alpha_blend.clone(),
+                        }),
+                        write_mask: desc.write_mask,
+                    }],
+                }),
             },
         );
         Self {
@@ -264,7 +272,10 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
 
         self.set_pipeline(&pipeline.pipeline);
         self.set_bind_group(0, &font.uniform_constants().bind_group, &[]);
-        self.set_index_buffer(font.index_buffer().slice(..));
+        self.set_index_buffer(
+            font.index_buffer().slice(..),
+            roe_graphics::IndexFormat::Uint16,
+        );
         self.set_vertex_buffer(0, font.vertex_buffer().slice(..));
 
         let pc = (

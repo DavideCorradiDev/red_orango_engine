@@ -140,6 +140,7 @@ unsafe impl bytemuck::Zeroable for PushConstants {
 
 unsafe impl bytemuck::Pod for PushConstants {}
 
+// TODO: rename roe_grpahics to gfx here and in the other renderers.
 fn bind_group_layout(instance: &roe_graphics::Instance) -> roe_graphics::BindGroupLayout {
     roe_graphics::BindGroupLayout::new(
         instance,
