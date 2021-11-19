@@ -18,7 +18,7 @@ roe_math = {path = "../roe_math", features = [
   "serde-serialize",
 ]}
 serde = {version = "1.0.*", features = ["derive"]}
-wgpu = {version = "0.11.*", features = ["trace", "replay", "spirv"]}
+wgpu = {version = "0.9.*", features = ["trace", "replay"]}
 
 [dev-dependencies]
 galvanic-assert = "0.8.*"

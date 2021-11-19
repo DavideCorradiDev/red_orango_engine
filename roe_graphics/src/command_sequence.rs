@@ -66,7 +66,7 @@ impl CommandSequence {
                     "Incompatible swap chain"
                 );
                 color_attachments.push(RenderPassColorAttachmentDescriptor {
-                    attachment: swap_chain.attachment(),
+                    view: swap_chain.attachment(),
                     resolve_target: swap_chain.resolve_target(),
                     ops,
                 });
@@ -82,7 +82,7 @@ impl CommandSequence {
                     "Incompatible color buffer"
                 );
                 color_attachments.push(RenderPassColorAttachmentDescriptor {
-                    attachment: color_buffer.attachment(),
+                    view: color_buffer.attachment(),
                     resolve_target: color_buffer.resolve_target(),
                     ops,
                 })
@@ -99,7 +99,7 @@ impl CommandSequence {
                         "Incompatible depth stencil buffer"
                     );
                     Some(RenderPassDepthStencilAttachmentDescriptor {
-                        attachment: ds_buffer.attachment(),
+                        view: ds_buffer.attachment(),
                         depth_ops: operations.depth_operations,
                         stencil_ops: operations.stencil_operations,
                     })

@@ -106,7 +106,7 @@ pub struct CanvasSwapChain {
 
 impl CanvasSwapChain {
     pub fn new(instance: &Instance, surface: &Surface, desc: &CanvasSwapChainDescriptor) -> Self {
-        let usage = TextureUsage::OUTPUT_ATTACHMENT;
+        let usage = TextureUsage::RENDER_ATTACHMENT;
         let texture_format = TextureFormat::from(desc.format);
         let width = desc.size.width();
         let height = desc.size.height();
@@ -254,7 +254,7 @@ impl CanvasColorBuffer {
             sample_count: 1,
             dimension: TextureDimension::D2,
             format: TextureFormat::from(desc.format),
-            usage: TextureUsage::from(desc.usage) | TextureUsage::OUTPUT_ATTACHMENT,
+            usage: TextureUsage::from(desc.usage) | TextureUsage::RENDER_ATTACHMENT,
             label: None,
         };
 
@@ -363,7 +363,7 @@ impl CanvasDepthStencilBuffer {
                 sample_count: desc.sample_count,
                 dimension: TextureDimension::D2,
                 format: TextureFormat::from(desc.format),
-                usage: TextureUsage::OUTPUT_ATTACHMENT,
+                usage: TextureUsage::RENDER_ATTACHMENT,
                 label: None,
             },
         );

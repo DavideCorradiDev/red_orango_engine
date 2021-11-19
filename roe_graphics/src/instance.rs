@@ -15,7 +15,8 @@ use super::{
     CommandEncoderDescriptor, Extent3d, Features, Limits, Maintain, MapMode, Operations, Origin3d,
     PipelineLayoutDescriptor, PowerPreference, RenderBundleEncoderDescriptor,
     RenderPipelineDescriptor, SamplerDescriptor, ShaderModuleDescriptor, SwapChainDescriptor,
-    TextureAspect, TextureCopyView, TextureDataLayout, TextureDescriptor, TextureDimension,
+    //TextureAspect,
+    TextureCopyView, TextureDataLayout, TextureDescriptor, TextureDimension,
     TextureFormat, TextureUsage,
 };
 
@@ -149,7 +150,7 @@ impl Instance {
             &wgpu::RequestAdapterOptions {
                 power_preference: desc.power_preference,
                 compatible_surface,
-                force_fallback_adapter: false,
+                // force_fallback_adapter: false,
             },
         )) {
             Some(v) => v,
@@ -517,7 +518,7 @@ impl Texture {
                     texture: &self.value,
                     mip_level: 0,
                     origin: Origin3d::ZERO,
-                    aspect: TextureAspect::All,
+                    // aspect: TextureAspect::All,
                 },
                 BufferCopyView {
                     buffer: &output_buffer,
@@ -574,7 +575,7 @@ impl Texture {
                 texture: self,
                 mip_level,
                 origin,
-                aspect: TextureAspect::All,
+                // aspect: TextureAspect::All,
             },
             data,
             data_layout,
