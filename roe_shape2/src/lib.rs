@@ -130,43 +130,87 @@ impl RenderPipeline {
             &roe_graphics::RenderPipelineDescriptor {
                 label: None,
                 layout: Some(&pipeline_layout),
-                vertex_stage: roe_graphics::ProgrammableStageDescriptor {
+                vertex: roe_graphics::VertexState {
                     module: &vs_module,
                     entry_point: "main",
-                },
-                fragment_stage: Some(roe_graphics::ProgrammableStageDescriptor {
-                    module: &fs_module,
-                    entry_point: "main",
-                }),
-                rasterization_state: Some(roe_graphics::RasterizationStateDescriptor {
-                    front_face: roe_graphics::FrontFace::Ccw,
-                    cull_mode: roe_graphics::CullMode::Back,
-                    ..Default::default()
-                }),
-                primitive_topology: roe_graphics::PrimitiveTopology::TriangleList,
-                color_states: &[roe_graphics::ColorStateDescriptor {
-                    format: roe_graphics::TextureFormat::from(desc.color_buffer_format),
-                    color_blend: desc.color_blend.clone(),
-                    alpha_blend: desc.alpha_blend.clone(),
-                    write_mask: desc.write_mask,
-                }],
-                depth_stencil_state: None,
-                vertex_state: roe_graphics::VertexStateDescriptor {
-                    index_format: roe_graphics::IndexFormat::Uint16,
-                    vertex_buffers: &[roe_graphics::VertexBufferDescriptor {
-                        stride: std::mem::size_of::<Vertex>() as roe_graphics::BufferAddress,
+                    buffers: &[roe_graphics::VertexBufferLayout {
+                        array_stride: std::mem::size_of::<Vertex>() as roe_graphics::BufferAddress,
                         step_mode: roe_graphics::InputStepMode::Vertex,
-                        attributes: &[roe_graphics::VertexAttributeDescriptor {
-                            format: roe_graphics::VertexFormat::Float2,
+                        attributes: &[roe_graphics::VertexAttribute {
+                            format: roe_graphics::VertexFormat::Float32,
                             offset: 0,
                             shader_location: 0,
                         }],
                     }],
                 },
-                sample_count: desc.sample_count,
-                sample_mask: !0,
-                alpha_to_coverage_enabled: false,
+                primitive: roe_graphics::PrimitiveState {
+                    topology: roe_graphics::PrimitiveTopology::TriangleList,
+                    strip_index_format: Some(roe_graphics::IndexFormat::Uint16),
+                    front_face: roe_graphics::FrontFace::Ccw,
+                    cull_mode: Some(roe_graphics::Face::Back),
+                    clamp_depth: false,
+                    polygon_mode: roe_graphics::PolygonMode::Fill,
+                    conservative: false,
+                },
+                depth_stencil: None,
+                multisample: roe_graphics::MultisampleState {
+                    count: desc.sample_count,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
+                fragment: Some(roe_graphics::FragmentState {
+                    module: &fs_module,
+                    entry_point: "main",
+                    targets: &[roe_graphics::ColorTargetState {
+                        format: roe_graphics::TextureFormat::from(desc.color_buffer_format),
+                        blend: Some(roe_graphics::BlendState {
+                            color: desc.color_blend.clone(),
+                            alpha: desc.alpha_blend.clone(),
+                        }),
+                        write_mask: desc.write_mask,
+                    }],
+                }),
             },
+            //&roe_graphics::RenderPipelineDescriptor {
+            //    label: None,
+            //    layout: Some(&pipeline_layout),
+            //    vertex_stage: roe_graphics::ProgrammableStageDescriptor {
+            //        module: &vs_module,
+            //        entry_point: "main",
+            //    },
+            //    fragment_stage: Some(roe_graphics::ProgrammableStageDescriptor {
+            //        module: &fs_module,
+            //        entry_point: "main",
+            //    }),
+            //    rasterization_state: Some(roe_graphics::RasterizationStateDescriptor {
+            //        front_face: roe_graphics::FrontFace::Ccw,
+            //        cull_mode: roe_graphics::CullMode::Back,
+            //        ..Default::default()
+            //    }),
+            //    primitive_topology: roe_graphics::PrimitiveTopology::TriangleList,
+            //    color_states: &[roe_graphics::ColorStateDescriptor {
+            //        format: roe_graphics::TextureFormat::from(desc.color_buffer_format),
+            //        color_blend: desc.color_blend.clone(),
+            //        alpha_blend: desc.alpha_blend.clone(),
+            //        write_mask: desc.write_mask,
+            //    }],
+            //    depth_stencil_state: None,
+            //    vertex_state: roe_graphics::VertexStateDescriptor {
+            //        index_format: roe_graphics::IndexFormat::Uint16,
+            //        vertex_buffers: &[roe_graphics::VertexBufferDescriptor {
+            //            stride: std::mem::size_of::<Vertex>() as roe_graphics::BufferAddress,
+            //            step_mode: roe_graphics::InputStepMode::Vertex,
+            //            attributes: &[roe_graphics::VertexAttributeDescriptor {
+            //                format: roe_graphics::VertexFormat::Float2,
+            //                offset: 0,
+            //                shader_location: 0,
+            //            }],
+            //        }],
+            //    },
+            //    sample_count: desc.sample_count,
+            //    sample_mask: !0,
+            //    alpha_to_coverage_enabled: false,
+            //},
         );
         Self {
             pipeline,

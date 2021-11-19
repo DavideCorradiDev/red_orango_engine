@@ -64,8 +64,14 @@ pub use wgpu::{
     SwapChainDescriptor, SwapChainError, SwapChainFrame, SwapChainTexture,
 };
 
+pub use wgpu::{
+    BlendComponent as BlendDescriptor, BlendState, ColorTargetState, ColorWrite, DepthStencilState,
+    Face, FragmentState, MultisampleState, PolygonMode, PrimitiveState, ShaderStage,
+    VertexAttribute, VertexState, VertexBufferLayout, InputStepMode,
+};
+
 // pub use wgpu::{
-//     BlendDescriptor, ColorStateDescriptor, ColorWrite, CullMode, DepthStencilStateDescriptor,
+//     BlendDescriptor, ColorStateDescriptor, ColorWrite, DepthStencilStateDescriptor,
 //     InputStepMode, ProgrammableStageDescriptor, RasterizationStateDescriptor,
 //     ShaderStage,
 //     StencilStateDescriptor, SwapChainTexture,
