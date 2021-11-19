@@ -85,8 +85,7 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
                     let time_step = std::time::Duration::from_secs_f64(0.1);
                     let new_time = if time_step > cur_time {
                         std::time::Duration::from_millis(0)
-                    }
-                    else {
+                    } else {
                         cur_time - time_step
                     };
                     self.static_source.set_time_offset(new_time)?;
@@ -114,15 +113,15 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
                     let time_step = std::time::Duration::from_secs_f64(0.1);
                     let new_time = if time_step > cur_time {
                         std::time::Duration::from_millis(0)
-                    }
-                    else {
+                    } else {
                         cur_time - time_step
                     };
                     self.streaming_source.set_time_offset(new_time)?;
                 }
                 if key_code == keyboard::KeyCode::H {
                     self.streaming_source.set_time_offset(
-                        self.streaming_source.time_offset() + std::time::Duration::from_secs_f64(1.),
+                        self.streaming_source.time_offset()
+                            + std::time::Duration::from_secs_f64(1.),
                     )?;
                 }
             }

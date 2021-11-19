@@ -40,14 +40,11 @@ impl StaticSource {
         let sample_length = self.sample_length();
         if sample_length == 0 {
             0
-        }
-        else if self.looping() {
+        } else if self.looping() {
             value % sample_length
-        }
-        else if value >= sample_length {
+        } else if value >= sample_length {
             0
-        }
-        else {
+        } else {
             value
         }
     }
