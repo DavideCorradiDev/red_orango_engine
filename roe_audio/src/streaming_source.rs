@@ -221,14 +221,18 @@ impl StreamingSource {
 
     fn normalize_sample_offset(&self, value: u64) -> u64 {
         let sample_length = self.sample_length();
-        if sample_length == 0 {
-            0
-        } else if self.looping() {
-            value % sample_length
-        } else if value >= sample_length {
-            0
+        if self.looping() {
+            if sample_length == 0 {
+                0
+            } else {
+                value % sample_length
+            }
         } else {
-            value
+            if value >= sample_length {
+                0
+            } else {
+                value
+            }
         }
     }
 }
