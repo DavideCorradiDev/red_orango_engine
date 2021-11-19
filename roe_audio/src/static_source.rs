@@ -49,8 +49,7 @@ impl StaticSource {
                 0
             } else {
                 value
-            }
-        }
+            } }
     }
 }
 
