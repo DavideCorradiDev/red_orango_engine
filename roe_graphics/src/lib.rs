@@ -1,6 +1,6 @@
 // TODO: re-rename renamed types.
 pub use wgpu::{
-    include_spirv_raw as include_spirv, util::BufferInitDescriptor, AdapterInfo, AddressMode,
+    include_spirv, util::BufferInitDescriptor, AdapterInfo, AddressMode,
     Backends as Backend, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
     BindGroupLayoutEntry, BindingResource, BindingType, BlendFactor, BlendOperation, BufferAddress,
     BufferDescriptor, BufferSlice, BufferUsages as BufferUsage, CommandBuffer,
@@ -14,25 +14,14 @@ pub use wgpu::{
     TextureViewDescriptor, TextureViewDimension, VertexFormat,
 };
 
-// pub use wgpu::{
-//     include_spirv_raw as include_spirv, util::BufferInitDescriptor, AdapterInfo, AddressMode,
-//     Backends as Backend, BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor,
-//     BindGroupLayoutEntry, BindingResource, BindingType, BlendDescriptor, BlendFactor,
-//     BlendOperation, BufferAddress, BufferDescriptor, BufferSlice, BufferUsages as BufferUsage,
-//     ColorStateDescriptor, ColorWrite, CommandBuffer, CommandEncoderDescriptor, CompareFunction,
-//     CullMode, DepthStencilStateDescriptor, Extent3d, Features, FilterMode, FrontFace,
-//     ImageCopyBuffer as BufferCopyView, ImageCopyTexture as TextureCopyView, IndexFormat,
-//     InputStepMode, Limits, LoadOp, Maintain, MapMode, Operations, Origin3d,
-//     PipelineLayoutDescriptor, PowerPreference, PresentMode, PrimitiveTopology,
-//     ProgrammableStageDescriptor, PushConstantRange, RasterizationStateDescriptor,
-//     RenderBundleEncoderDescriptor, RenderPass, RenderPassColorAttachmentDescriptor,
-//     RenderPassDepthStencilAttachmentDescriptor, RenderPassDescriptor, RenderPipelineDescriptor,
-//     SamplerDescriptor, ShaderModuleDescriptor, ShaderSource, ShaderStage, StencilStateDescriptor,
-//     SwapChainDescriptor, SwapChainError, SwapChainFrame, SwapChainTexture, TextureComponentType,
-//     ImageDataLayout as TextureDataLayout, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat, TextureUsage,
-//     TextureView, TextureViewDescriptor, TextureViewDimension, VertexAttributeDescriptor,
-//     VertexBufferDescriptor, VertexFormat, VertexStateDescriptor,
-// };
+pub use wgpu::{
+    BlendDescriptor, ColorStateDescriptor, ColorWrite, CullMode, DepthStencilStateDescriptor,
+    InputStepMode, ProgrammableStageDescriptor, RasterizationStateDescriptor,
+    RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor, ShaderStage,
+    StencilStateDescriptor, SwapChainDescriptor, SwapChainError, SwapChainFrame, SwapChainTexture,
+    TextureComponentType, TextureUsage, VertexAttributeDescriptor, VertexBufferDescriptor,
+    VertexStateDescriptor,
+};
 
 mod size;
 pub use size::*;
