@@ -705,7 +705,7 @@ mod tests {
     fn new() {
         let _instance = Instance::new(&InstanceDescriptor {
             backend: Backend::VULKAN,
-            power_preference: PowerPreference::Default,
+            power_preference: PowerPreference::HighPerformance,
             required_features: Features::default(),
             optional_features: Features::empty(),
             required_limits: Limits::default(),
