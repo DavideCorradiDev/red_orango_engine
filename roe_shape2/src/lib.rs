@@ -49,7 +49,7 @@ impl PushConstants {
         }
     }
 
-    fn as_slice(&self) -> &[u32] {
+    fn as_slice(&self) -> &[u8] {
         let pc: *const PushConstants = self;
         let pc: *const u8 = pc as *const u8;
         let data = unsafe { std::slice::from_raw_parts(pc, std::mem::size_of::<PushConstants>()) };
@@ -119,11 +119,11 @@ impl RenderPipeline {
         );
         let vs_module = roe_graphics::ShaderModule::new(
             &instance,
-            roe_graphics::include_spirv!("shaders/gen/spirv/shape2.vert.spv"),
+            &roe_graphics::include_spirv!("shaders/gen/spirv/shape2.vert.spv"),
         );
         let fs_module = roe_graphics::ShaderModule::new(
             &instance,
-            roe_graphics::include_spirv!("shaders/gen/spirv/shape2.frag.spv"),
+            &roe_graphics::include_spirv!("shaders/gen/spirv/shape2.frag.spv"),
         );
         let pipeline = roe_graphics::RenderPipeline::new(
             &instance,
@@ -256,7 +256,10 @@ impl<'a> Renderer<'a> for roe_graphics::RenderPass<'a> {
         index_range: MeshIndexRange,
     ) {
         self.set_pipeline(&pipeline.pipeline);
-        self.set_index_buffer(mesh.index_buffer().slice(..));
+        self.set_index_buffer(
+            mesh.index_buffer().slice(..),
+            roe_graphics::IndexFormat::Uint16,
+        );
         self.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
         self.set_push_constants(
             roe_graphics::ShaderStage::VERTEX,
@@ -277,7 +280,10 @@ impl<'a> Renderer<'a> for roe_graphics::RenderPass<'a> {
     {
         self.set_pipeline(&pipeline.pipeline);
         for (mesh, pcs) in draw_commands.into_iter() {
-            self.set_index_buffer(mesh.index_buffer().slice(..));
+            self.set_index_buffer(
+                mesh.index_buffer().slice(..),
+                roe_graphics::IndexFormat::Uint16,
+            );
             self.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
             for (pc, ranges) in pcs.into_iter() {
                 self.set_push_constants(roe_graphics::ShaderStage::VERTEX, 0, pc.as_slice());

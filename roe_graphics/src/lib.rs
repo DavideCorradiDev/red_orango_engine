@@ -67,7 +67,7 @@ pub use wgpu::{
 pub use wgpu::{
     BlendComponent as BlendDescriptor, BlendState, ColorTargetState, ColorWrite, DepthStencilState,
     Face, FragmentState, MultisampleState, PolygonMode, PrimitiveState, ShaderStage,
-    VertexAttribute, VertexState, VertexBufferLayout, InputStepMode,
+    VertexAttribute, VertexState, VertexBufferLayout, InputStepMode, ShaderFlags,
 };
 
 // pub use wgpu::{
