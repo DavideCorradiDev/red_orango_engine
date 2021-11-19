@@ -214,7 +214,7 @@ bitflags::bitflags! {
     pub struct CanvasColorBufferUsage : u32 {
         const COPY_SRC = TextureUsage::COPY_SRC.bits();
         const COPY_DST = TextureUsage::COPY_DST.bits();
-        const SAMPLED = TextureUsage::SAMPLED.bits();
+        const TEXTURE_BINDING = TextureUsage::TEXTURE_BINDING.bits();
     }
 }
 

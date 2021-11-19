@@ -4,7 +4,7 @@ pub use wgpu::{
     util::BufferInitDescriptor,
     AdapterInfo,
     AddressMode,
-    BackendBit as Backend,
+    Backends as Backend,
     BindGroupDescriptor,
     BindGroupEntry,
     BindGroupLayoutDescriptor,
@@ -16,7 +16,7 @@ pub use wgpu::{
     BufferAddress,
     BufferDescriptor,
     BufferSlice,
-    BufferUsage,
+    BufferUsages as BufferUsage,
     CommandBuffer,
     CommandEncoderDescriptor,
     CompareFunction,
@@ -46,17 +46,16 @@ pub use wgpu::{
     SamplerDescriptor,
     ShaderModuleDescriptor,
     ShaderSource,
-    // TextureAspect,
+    TextureAspect,
     TextureDescriptor,
     TextureDimension,
     TextureFormat,
+    TextureUsages as TextureUsage,
     TextureView,
     TextureViewDescriptor,
     TextureViewDimension,
     VertexFormat,
 };
-
-pub use wgpu::TextureUsage;
 
 pub use wgpu::{
     RenderPassColorAttachment as RenderPassColorAttachmentDescriptor,
@@ -65,20 +64,11 @@ pub use wgpu::{
 };
 
 pub use wgpu::{
-    BlendComponent as BlendDescriptor, BlendState, ColorTargetState, ColorWrite, DepthStencilState,
-    Face, FragmentState, MultisampleState, PolygonMode, PrimitiveState, ShaderStage,
-    VertexAttribute, VertexState, VertexBufferLayout, InputStepMode, ShaderFlags,
-    TextureSampleType
+    BlendComponent as BlendDescriptor, BlendState, ColorTargetState, ColorWrites as ColorWrite,
+    DepthStencilState, Face, FragmentState, MultisampleState, PolygonMode, PrimitiveState,
+    ShaderStages as ShaderStage, TextureSampleType, VertexAttribute,
+    VertexBufferLayout, VertexState, VertexStepMode as InputStepMode,
 };
-
-// pub use wgpu::{
-//     BlendDescriptor, ColorStateDescriptor, ColorWrite, DepthStencilStateDescriptor,
-//     InputStepMode, ProgrammableStageDescriptor, RasterizationStateDescriptor,
-//     ShaderStage,
-//     StencilStateDescriptor, SwapChainTexture,
-//     TextureComponentType, VertexAttributeDescriptor, VertexBufferDescriptor,
-//     VertexStateDescriptor,
-// };
 
 mod size;
 pub use size::*;
