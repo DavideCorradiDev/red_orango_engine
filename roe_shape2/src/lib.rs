@@ -137,7 +137,7 @@ impl RenderPipeline {
                         array_stride: std::mem::size_of::<Vertex>() as roe_graphics::BufferAddress,
                         step_mode: roe_graphics::InputStepMode::Vertex,
                         attributes: &[roe_graphics::VertexAttribute {
-                            format: roe_graphics::VertexFormat::Float32,
+                            format: roe_graphics::VertexFormat::Float32x2,
                             offset: 0,
                             shader_location: 0,
                         }],
@@ -145,7 +145,8 @@ impl RenderPipeline {
                 },
                 primitive: roe_graphics::PrimitiveState {
                     topology: roe_graphics::PrimitiveTopology::TriangleList,
-                    strip_index_format: Some(roe_graphics::IndexFormat::Uint16),
+                    // TODO: should this be set?
+                    strip_index_format: None,
                     front_face: roe_graphics::FrontFace::Ccw,
                     cull_mode: Some(roe_graphics::Face::Back),
                     clamp_depth: false,

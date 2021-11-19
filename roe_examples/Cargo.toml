@@ -15,8 +15,8 @@ roe_math = {path = "../roe_math", features = [
   "serde-serialize",
 ]}
 roe_shape2 = {path = "../roe_shape2"}
-roe_sprite = {path = "../roe_sprite"}
-roe_text = {path = "../roe_text"}
+# roe_sprite = {path = "../roe_sprite"}
+# roe_text = {path = "../roe_text"}
 
 [[example]]
 name = "events"
@@ -26,17 +26,17 @@ path = "examples/events.rs"
 name = "triangles"
 path = "examples/triangles.rs"
 
-[[example]]
-name = "gioconda"
-path = "examples/gioconda.rs"
-
-[[example]]
-name = "offscreen_rendering"
-path = "examples/offscreen_rendering.rs"
-
-[[example]]
-name = "text_rendering"
-path = "examples/text_rendering.rs"
+# [[example]]
+# name = "gioconda"
+# path = "examples/gioconda.rs"
+# 
+# [[example]]
+# name = "offscreen_rendering"
+# path = "examples/offscreen_rendering.rs"
+# 
+# [[example]]
+# name = "text_rendering"
+# path = "examples/text_rendering.rs"
 
 [[example]]
 name = "sound_player"
