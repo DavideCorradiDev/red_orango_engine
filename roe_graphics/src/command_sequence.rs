@@ -144,6 +144,7 @@ mod tests {
     fn render_pass() {
         let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
         let mut cmd_seq = CommandSequence::new(&instance);
+        println!("TODO: CREATING BUFFER");
         let mut buffer = CanvasBuffer::new(
             &instance,
             CanvasBufferDescriptor {
@@ -157,9 +158,13 @@ mod tests {
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
             },
         );
+        println!("TODO: BUFFER CREATED");
 
         {
+            println!("TODO: RETRIEVING FRAME");
             let frame = buffer.current_frame().unwrap();
+            println!("TODO: FRAME RETRIEVED");
+            println!("TODO: BEGINNING PASS");
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
                 &RenderPassRequirements {
@@ -169,10 +174,14 @@ mod tests {
                 },
                 &RenderPassOperations::default(),
             );
+            println!("TODO: DONE");
         }
 
         {
+            println!("TODO: RETRIEVING FRAME");
             let frame = buffer.current_frame().unwrap();
+            println!("TODO: FRAME RETRIEVED");
+            println!("TODO: BEGINNING PASS");
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
                 &RenderPassRequirements {
@@ -182,9 +191,12 @@ mod tests {
                 },
                 &RenderPassOperations::default(),
             );
+            println!("TODO: DONE");
         }
 
+        println!("TODO: SUBMITTING COMMAND");
         cmd_seq.submit(&instance);
+        println!("TODO: DONE"); 
     }
 
     #[test]

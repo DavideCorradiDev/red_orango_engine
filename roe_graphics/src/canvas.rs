@@ -1,7 +1,7 @@
 use super::{
     Extent3d, Instance, PresentMode, SampleCount, Size, Surface, SurfaceError, 
     Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsage, TextureView,
-    TextureViewDescriptor, SurfaceConfiguration
+    TextureViewDescriptor, SurfaceConfiguration, TextureViewDimension, TextureAspect
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -163,7 +163,16 @@ impl CanvasSwapChain {
     pub fn reference(&mut self) -> Result<CanvasSwapChainRef, SurfaceError> {
         let surface_texture = self.surface.get_current_texture()?;
         // TODO: view descriptor should be populated...
-        let frame = surface_texture.texture.create_view(&TextureViewDescriptor::default());
+        let frame = surface_texture.texture.create_view(&TextureViewDescriptor {
+            label: None,
+            format: Some(TextureFormat::from(self.format)),
+            dimension: Some(TextureViewDimension::D2),
+            aspect: TextureAspect::All,
+            base_mip_level: 0,
+            mip_level_count: None,
+            base_array_layer: 0,
+            array_layer_count: None,
+        });
         let multisampled_buffer = match self.multisampled_buffer {
             Some(ref v) => Some(v),
             None => None,
