@@ -99,6 +99,7 @@ impl CanvasWindow {
         let current_size = CanvasSize::new(current_size.width, current_size.height);
         if *self.canvas_size() != current_size {
             // TODO: handle this better.
+            let format = self.color_buffer_format();
             let surface = self.canvas_buffer.retrieve_surface().unwrap();
             self.canvas_buffer = CanvasBuffer::new(
                 instance,
@@ -107,7 +108,7 @@ impl CanvasWindow {
                     sample_count: self.sample_count(),
                     swap_chain_descriptor: Some(CanvasBufferSwapChainDescriptor {
                         surface,
-                        format: self.color_buffer_format(),
+                        format,
                     }),
                     color_buffer_descriptors: Vec::new(),
                     depth_stencil_buffer_format: self.depth_stencil_buffer_format(),

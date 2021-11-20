@@ -601,6 +601,7 @@ impl CanvasBuffer {
 
     // TODO: handle this more appropriately?
     pub fn retrieve_surface(&mut self) -> Option<Surface> {
+        println!("TODO: RETRIVING SURFACE!!!");
         let mut extracted_swap_chain = None;
         std::mem::swap(&mut extracted_swap_chain, &mut self.swap_chain);
         match extracted_swap_chain {
