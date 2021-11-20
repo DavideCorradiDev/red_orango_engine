@@ -1,7 +1,7 @@
 use super::{
-    Extent3d, Instance, PresentMode, SampleCount, Size, Surface, SwapChain, SwapChainDescriptor,
-    SwapChainError, SwapChainFrame, Texture, TextureDescriptor, TextureDimension, TextureFormat,
-    TextureUsage, TextureView, TextureViewDescriptor,
+    Extent3d, Instance, PresentMode, SampleCount, Size, Surface, SurfaceError, SurfaceTexture,
+    Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsage, TextureView,
+    TextureViewDescriptor, SurfaceConfiguration
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -61,20 +61,21 @@ pub struct CanvasSwapChainRef<'a> {
     sample_count: SampleCount,
     format: CanvasColorBufferFormat,
     multisampled_buffer: Option<&'a TextureView>,
-    frame: SwapChainFrame,
+    // TODO: change to reference?
+    frame: TextureView,
 }
 
 impl<'a> CanvasSwapChainRef<'a> {
     pub fn attachment(&self) -> &TextureView {
         match self.multisampled_buffer {
             Some(v) => &v,
-            None => &self.frame.output.view,
+            None => &self.frame,
         }
     }
 
     pub fn resolve_target(&self) -> Option<&TextureView> {
         match self.multisampled_buffer {
-            Some(_) => Some(&self.frame.output.view),
+            Some(_) => Some(&self.frame),
             None => None,
         }
     }
@@ -101,26 +102,22 @@ pub struct CanvasSwapChain {
     sample_count: SampleCount,
     format: CanvasColorBufferFormat,
     multisampled_buffer: Option<TextureView>,
-    swap_chain: SwapChain,
+    surface: Surface,
 }
 
 impl CanvasSwapChain {
-    pub fn new(instance: &Instance, surface: &Surface, desc: &CanvasSwapChainDescriptor) -> Self {
+    pub fn new(instance: &Instance, mut surface: Surface, desc: &CanvasSwapChainDescriptor) -> Self {
         let usage = TextureUsage::RENDER_ATTACHMENT;
         let texture_format = TextureFormat::from(desc.format);
         let width = desc.size.width();
         let height = desc.size.height();
-        let swap_chain = SwapChain::new(
-            instance,
-            surface,
-            &SwapChainDescriptor {
+        surface.configure(instance, &SurfaceConfiguration {
                 usage,
                 format: texture_format,
                 width,
                 height,
                 present_mode: PresentMode::Mailbox,
-            },
-        );
+        });
         let multisampled_buffer = if desc.sample_count > 1 {
             let multisampling_buffer_texture = Texture::new(
                 instance,
@@ -147,7 +144,7 @@ impl CanvasSwapChain {
             sample_count: desc.sample_count,
             format: desc.format,
             multisampled_buffer,
-            swap_chain,
+            surface,
         }
     }
 
@@ -163,8 +160,10 @@ impl CanvasSwapChain {
         self.format
     }
 
-    pub fn reference(&mut self) -> Result<CanvasSwapChainRef, SwapChainError> {
-        let frame = self.swap_chain.get_current_frame()?;
+    pub fn reference(&mut self) -> Result<CanvasSwapChainRef, SurfaceError> {
+        let surface_texture = self.surface.get_current_texture()?;
+        // TODO: view descriptor should be populated...
+        let frame = surface_texture.texture.create_view(&TextureViewDescriptor::default());
         let multisampled_buffer = match self.multisampled_buffer {
             Some(ref v) => Some(v),
             None => None,
@@ -175,6 +174,60 @@ impl CanvasSwapChain {
             multisampled_buffer,
             frame,
         })
+    }
+
+    pub fn configure(&mut self, instance: &Instance, desc: &CanvasSwapChainDescriptor) {
+        // TODO: remove repetition.
+        let usage = TextureUsage::RENDER_ATTACHMENT;
+        let texture_format = TextureFormat::from(desc.format);
+        let width = desc.size.width();
+        let height = desc.size.height();
+        surface.configure(instance, &SurfaceConfiguration {
+                usage,
+                format: texture_format,
+                width,
+                height,
+                present_mode: PresentMode::Mailbox,
+        });
+        let multisampled_buffer = if desc.sample_count > 1 {
+            let multisampling_buffer_texture = Texture::new(
+                instance,
+                &TextureDescriptor {
+                    size: Extent3d {
+                        width,
+                        height,
+                        depth_or_array_layers: 1,
+                    },
+                    mip_level_count: 1,
+                    sample_count: desc.sample_count,
+                    dimension: TextureDimension::D2,
+                    format: texture_format,
+                    usage,
+                    label: None,
+                },
+            );
+            Some(multisampling_buffer_texture.create_view(&TextureViewDescriptor::default()))
+        } else {
+            None
+        };
+
+        let current_size = self.inner_size();
+        let current_size = CanvasSize::new(current_size.width, current_size.height);
+        if *self.canvas_size() != current_size {
+            self.canvas_buffer = CanvasBuffer::new(
+                instance,
+                &CanvasBufferDescriptor {
+                    size: current_size,
+                    sample_count: self.sample_count(),
+                    swap_chain_descriptor: Some(CanvasBufferSwapChainDescriptor {
+                        surface: &self.surface,
+                        format: self.color_buffer_format(),
+                    }),
+                    color_buffer_descriptors: Vec::new(),
+                    depth_stencil_buffer_format: self.depth_stencil_buffer_format(),
+                },
+            );
+        }
     }
 }
 
@@ -427,9 +480,9 @@ impl<'a> CanvasFrame<'a> {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct CanvasBufferSwapChainDescriptor<'a> {
-    pub surface: &'a Surface,
+#[derive(Debug)]
+pub struct CanvasBufferSwapChainDescriptor {
+    pub surface: Surface,
     pub format: CanvasColorBufferFormat,
 }
 
@@ -448,11 +501,11 @@ impl Default for CanvasBufferColorBufferDescriptor {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct CanvasBufferDescriptor<'a> {
+#[derive(Debug)]
+pub struct CanvasBufferDescriptor {
     pub size: CanvasSize,
     pub sample_count: SampleCount,
-    pub swap_chain_descriptor: Option<CanvasBufferSwapChainDescriptor<'a>>,
+    pub swap_chain_descriptor: Option<CanvasBufferSwapChainDescriptor>,
     pub color_buffer_descriptors: Vec<CanvasBufferColorBufferDescriptor>,
     pub depth_stencil_buffer_format: Option<CanvasDepthStencilBufferFormat>,
 }
@@ -540,7 +593,7 @@ impl CanvasBuffer {
         self.depth_stencil_buffer.as_ref()
     }
 
-    pub fn current_frame(&mut self) -> Result<CanvasFrame, SwapChainError> {
+    pub fn current_frame(&mut self) -> Result<CanvasFrame, SurfaceError> {
         let swap_chain = match &mut self.swap_chain {
             Some(swap_chain) => Some(swap_chain.reference()?),
             None => None,
@@ -565,7 +618,7 @@ impl CanvasBuffer {
 }
 
 pub trait Canvas {
-    fn current_frame(&mut self) -> Result<CanvasFrame, SwapChainError>;
+    fn current_frame(&mut self) -> Result<CanvasFrame, SurfaceError>;
     fn canvas_size(&self) -> &CanvasSize;
     fn sample_count(&self) -> SampleCount;
 }
@@ -596,7 +649,7 @@ mod tests {
 
         let mut swap_chain = CanvasSwapChain::new(
             &instance,
-            &surface,
+            surface,
             &CanvasSwapChainDescriptor {
                 sample_count: 2,
                 format: CanvasColorBufferFormat::Bgra8Unorm,
@@ -687,7 +740,7 @@ mod tests {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
                 swap_chain_descriptor: Some(CanvasBufferSwapChainDescriptor {
-                    surface: &surface,
+                    surface: surface,
                     format: CanvasColorBufferFormat::default(),
                 }),
                 color_buffer_descriptors: vec![

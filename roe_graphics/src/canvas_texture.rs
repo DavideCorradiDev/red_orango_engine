@@ -3,7 +3,7 @@ use std::default::Default;
 use super::{
     Canvas, CanvasBuffer, CanvasBufferColorBufferDescriptor, CanvasBufferDescriptor,
     CanvasColorBufferFormat, CanvasDepthStencilBufferFormat, CanvasFrame, CanvasSize, Instance,
-    SampleCount, Size, SwapChainError, Texture, TextureView,
+    SampleCount, Size, Texture, TextureView, SurfaceError
 };
 
 pub type CanvasTextureColorBufferDescriptor = CanvasBufferColorBufferDescriptor;
@@ -97,7 +97,7 @@ impl CanvasTexture {
 }
 
 impl Canvas for CanvasTexture {
-    fn current_frame(&mut self) -> Result<CanvasFrame, SwapChainError> {
+    fn current_frame(&mut self) -> Result<CanvasFrame, SurfaceError> {
         self.canvas_buffer.current_frame()
     }
 

@@ -60,7 +60,7 @@ pub use wgpu::{
 pub use wgpu::{
     RenderPassColorAttachment as RenderPassColorAttachmentDescriptor,
     RenderPassDepthStencilAttachment as RenderPassDepthStencilAttachmentDescriptor,
-    SwapChainDescriptor, SwapChainError, SwapChainFrame, SwapChainTexture,
+    SurfaceTexture, SurfaceError, SurfaceConfiguration
 };
 
 pub use wgpu::{

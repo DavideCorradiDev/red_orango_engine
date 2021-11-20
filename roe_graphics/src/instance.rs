@@ -14,9 +14,9 @@ use super::{
     BufferCopyView, BufferDescriptor, BufferInitDescriptor, BufferUsage, ColorF64, CommandBuffer,
     CommandEncoderDescriptor, Extent3d, Features, Limits, Maintain, MapMode, Operations, Origin3d,
     PipelineLayoutDescriptor, PowerPreference, RenderBundleEncoderDescriptor,
-    RenderPipelineDescriptor, SamplerDescriptor, ShaderModuleDescriptor, SwapChainDescriptor,
+    RenderPipelineDescriptor, SamplerDescriptor, ShaderModuleDescriptor, 
     TextureAspect, TextureCopyView, TextureDataLayout, TextureDescriptor, TextureDimension,
-    TextureFormat, TextureUsage,
+    TextureFormat, TextureUsage, SurfaceConfiguration, SurfaceTexture, SurfaceError
 };
 
 pub type SampleCount = u32;
@@ -191,6 +191,14 @@ impl Surface {
         Self {
             value: instance.instance.create_surface(window),
         }
+    }
+
+    pub fn configure(&self, instance: &Instance, config: &SurfaceConfiguration) {
+        self.value.configure(&instance.device, config);
+    }
+
+    pub fn get_current_texture(&self) -> Result<SurfaceTexture, SurfaceError> {
+        self.value.get_current_texture()
     }
 }
 
@@ -617,32 +625,6 @@ impl Deref for Sampler {
 }
 
 impl DerefMut for Sampler {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
-    }
-}
-
-#[derive(Debug)]
-pub struct SwapChain {
-    value: wgpu::SwapChain,
-}
-
-impl SwapChain {
-    pub fn new(instance: &Instance, surface: &Surface, desc: &SwapChainDescriptor) -> Self {
-        Self {
-            value: instance.device.create_swap_chain(surface, desc),
-        }
-    }
-}
-
-impl Deref for SwapChain {
-    type Target = wgpu::SwapChain;
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl DerefMut for SwapChain {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.value
     }

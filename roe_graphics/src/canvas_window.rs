@@ -9,7 +9,7 @@ use roe_app::{
 use super::{
     Canvas, CanvasBuffer, CanvasBufferDescriptor, CanvasBufferSwapChainDescriptor,
     CanvasColorBufferFormat, CanvasDepthStencilBufferFormat, CanvasFrame, CanvasSize, Instance,
-    SampleCount, Surface, SwapChainError,
+    SampleCount, Surface, SurfaceError,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -32,7 +32,6 @@ impl Default for CanvasWindowDescriptor {
 #[derive(Debug)]
 pub struct CanvasWindow {
     canvas_buffer: CanvasBuffer,
-    surface: Surface,
     window: Window,
 }
 
@@ -71,7 +70,7 @@ impl CanvasWindow {
                 size: CanvasSize::new(surface_size.width, surface_size.height),
                 sample_count: desc.sample_count,
                 swap_chain_descriptor: Some(CanvasBufferSwapChainDescriptor {
-                    surface: &surface,
+                    surface,
                     format: desc.color_buffer_format,
                 }),
                 color_buffer_descriptors: Vec::new(),
@@ -80,7 +79,6 @@ impl CanvasWindow {
         );
         Self {
             canvas_buffer,
-            surface,
             window,
         }
     }
@@ -241,7 +239,7 @@ impl CanvasWindow {
 }
 
 impl Canvas for CanvasWindow {
-    fn current_frame(&mut self) -> Result<CanvasFrame, SwapChainError> {
+    fn current_frame(&mut self) -> Result<CanvasFrame, SurfaceError> {
         self.canvas_buffer.current_frame()
     }
 
