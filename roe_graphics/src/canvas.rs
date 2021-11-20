@@ -1,7 +1,7 @@
 use super::{
-    Extent3d, Instance, PresentMode, SampleCount, Size, Surface, SurfaceError, 
-    Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsage, TextureView,
-    TextureViewDescriptor, SurfaceConfiguration, TextureViewDimension, TextureAspect
+    Extent3d, Instance, PresentMode, SampleCount, Size, Surface, SurfaceConfiguration,
+    SurfaceError, Texture, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
+    TextureUsage, TextureView, TextureViewDescriptor, TextureViewDimension,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -68,8 +68,14 @@ pub struct CanvasSwapChainRef<'a> {
 impl<'a> CanvasSwapChainRef<'a> {
     pub fn attachment(&self) -> &TextureView {
         match self.multisampled_buffer {
-            Some(v) => &v,
-            None => &self.frame,
+            Some(v) => {
+                println!("TODO: returning multisampled buffer!");
+                &v
+            }
+            None => {
+                println!("TODO: returning surface buffer!");
+                &self.frame
+            }
         }
     }
 
@@ -111,13 +117,16 @@ impl CanvasSwapChain {
         let texture_format = TextureFormat::from(desc.format);
         let width = desc.size.width();
         let height = desc.size.height();
-        surface.configure(instance, &SurfaceConfiguration {
+        surface.configure(
+            instance,
+            &SurfaceConfiguration {
                 usage,
                 format: texture_format,
                 width,
                 height,
                 present_mode: PresentMode::Mailbox,
-        });
+            },
+        );
         let multisampled_buffer = if desc.sample_count > 1 {
             let multisampling_buffer_texture = Texture::new(
                 instance,
@@ -614,7 +623,7 @@ impl CanvasBuffer {
         let mut extracted_swap_chain = None;
         std::mem::swap(&mut extracted_swap_chain, &mut self.swap_chain);
         match extracted_swap_chain {
-            Some (sc) => Some(sc.surface),
+            Some(sc) => Some(sc.surface),
             None => None,
         }
     }
