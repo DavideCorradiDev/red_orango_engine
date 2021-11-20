@@ -520,8 +520,8 @@ pub struct CanvasBuffer {
 }
 
 impl CanvasBuffer {
-    // TODO: make sure surface is tested properly.
     pub fn new(
+        // TODO: make sure passing surface as optional is tested properly.
         instance: &Instance,
         surface: Option<Surface>,
         desc: &CanvasBufferDescriptor,
@@ -546,57 +546,41 @@ impl CanvasBuffer {
             None => None,
         };
 
-        let mut canvas_color_buffers = Vec::with_capacity(desc.color_buffer_descriptors.len());
-        for cbd in desc.color_buffer_descriptors.iter() {
-            canvas_color_buffers.push(CanvasColorBuffer::new(
-                instance,
-                &CanvasColorBufferDescriptor {
-                    size: desc.size,
-                    sample_count: desc.sample_count,
-                    format: cbd.format,
-                    usage: cbd.usage,
-                },
-            ));
-        }
+        let canvas_color_buffers = Self::create_color_buffers(instance, desc);
+        let canvas_depth_stencil_buffer = Self::create_depth_stencil_buffer(instance, desc);
 
-        let canvas_depth_stencil_buffer = match &desc.depth_stencil_buffer_format {
-            Some(format) => Some(CanvasDepthStencilBuffer::new(
-                instance,
-                &CanvasDepthStencilBufferDescriptor {
-                    size: desc.size,
-                    sample_count: desc.sample_count,
-                    format: *format,
-                },
-            )),
-            None => None,
-        };
-
-        assert!(
-            canvas_surface.is_some()
-                || !canvas_color_buffers.is_empty()
-                || canvas_depth_stencil_buffer.is_some(),
-            "No buffer defined for a canvas buffer"
-        );
-
-        Self {
+        let canvas_buffer = Self {
             size: desc.size,
             sample_count: desc.sample_count,
             canvas_surface,
             canvas_color_buffers,
             canvas_depth_stencil_buffer,
-        }
+        };
+        canvas_buffer.assert_has_buffer();
+        canvas_buffer
     }
 
     pub fn configure(&mut self, instance: &Instance, desc: &CanvasBufferDescriptor) {
+        // TODO: move check size to here.
         self.size = desc.size;
         self.sample_count = desc.sample_count;
 
+        // If the requested surface area is 0, don't actually reconfigure (it won't work).
+        // Instead, only the variables above are set, so that the canvas buffer can currently be
+        // flagged as "invalid", no frames are returned, and the surface will be recreated when the
+        // size changes again to a valid value.
         if desc.size.width() == 0 || desc.size.height() == 0 {
             return;
         }
 
+        self.configure_canvas_surface(instance, desc);
+        self.canvas_color_buffers = Self::create_color_buffers(instance, desc);
+        self.canvas_depth_stencil_buffer = Self::create_depth_stencil_buffer(instance, desc);
+        self.assert_has_buffer();
+    }
+
+    fn configure_canvas_surface(&mut self, instance: &Instance, desc: &CanvasBufferDescriptor) {
         // TODO: should we make sure that if surface is not passed, also descriptor is not passed?
-        // TODO: remove code duplication.
         if let Some(canvas_surface) = &mut self.canvas_surface {
             let format = match &desc.surface_descriptor {
                 Some(sd) => sd.format,
@@ -611,10 +595,15 @@ impl CanvasBuffer {
                 },
             );
         }
+    }
 
-        self.canvas_color_buffers.clear();
+    fn create_color_buffers(
+        instance: &Instance,
+        desc: &CanvasBufferDescriptor,
+    ) -> Vec<CanvasColorBuffer> {
+        let mut canvas_color_buffers = Vec::with_capacity(desc.color_buffer_descriptors.len());
         for cbd in desc.color_buffer_descriptors.iter() {
-            self.canvas_color_buffers.push(CanvasColorBuffer::new(
+            canvas_color_buffers.push(CanvasColorBuffer::new(
                 instance,
                 &CanvasColorBufferDescriptor {
                     size: desc.size,
@@ -624,8 +613,14 @@ impl CanvasBuffer {
                 },
             ));
         }
+        canvas_color_buffers
+    }
 
-        self.canvas_depth_stencil_buffer = match &desc.depth_stencil_buffer_format {
+    fn create_depth_stencil_buffer(
+        instance: &Instance,
+        desc: &CanvasBufferDescriptor,
+    ) -> Option<CanvasDepthStencilBuffer> {
+        match &desc.depth_stencil_buffer_format {
             Some(format) => Some(CanvasDepthStencilBuffer::new(
                 instance,
                 &CanvasDepthStencilBufferDescriptor {
@@ -635,8 +630,10 @@ impl CanvasBuffer {
                 },
             )),
             None => None,
-        };
+        }
+    }
 
+    fn assert_has_buffer(&self) {
         assert!(
             self.canvas_surface.is_some()
                 || !self.canvas_color_buffers.is_empty()
