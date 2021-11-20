@@ -496,12 +496,10 @@ pub struct CanvasBuffer {
 
 impl CanvasBuffer {
     pub fn new(
-        // TODO: make sure passing surface as optional is tested properly.
         instance: &Instance,
         surface: Option<Surface>,
         desc: &CanvasBufferDescriptor,
     ) -> Self {
-        // TODO: should we make sure that if surface is not passed, also descriptor is not passed?
         let canvas_surface = match surface {
             Some(surface) => Some(CanvasSurface::new(surface)),
             None => None,
@@ -517,7 +515,6 @@ impl CanvasBuffer {
         canvas_buffer
     }
 
-    // TODO: test.
     pub fn configure(&mut self, instance: &Instance, desc: &CanvasBufferDescriptor) {
         self.size = desc.size;
         self.sample_count = desc.sample_count;
@@ -553,7 +550,7 @@ impl CanvasBuffer {
                         format,
                     },
                 );
-            },
+            }
             None => {
                 if let Some(_) = &desc.surface_descriptor {
                     panic!("Canvas buffer created with a surface descriptor, but no surface")
@@ -799,7 +796,7 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn canvas_buffer() {
+    fn canvas_buffer_complex_creation() {
         let event_loop = EventLoop::<()>::new_any_thread();
         let window = WindowBuilder::new()
             .with_visible(false)
@@ -894,6 +891,53 @@ mod tests {
             Some(surface),
             &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
+                sample_count: 1,
+                surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                }),
+                color_buffer_descriptors: vec![],
+                depth_stencil_buffer_format: None,
+            },
+        );
+
+        expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        expect_that!(&buffer.sample_count(), eq(1));
+        expect_that!(buffer.surface().is_some());
+        expect_that!(&buffer.color_buffers().len(), eq(0));
+        expect_that!(buffer.depth_stencil_buffer().is_none());
+
+        {
+            let surface = buffer.surface().unwrap();
+            expect_that!(&surface.sample_count(), eq(1));
+            expect_that!(&surface.format(), eq(CanvasColorBufferFormat::default()));
+            expect_that!(surface.size(), eq(CanvasSize::new(12, 20)));
+        }
+
+        {
+            let frame = buffer.current_frame().unwrap().unwrap();
+            expect_that!(frame.surface().is_some());
+            expect_that!(&frame.color_buffers().len(), eq(0));
+            expect_that!(frame.depth_stencil_buffer.is_none());
+        }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn canvas_buffer_only_multisampled_surface() {
+        let event_loop = EventLoop::<()>::new_any_thread();
+        let window = WindowBuilder::new()
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+        let (instance, surface) = unsafe {
+            Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
+        };
+
+        let mut buffer = CanvasBuffer::new(
+            &instance,
+            Some(surface),
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
                 sample_count: 2,
                 surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
                     format: CanvasColorBufferFormat::default(),
@@ -927,6 +971,46 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn canvas_buffer_only_color() {
+        let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
+        let mut buffer = CanvasBuffer::new(
+            &instance,
+            None,
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
+                sample_count: 1,
+                surface_descriptor: None,
+                color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                    usage: CanvasColorBufferUsage::empty(),
+                }],
+                depth_stencil_buffer_format: None,
+            },
+        );
+
+        expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        expect_that!(&buffer.sample_count(), eq(1));
+        expect_that!(buffer.surface().is_none());
+        expect_that!(&buffer.color_buffers().len(), eq(1));
+        expect_that!(buffer.depth_stencil_buffer().is_none());
+
+        {
+            let buffer = &buffer.color_buffers()[0];
+            expect_that!(&buffer.sample_count(), eq(1));
+            expect_that!(&buffer.format(), eq(CanvasColorBufferFormat::default()));
+            expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        }
+
+        {
+            let frame = buffer.current_frame().unwrap().unwrap();
+            expect_that!(frame.surface().is_none());
+            expect_that!(&frame.color_buffers().len(), eq(1));
+            expect_that!(frame.depth_stencil_buffer.is_none());
+        }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn canvas_buffer_only_multisampled_color() {
         let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
         let mut buffer = CanvasBuffer::new(
             &instance,
@@ -967,6 +1051,46 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn canvas_buffer_only_depth_stencil() {
+        let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
+        let mut buffer = CanvasBuffer::new(
+            &instance,
+            None,
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
+                sample_count: 1,
+                surface_descriptor: None,
+                color_buffer_descriptors: vec![],
+                depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
+            },
+        );
+
+        expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        expect_that!(&buffer.sample_count(), eq(1));
+        expect_that!(buffer.surface().is_none());
+        expect_that!(&buffer.color_buffers().len(), eq(0));
+        expect_that!(buffer.depth_stencil_buffer().is_some());
+
+        {
+            let buffer = buffer.depth_stencil_buffer().unwrap();
+            expect_that!(&buffer.sample_count(), eq(1));
+            expect_that!(
+                &buffer.format(),
+                eq(CanvasDepthStencilBufferFormat::Depth32Float)
+            );
+            expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        }
+
+        {
+            let frame = buffer.current_frame().unwrap().unwrap();
+            expect_that!(frame.surface().is_none());
+            expect_that!(&frame.color_buffers().len(), eq(0));
+            expect_that!(frame.depth_stencil_buffer.is_some());
+        }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn canvas_buffer_only_multisampled_depth_stencil() {
         let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
         let mut buffer = CanvasBuffer::new(
             &instance,
