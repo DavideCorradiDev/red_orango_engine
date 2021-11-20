@@ -231,7 +231,7 @@ impl Font {
                 sample_count: 1,
                 dimension: gfx::TextureDimension::D2,
                 format: gfx::TextureFormat::R8Unorm,
-                usage: gfx::TextureUsage::SAMPLED | gfx::TextureUsage::COPY_DST,
+                usage: gfx::TextureUsage::TEXTURE_BINDING | gfx::TextureUsage::COPY_DST,
             },
         );
         glyph_atlas_texture.write(

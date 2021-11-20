@@ -14,7 +14,7 @@ pub type ApplicationEvent = ();
 pub enum ApplicationError {
     WindowCreationFailed(roe_app::window::OsError),
     InstanceCreationFailed(roe_graphics::InstanceCreationError),
-    RenderFrameCreationFailed(roe_graphics::SwapChainError),
+    RenderFrameCreationFailed(roe_graphics::SurfaceError),
     FontCreationFailed(roe_text::FontError),
     Error(roe_audio::Error),
     IoError(std::io::Error),
@@ -75,8 +75,8 @@ impl From<roe_graphics::InstanceCreationError> for ApplicationError {
     }
 }
 
-impl From<roe_graphics::SwapChainError> for ApplicationError {
-    fn from(e: roe_graphics::SwapChainError) -> Self {
+impl From<roe_graphics::SurfaceError> for ApplicationError {
+    fn from(e: roe_graphics::SurfaceError) -> Self {
         ApplicationError::RenderFrameCreationFailed(e)
     }
 }

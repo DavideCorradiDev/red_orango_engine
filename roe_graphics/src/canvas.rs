@@ -1,5 +1,5 @@
 use super::{
-    Extent3d, Instance, PresentMode, SampleCount, Size, Surface, SurfaceError, SurfaceTexture,
+    Extent3d, Instance, PresentMode, SampleCount, Size, Surface, SurfaceError, 
     Texture, TextureDescriptor, TextureDimension, TextureFormat, TextureUsage, TextureView,
     TextureViewDescriptor, SurfaceConfiguration
 };
@@ -106,7 +106,7 @@ pub struct CanvasSwapChain {
 }
 
 impl CanvasSwapChain {
-    pub fn new(instance: &Instance, mut surface: Surface, desc: &CanvasSwapChainDescriptor) -> Self {
+    pub fn new(instance: &Instance, surface: Surface, desc: &CanvasSwapChainDescriptor) -> Self {
         let usage = TextureUsage::RENDER_ATTACHMENT;
         let texture_format = TextureFormat::from(desc.format);
         let width = desc.size.width();
@@ -176,59 +176,41 @@ impl CanvasSwapChain {
         })
     }
 
-    pub fn configure(&mut self, instance: &Instance, desc: &CanvasSwapChainDescriptor) {
-        // TODO: remove repetition.
-        let usage = TextureUsage::RENDER_ATTACHMENT;
-        let texture_format = TextureFormat::from(desc.format);
-        let width = desc.size.width();
-        let height = desc.size.height();
-        surface.configure(instance, &SurfaceConfiguration {
-                usage,
-                format: texture_format,
-                width,
-                height,
-                present_mode: PresentMode::Mailbox,
-        });
-        let multisampled_buffer = if desc.sample_count > 1 {
-            let multisampling_buffer_texture = Texture::new(
-                instance,
-                &TextureDescriptor {
-                    size: Extent3d {
-                        width,
-                        height,
-                        depth_or_array_layers: 1,
-                    },
-                    mip_level_count: 1,
-                    sample_count: desc.sample_count,
-                    dimension: TextureDimension::D2,
-                    format: texture_format,
-                    usage,
-                    label: None,
-                },
-            );
-            Some(multisampling_buffer_texture.create_view(&TextureViewDescriptor::default()))
-        } else {
-            None
-        };
-
-        let current_size = self.inner_size();
-        let current_size = CanvasSize::new(current_size.width, current_size.height);
-        if *self.canvas_size() != current_size {
-            self.canvas_buffer = CanvasBuffer::new(
-                instance,
-                &CanvasBufferDescriptor {
-                    size: current_size,
-                    sample_count: self.sample_count(),
-                    swap_chain_descriptor: Some(CanvasBufferSwapChainDescriptor {
-                        surface: &self.surface,
-                        format: self.color_buffer_format(),
-                    }),
-                    color_buffer_descriptors: Vec::new(),
-                    depth_stencil_buffer_format: self.depth_stencil_buffer_format(),
-                },
-            );
-        }
-    }
+    // pub fn configure(&mut self, instance: &Instance, desc: &CanvasSwapChainDescriptor) {
+    //     // TODO: remove repetition.
+    //     let usage = TextureUsage::RENDER_ATTACHMENT;
+    //     let texture_format = TextureFormat::from(desc.format);
+    //     let width = desc.size.width();
+    //     let height = desc.size.height();
+    //     surface.configure(instance, &SurfaceConfiguration {
+    //             usage,
+    //             format: texture_format,
+    //             width,
+    //             height,
+    //             present_mode: PresentMode::Mailbox,
+    //     });
+    //     let multisampled_buffer = if desc.sample_count > 1 {
+    //         let multisampling_buffer_texture = Texture::new(
+    //             instance,
+    //             &TextureDescriptor {
+    //                 size: Extent3d {
+    //                     width,
+    //                     height,
+    //                     depth_or_array_layers: 1,
+    //                 },
+    //                 mip_level_count: 1,
+    //                 sample_count: desc.sample_count,
+    //                 dimension: TextureDimension::D2,
+    //                 format: texture_format,
+    //                 usage,
+    //                 label: None,
+    //             },
+    //         );
+    //         Some(multisampling_buffer_texture.create_view(&TextureViewDescriptor::default()))
+    //     } else {
+    //         None
+    //     };
+    // }
 }
 
 #[derive(Debug)]
@@ -520,8 +502,9 @@ pub struct CanvasBuffer {
 }
 
 impl CanvasBuffer {
-    pub fn new(instance: &Instance, desc: &CanvasBufferDescriptor) -> Self {
-        let swap_chain = match &desc.swap_chain_descriptor {
+    // TODO: try to pass desc by ref.
+    pub fn new(instance: &Instance, desc: CanvasBufferDescriptor) -> Self {
+        let swap_chain = match desc.swap_chain_descriptor {
             Some(sc_desc) => Some(CanvasSwapChain::new(
                 instance,
                 sc_desc.surface,
@@ -614,6 +597,16 @@ impl CanvasBuffer {
             color_buffers,
             depth_stencil_buffer,
         })
+    }
+
+    // TODO: handle this more appropriately?
+    pub fn retrieve_surface(&mut self) -> Option<Surface> {
+        let mut extracted_swap_chain = None;
+        std::mem::swap(&mut extracted_swap_chain, &mut self.swap_chain);
+        match extracted_swap_chain {
+            Some (sc) => Some(sc.surface),
+            None => None,
+        }
     }
 }
 
@@ -736,7 +729,7 @@ mod tests {
 
         let mut buffer = CanvasBuffer::new(
             &instance,
-            &CanvasBufferDescriptor {
+            CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
                 swap_chain_descriptor: Some(CanvasBufferSwapChainDescriptor {
@@ -809,7 +802,7 @@ mod tests {
         let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
         let _buffer = CanvasBuffer::new(
             &instance,
-            &CanvasBufferDescriptor {
+            CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
                 swap_chain_descriptor: None,

@@ -66,7 +66,7 @@ impl CanvasWindow {
         let surface_size = window.inner_size();
         let canvas_buffer = CanvasBuffer::new(
             instance,
-            &CanvasBufferDescriptor {
+            CanvasBufferDescriptor {
                 size: CanvasSize::new(surface_size.width, surface_size.height),
                 sample_count: desc.sample_count,
                 swap_chain_descriptor: Some(CanvasBufferSwapChainDescriptor {
@@ -98,13 +98,15 @@ impl CanvasWindow {
         let current_size = self.inner_size();
         let current_size = CanvasSize::new(current_size.width, current_size.height);
         if *self.canvas_size() != current_size {
+            // TODO: handle this better.
+            let surface = self.canvas_buffer.retrieve_surface().unwrap();
             self.canvas_buffer = CanvasBuffer::new(
                 instance,
-                &CanvasBufferDescriptor {
+                CanvasBufferDescriptor {
                     size: current_size,
                     sample_count: self.sample_count(),
                     swap_chain_descriptor: Some(CanvasBufferSwapChainDescriptor {
-                        surface: &self.surface,
+                        surface,
                         format: self.color_buffer_format(),
                     }),
                     color_buffer_descriptors: Vec::new(),

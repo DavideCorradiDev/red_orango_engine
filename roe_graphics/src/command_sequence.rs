@@ -146,7 +146,7 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
-            &CanvasBufferDescriptor {
+            CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
                 swap_chain_descriptor: None,
@@ -195,7 +195,7 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
-            &CanvasBufferDescriptor {
+            CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 1,
                 swap_chain_descriptor: None,
@@ -229,7 +229,7 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
-            &CanvasBufferDescriptor {
+            CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
                 swap_chain_descriptor: None,
@@ -258,7 +258,7 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
-            &CanvasBufferDescriptor {
+            CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
                 swap_chain_descriptor: None,
@@ -290,7 +290,7 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
-            &CanvasBufferDescriptor {
+            CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
                 swap_chain_descriptor: None,
@@ -322,7 +322,7 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
-            &CanvasBufferDescriptor {
+            CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
                 swap_chain_descriptor: None,
