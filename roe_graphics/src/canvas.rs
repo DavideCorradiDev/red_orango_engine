@@ -146,7 +146,7 @@ pub struct CanvasSurface {
 }
 
 impl CanvasSurface {
-    pub fn new(instance: &Instance, surface: Surface) -> Self {
+    pub fn new(surface: Surface) -> Self {
         Self {
             size: CanvasSize::new(0, 0),
             sample_count: 1,
@@ -503,7 +503,7 @@ impl CanvasBuffer {
     ) -> Self {
         // TODO: should we make sure that if surface is not passed, also descriptor is not passed?
         let canvas_surface = match surface {
-            Some(surface) => Some(CanvasSurface::new(instance, surface)),
+            Some(surface) => Some(CanvasSurface::new(surface)),
             None => None,
         };
         let mut canvas_buffer = Self {
@@ -677,11 +677,47 @@ mod tests {
             .with_visible(false)
             .build(&event_loop)
             .unwrap();
+        let (_instance, surface) = unsafe {
+            Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
+        };
+
+        let mut surface = CanvasSurface::new(surface);
+
+        expect_that!(&surface.sample_count(), eq(1));
+        expect_that!(&surface.format(), eq(CanvasColorBufferFormat::default()));
+        expect_that!(surface.size(), eq(CanvasSize::new(0, 0)));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    #[should_panic(expected = "Surface was not configured")]
+    fn retrieve_canvas_surface_reference_before_configuration() {
+        let event_loop = EventLoop::<()>::new_any_thread();
+        let window = WindowBuilder::new()
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+        let (_instance, surface) = unsafe {
+            Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
+        };
+
+        let surface = CanvasSurface::new(surface);
+        surface.reference().unwrap();
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn canvas_surface_configure() {
+        let event_loop = EventLoop::<()>::new_any_thread();
+        let window = WindowBuilder::new()
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
         let (instance, surface) = unsafe {
             Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
         };
 
-        let mut surface = CanvasSurface::new(&instance, surface);
+        let mut surface = CanvasSurface::new(surface);
         surface.configure(
             &instance,
             &CanvasSurfaceDescriptor {
