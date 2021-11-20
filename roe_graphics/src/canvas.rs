@@ -63,23 +63,21 @@ pub struct CanvasSurfaceRef<'a> {
     sample_count: SampleCount,
     format: CanvasColorBufferFormat,
     multisampled_buffer: Option<&'a TextureView>,
-    // TODO: change to reference?
     surface_texture: SurfaceTexture,
-    // TODO: rename stuff where required.
-    frame: TextureView,
+    surface_view: TextureView,
 }
 
 impl<'a> CanvasSurfaceRef<'a> {
     pub fn attachment(&self) -> &TextureView {
         match self.multisampled_buffer {
             Some(v) => &v,
-            None => &self.frame,
+            None => &self.surface_view,
         }
     }
 
     pub fn resolve_target(&self) -> Option<&TextureView> {
         match self.multisampled_buffer {
-            Some(_) => Some(&self.frame),
+            Some(_) => Some(&self.surface_view),
             None => None,
         }
     }
@@ -185,7 +183,7 @@ impl CanvasSurface {
     pub fn reference(&mut self) -> Result<CanvasSurfaceRef, SurfaceError> {
         let surface_texture = self.surface.get_current_texture()?;
         // TODO: view descriptor should be populated...
-        let frame = surface_texture.texture.create_view(&TextureViewDescriptor {
+        let surface_view = surface_texture.texture.create_view(&TextureViewDescriptor {
             label: None,
             format: Some(TextureFormat::from(self.format)),
             dimension: Some(TextureViewDimension::D2),
@@ -204,7 +202,7 @@ impl CanvasSurface {
             format: self.format,
             multisampled_buffer,
             surface_texture,
-            frame,
+            surface_view,
         })
     }
 }
