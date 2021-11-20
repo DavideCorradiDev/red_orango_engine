@@ -96,9 +96,7 @@ impl CanvasWindow {
 
     pub fn update_buffer(&mut self, instance: &Instance) {
         let current_size = self.inner_size();
-        // TODO: clean here.
-        // let current_size = CanvasSize::new(current_size.width, current_size.height);
-        let current_size = CanvasSize::new(1.max(current_size.width), 1.max(current_size.height));
+        let current_size = CanvasSize::new(current_size.width, current_size.height);
         if *self.canvas_size() != current_size {
             self.canvas_buffer.configure(
                 instance,

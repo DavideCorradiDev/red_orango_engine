@@ -660,27 +660,15 @@ impl CanvasBuffer {
     }
 
     pub fn surface(&self) -> Option<&CanvasSurface> {
-        if self.is_valid() {
-            self.canvas_surface.as_ref()
-        } else {
-            None
-        }
+        self.canvas_surface.as_ref()
     }
 
     pub fn color_buffers(&self) -> &[CanvasColorBuffer] {
-        if self.is_valid() {
-            self.canvas_color_buffers.as_slice()
-        } else {
-            &[]
-        }
+        self.canvas_color_buffers.as_slice()
     }
 
     pub fn depth_stencil_buffer(&self) -> Option<&CanvasDepthStencilBuffer> {
-        if self.is_valid() {
-            self.canvas_depth_stencil_buffer.as_ref()
-        } else {
-            None
-        }
+        self.canvas_depth_stencil_buffer.as_ref()
     }
 
     pub fn current_frame(&mut self) -> Result<Option<CanvasFrame>, SurfaceError> {
@@ -708,16 +696,6 @@ impl CanvasBuffer {
             color_buffers,
             depth_stencil_buffer,
         }))
-    }
-
-    // TODO: handle this more appropriately?
-    pub fn retrieve_surface(&mut self) -> Option<Surface> {
-        let mut extracted_surface = None;
-        std::mem::swap(&mut extracted_surface, &mut self.canvas_surface);
-        match extracted_surface {
-            Some(surface) => Some(surface.surface),
-            None => None,
-        }
     }
 }
 
