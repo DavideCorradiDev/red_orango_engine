@@ -12,7 +12,6 @@ use roe_math::{conversion::ToHomogeneousMatrix3, geometry2, geometry3};
 
 use super::{i26dot6_to_fsize, Font, GlyphRenderingInfo};
 
-// TODO: reuse somewhere else?
 fn as_push_constants_slice<T>(value: &T) -> &[u8] {
     let data: *const T = value;
     let data = data as *const u8;

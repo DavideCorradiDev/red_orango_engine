@@ -31,7 +31,7 @@ struct ApplicationImpl {
 }
 
 impl ApplicationImpl {
-    const SAMPLE_COUNT: SampleCount = 8;
+    const SAMPLE_COUNT: SampleCount = 4;
     const FONT_PATH: &'static str = "roe_text/data/fonts/Roboto-Regular.ttf";
 }
 
