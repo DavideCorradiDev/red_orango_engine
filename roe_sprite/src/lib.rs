@@ -122,10 +122,6 @@ impl PushConstants {
             color,
         }
     }
-
-    fn as_slice(&self) -> &[u8] {
-        gfx::utility::as_slice(self)
-    }
 }
 
 unsafe impl bytemuck::Zeroable for PushConstants {
@@ -364,15 +360,12 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
     ) {
         self.set_pipeline(&pipeline.pipeline);
         self.set_bind_group(0, &uniform_constants.bind_group, &[]);
-        self.set_index_buffer(
-            mesh.index_buffer().slice(..),
-            gfx::IndexFormat::Uint16,
-        );
+        self.set_index_buffer(mesh.index_buffer().slice(..), gfx::IndexFormat::Uint16);
         self.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
         self.set_push_constants(
             gfx::ShaderStage::VERTEX,
             0,
-            push_constants.as_slice(),
+            gfx::utility::as_slice(push_constants),
         );
         self.draw_indexed(index_range, 0, 0..1);
     }
@@ -391,13 +384,14 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
         for (uc, meshes) in draw_commands.into_iter() {
             self.set_bind_group(0, &uc.bind_group, &[]);
             for (mesh, pcs) in meshes.into_iter() {
-                self.set_index_buffer(
-                    mesh.index_buffer().slice(..),
-                    gfx::IndexFormat::Uint16,
-                );
+                self.set_index_buffer(mesh.index_buffer().slice(..), gfx::IndexFormat::Uint16);
                 self.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
                 for (pc, ranges) in pcs.into_iter() {
-                    self.set_push_constants(gfx::ShaderStage::VERTEX, 0, pc.as_slice());
+                    self.set_push_constants(
+                        gfx::ShaderStage::VERTEX,
+                        0,
+                        gfx::utility::as_slice(pc),
+                    );
                     for range in ranges.into_iter() {
                         self.draw_indexed(range, 0, 0..1);
                     }
@@ -414,8 +408,7 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn creation() {
-        let instance =
-            gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
+        let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
         let _pipeline = RenderPipeline::new(&instance, &RenderPipelineDescriptor::default());
     }
 }
