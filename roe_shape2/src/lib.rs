@@ -52,10 +52,7 @@ impl PushConstants {
     }
 
     fn as_slice(&self) -> &[u8] {
-        let pc: *const PushConstants = self;
-        let pc: *const u8 = pc as *const u8;
-        let data = unsafe { std::slice::from_raw_parts(pc, std::mem::size_of::<PushConstants>()) };
-        bytemuck::cast_slice(&data)
+        gfx::utility::as_slice(self)
     }
 }
 

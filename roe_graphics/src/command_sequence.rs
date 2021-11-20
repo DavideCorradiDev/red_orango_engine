@@ -235,8 +235,6 @@ mod tests {
         frame.present();
     }
 
-    // TODO: investigate why 4 is the only supported sample count.
-    // TODO: improve interfaces so that it is clear that sample count must be 4...
     #[test]
     #[serial_test::serial]
     #[should_panic(expected = "Incompatible color buffer")]

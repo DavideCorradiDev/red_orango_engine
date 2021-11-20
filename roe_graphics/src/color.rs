@@ -1,5 +1,7 @@
 use std::default::Default;
 
+use super::utility;
+
 pub use wgpu::Color as ColorF64;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -76,9 +78,7 @@ impl Default for Color {
 impl as_slice::AsSlice for Color {
     type Element = u8;
     fn as_slice(&self) -> &[Self::Element] {
-        let pc: *const Color = self;
-        let pc: *const u8 = pc as *const u8;
-        unsafe { std::slice::from_raw_parts(pc, std::mem::size_of::<Color>()) }
+        utility::as_slice(self)
     }
 }
 
@@ -156,10 +156,7 @@ impl Default for ColorF32 {
 impl as_slice::AsSlice for ColorF32 {
     type Element = f32;
     fn as_slice(&self) -> &[Self::Element] {
-        let pc: *const ColorF32 = self;
-        let pc: *const u8 = pc as *const u8;
-        let data = unsafe { std::slice::from_raw_parts(pc, std::mem::size_of::<ColorF32>()) };
-        bytemuck::cast_slice(&data)
+        utility::as_slice(self)
     }
 }
 

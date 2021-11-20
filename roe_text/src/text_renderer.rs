@@ -12,13 +12,6 @@ use roe_math::{conversion::ToHomogeneousMatrix3, geometry2, geometry3};
 
 use super::{i26dot6_to_fsize, Font, GlyphRenderingInfo};
 
-fn as_push_constants_slice<T>(value: &T) -> &[u8] {
-    let data: *const T = value;
-    let data = data as *const u8;
-    let data = unsafe { std::slice::from_raw_parts(data, size_of::<T>()) };
-    bytemuck::cast_slice(&data)
-}
-
 #[repr(C, packed)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Vertex {
@@ -282,7 +275,7 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
             geometry3::HomogeneousVector::<f32>::zero(),
             color.clone(),
         );
-        self.set_push_constants(gfx::ShaderStage::VERTEX, 0, as_push_constants_slice(&pc));
+        self.set_push_constants(gfx::ShaderStage::VERTEX, 0, gfx::utility::as_slice(&pc));
 
         let mut cursor_pos = geometry2::HomogeneousVector::<f32>::zero();
         for (position, info) in positions.iter().zip(infos) {
@@ -298,7 +291,7 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
             self.set_push_constants(
                 gfx::ShaderStage::VERTEX,
                 PC_GLYPH_OFFSET_MEM_OFFSET,
-                as_push_constants_slice(&offset),
+                gfx::utility::as_slice(&offset),
             );
             self.draw_indexed(index_range.clone(), 0, 0..1);
 

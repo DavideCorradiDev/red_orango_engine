@@ -17,14 +17,16 @@ pub use wgpu::{
     VertexState, VertexStepMode,
 };
 
+pub mod utility;
+
 mod size;
 pub use size::*;
 
 mod color;
 pub use color::*;
 
-mod instance;
-pub use instance::*;
+mod main_structures;
+pub use main_structures::*;
 
 mod canvas;
 pub use canvas::*;
