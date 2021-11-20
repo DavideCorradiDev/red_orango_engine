@@ -537,20 +537,28 @@ impl CanvasBuffer {
     }
 
     fn configure_canvas_surface(&mut self, instance: &Instance, desc: &CanvasBufferDescriptor) {
-        // TODO: should we make sure that if surface is not passed, also descriptor is not passed?
-        if let Some(canvas_surface) = &mut self.canvas_surface {
-            let format = match &desc.surface_descriptor {
-                Some(sd) => sd.format,
-                None => CanvasColorBufferFormat::default(),
-            };
-            canvas_surface.configure(
-                instance,
-                &CanvasSurfaceDescriptor {
-                    size: desc.size,
-                    sample_count: desc.sample_count,
-                    format,
-                },
-            );
+        match &mut self.canvas_surface {
+            Some(canvas_surface) => {
+                let format = match &desc.surface_descriptor {
+                    Some(sd) => sd.format,
+                    None => {
+                        panic!("Canvas buffer created with a surface, but no surface descriptor")
+                    }
+                };
+                canvas_surface.configure(
+                    instance,
+                    &CanvasSurfaceDescriptor {
+                        size: desc.size,
+                        sample_count: desc.sample_count,
+                        format,
+                    },
+                );
+            },
+            None => {
+                if let Some(_) = &desc.surface_descriptor {
+                    panic!("Canvas buffer created with a surface descriptor, but no surface")
+                }
+            }
         }
     }
 
@@ -999,7 +1007,7 @@ mod tests {
     #[test]
     #[serial_test::serial]
     #[should_panic(expected = "No buffer defined for a canvas buffer")]
-    fn canvas_buffer_creation_error() {
+    fn canvas_buffer_error_no_buffers() {
         let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
         let _buffer = CanvasBuffer::new(
             &instance,
@@ -1009,6 +1017,51 @@ mod tests {
                 sample_count: 2,
                 surface_descriptor: None,
                 color_buffer_descriptors: Vec::new(),
+                depth_stencil_buffer_format: None,
+            },
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    #[should_panic(expected = "Canvas buffer created with a surface, but no surface descriptor")]
+    fn canvas_buffer_error_no_surface_descriptor() {
+        let event_loop = EventLoop::<()>::new_any_thread();
+        let window = WindowBuilder::new()
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+        let (instance, surface) = unsafe {
+            Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
+        };
+        CanvasBuffer::new(
+            &instance,
+            Some(surface),
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
+                sample_count: 2,
+                surface_descriptor: None,
+                color_buffer_descriptors: vec![],
+                depth_stencil_buffer_format: None,
+            },
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    #[should_panic(expected = "Canvas buffer created with a surface descriptor, but no surface")]
+    fn canvas_buffer_error_no_surface() {
+        let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
+        CanvasBuffer::new(
+            &instance,
+            None,
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
+                sample_count: 2,
+                surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                }),
+                color_buffer_descriptors: vec![],
                 depth_stencil_buffer_format: None,
             },
         );
