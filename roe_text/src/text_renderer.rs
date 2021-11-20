@@ -274,7 +274,7 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
         self.set_bind_group(0, &font.uniform_constants().bind_group, &[]);
         self.set_index_buffer(
             font.index_buffer().slice(..),
-            roe_graphics::IndexFormat::Uint16,
+            gfx::IndexFormat::Uint16,
         );
         self.set_vertex_buffer(0, font.vertex_buffer().slice(..));
 
