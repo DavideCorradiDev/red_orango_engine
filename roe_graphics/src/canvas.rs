@@ -146,37 +146,12 @@ pub struct CanvasSurface {
 }
 
 impl CanvasSurface {
-    pub fn new(instance: &Instance, surface: Surface, desc: &CanvasSurfaceDescriptor) -> Self {
-        let format = TextureFormat::from(desc.format);
-        surface.configure(
-            instance,
-            &SurfaceConfiguration {
-                usage: TextureUsage::RENDER_ATTACHMENT,
-                format,
-                width: desc.size.width(),
-                height: desc.size.height(),
-                present_mode: PresentMode::Mailbox,
-            },
-        );
-        let multisampled_buffer = if desc.sample_count > 1 {
-            let multisampling_buffer_texture = Texture::new(
-                instance,
-                &canvas_texture_descriptor(
-                    desc.size,
-                    desc.sample_count,
-                    format,
-                    TextureUsage::empty(),
-                ),
-            );
-            Some(multisampling_buffer_texture.create_view(&canvas_texture_view_descriptor(format)))
-        } else {
-            None
-        };
+    pub fn new(instance: &Instance, surface: Surface) -> Self {
         Self {
-            size: desc.size,
-            sample_count: desc.sample_count,
-            format: desc.format,
-            multisampled_buffer,
+            size: CanvasSize::new(0, 0),
+            sample_count: 1,
+            format: CanvasColorBufferFormat::default(),
+            multisampled_buffer: None,
             surface,
         }
     }
@@ -528,40 +503,22 @@ impl CanvasBuffer {
     ) -> Self {
         // TODO: should we make sure that if surface is not passed, also descriptor is not passed?
         let canvas_surface = match surface {
-            Some(surface) => {
-                let format = match &desc.surface_descriptor {
-                    Some(sd) => sd.format,
-                    None => CanvasColorBufferFormat::default(),
-                };
-                Some(CanvasSurface::new(
-                    instance,
-                    surface,
-                    &CanvasSurfaceDescriptor {
-                        size: desc.size,
-                        sample_count: desc.sample_count,
-                        format,
-                    },
-                ))
-            }
+            Some(surface) => Some(CanvasSurface::new(instance, surface)),
             None => None,
         };
-
-        let canvas_color_buffers = Self::create_color_buffers(instance, desc);
-        let canvas_depth_stencil_buffer = Self::create_depth_stencil_buffer(instance, desc);
-
-        let canvas_buffer = Self {
+        let mut canvas_buffer = Self {
             size: desc.size,
             sample_count: desc.sample_count,
             canvas_surface,
-            canvas_color_buffers,
-            canvas_depth_stencil_buffer,
+            canvas_color_buffers: Vec::new(),
+            canvas_depth_stencil_buffer: None,
         };
-        canvas_buffer.assert_has_buffer();
+        canvas_buffer.configure(instance, desc);
         canvas_buffer
     }
 
+    // TODO: test.
     pub fn configure(&mut self, instance: &Instance, desc: &CanvasBufferDescriptor) {
-        // TODO: move check size to here.
         self.size = desc.size;
         self.sample_count = desc.sample_count;
 
@@ -724,9 +681,9 @@ mod tests {
             Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
         };
 
-        let mut surface = CanvasSurface::new(
+        let mut surface = CanvasSurface::new(&instance, surface);
+        surface.configure(
             &instance,
-            surface,
             &CanvasSurfaceDescriptor {
                 sample_count: 2,
                 format: CanvasColorBufferFormat::Bgra8Unorm,
