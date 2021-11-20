@@ -241,7 +241,7 @@ impl CanvasWindow {
 }
 
 impl Canvas for CanvasWindow {
-    fn current_frame(&mut self) -> Result<CanvasFrame, SurfaceError> {
+    fn current_frame(&mut self) -> Result<Option<CanvasFrame>, SurfaceError> {
         self.canvas_buffer.current_frame()
     }
 
@@ -456,7 +456,7 @@ mod tests {
         );
         expect_that!(&window.depth_stencil_buffer_format(), eq(None));
 
-        let frame = window.current_frame().unwrap();
+        let frame = window.current_frame().unwrap().unwrap();
         expect_that!(frame.surface().is_some());
         expect_that!(frame.color_buffers().is_empty());
         expect_that!(frame.depth_stencil_buffer().is_none());
@@ -490,7 +490,7 @@ mod tests {
         );
         expect_that!(&window.depth_stencil_buffer_format(), eq(None));
 
-        let frame = window.current_frame().unwrap();
+        let frame = window.current_frame().unwrap().unwrap();
         expect_that!(frame.surface().is_some());
         expect_that!(frame.color_buffers().is_empty());
         expect_that!(frame.depth_stencil_buffer().is_none());
@@ -527,7 +527,7 @@ mod tests {
             eq(Some(CanvasDepthStencilBufferFormat::Depth32Float))
         );
 
-        let frame = window.current_frame().unwrap();
+        let frame = window.current_frame().unwrap().unwrap();
         expect_that!(frame.surface().is_some());
         expect_that!(frame.color_buffers().is_empty());
         expect_that!(frame.depth_stencil_buffer().is_some());
@@ -572,7 +572,7 @@ mod tests {
             eq(Some(CanvasDepthStencilBufferFormat::Depth32Float))
         );
 
-        let frame = window.current_frame().unwrap();
+        let frame = window.current_frame().unwrap().unwrap();
         expect_that!(frame.surface().is_some());
         expect_that!(frame.color_buffers().is_empty());
         expect_that!(frame.depth_stencil_buffer().is_some());
@@ -613,7 +613,7 @@ mod tests {
         );
         expect_that!(&window.depth_stencil_buffer_format(), eq(None));
 
-        let frame = window.current_frame().unwrap();
+        let frame = window.current_frame().unwrap().unwrap();
         expect_that!(frame.surface().is_some());
         expect_that!(frame.color_buffers().is_empty());
         expect_that!(frame.depth_stencil_buffer().is_none());

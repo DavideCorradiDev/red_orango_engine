@@ -5,6 +5,7 @@ use super::{
 };
 
 // TODO: fix crash on window minimization.
+// TODO: add tests for "invalid" canvas buffer.
 
 fn canvas_texture_descriptor<'a>(
     size: CanvasSize,
@@ -589,7 +590,15 @@ impl CanvasBuffer {
     }
 
     pub fn configure(&mut self, instance: &Instance, desc: CanvasBufferDescriptor) {
+        self.size = desc.size;
+        self.sample_count = desc.sample_count;
+
+        if desc.size.width() == 0 || desc.size.height() == 0 {
+            return;
+        }
+
         // TODO: should we make sure that if surface is not passed, also descriptor is not passed?
+        // TODO: remove code duplication.
         if let Some(canvas_surface) = &mut self.canvas_surface {
             let format = match desc.surface_descriptor {
                 Some(sd) => sd.format,
@@ -630,15 +639,16 @@ impl CanvasBuffer {
             None => None,
         };
 
-        self.size = desc.size;
-        self.sample_count = desc.sample_count;
-
         assert!(
             self.canvas_surface.is_some()
                 || !self.canvas_color_buffers.is_empty()
                 || self.canvas_depth_stencil_buffer.is_some(),
             "No buffer defined for a canvas buffer"
         );
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.size.width() != 0 && self.size.height() != 0
     }
 
     pub fn size(&self) -> &CanvasSize {
@@ -650,18 +660,34 @@ impl CanvasBuffer {
     }
 
     pub fn surface(&self) -> Option<&CanvasSurface> {
-        self.canvas_surface.as_ref()
+        if self.is_valid() {
+            self.canvas_surface.as_ref()
+        } else {
+            None
+        }
     }
 
-    pub fn color_buffers(&self) -> &Vec<CanvasColorBuffer> {
-        &self.canvas_color_buffers
+    pub fn color_buffers(&self) -> &[CanvasColorBuffer] {
+        if self.is_valid() {
+            self.canvas_color_buffers.as_slice()
+        } else {
+            &[]
+        }
     }
 
     pub fn depth_stencil_buffer(&self) -> Option<&CanvasDepthStencilBuffer> {
-        self.canvas_depth_stencil_buffer.as_ref()
+        if self.is_valid() {
+            self.canvas_depth_stencil_buffer.as_ref()
+        } else {
+            None
+        }
     }
 
-    pub fn current_frame(&mut self) -> Result<CanvasFrame, SurfaceError> {
+    pub fn current_frame(&mut self) -> Result<Option<CanvasFrame>, SurfaceError> {
+        if !self.is_valid() {
+            return Ok(None);
+        }
+
         let surface = match &mut self.canvas_surface {
             Some(surface) => Some(surface.reference()?),
             None => None,
@@ -677,11 +703,11 @@ impl CanvasBuffer {
             None => None,
         };
 
-        Ok(CanvasFrame {
+        Ok(Some(CanvasFrame {
             surface,
             color_buffers,
             depth_stencil_buffer,
-        })
+        }))
     }
 
     // TODO: handle this more appropriately?
@@ -696,7 +722,7 @@ impl CanvasBuffer {
 }
 
 pub trait Canvas {
-    fn current_frame(&mut self) -> Result<CanvasFrame, SurfaceError>;
+    fn current_frame(&mut self) -> Result<Option<CanvasFrame>, SurfaceError>;
     fn canvas_size(&self) -> &CanvasSize;
     fn sample_count(&self) -> SampleCount;
 }
@@ -870,7 +896,7 @@ mod tests {
         }
 
         {
-            let frame = buffer.current_frame().unwrap();
+            let frame = buffer.current_frame().unwrap().unwrap();
             expect_that!(frame.surface().is_some());
             expect_that!(&frame.color_buffers().len(), eq(2));
             expect_that!(frame.depth_stencil_buffer.is_some());

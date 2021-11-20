@@ -159,7 +159,7 @@ mod tests {
             },
         );
 
-       let frame = buffer.current_frame().unwrap();
+       let frame = buffer.current_frame().unwrap().unwrap();
         {
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
@@ -207,7 +207,7 @@ mod tests {
             },
         );
 
-        let frame = buffer.current_frame().unwrap();
+        let frame = buffer.current_frame().unwrap().unwrap();
         {
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
@@ -259,7 +259,7 @@ mod tests {
         );
 
         {
-            let frame = buffer.current_frame().unwrap();
+            let frame = buffer.current_frame().unwrap().unwrap();
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
                 &RenderPassRequirements {
@@ -290,7 +290,7 @@ mod tests {
             },
         );
 
-        let frame = buffer.current_frame().unwrap();
+        let frame = buffer.current_frame().unwrap().unwrap();
         let _rpass = cmd_seq.begin_render_pass(
             &frame,
             &RenderPassRequirements {
@@ -323,7 +323,7 @@ mod tests {
             },
         );
 
-        let frame = buffer.current_frame().unwrap();
+        let frame = buffer.current_frame().unwrap().unwrap();
         let _rpass = cmd_seq.begin_render_pass(
             &frame,
             &RenderPassRequirements {
@@ -356,7 +356,7 @@ mod tests {
             },
         );
 
-        let frame = buffer.current_frame().unwrap();
+        let frame = buffer.current_frame().unwrap().unwrap();
         let _rpass = cmd_seq.begin_render_pass(
             &frame,
             &RenderPassRequirements {
@@ -386,7 +386,7 @@ mod tests {
             },
         );
 
-        let frame = buffer.current_frame().unwrap();
+        let frame = buffer.current_frame().unwrap().unwrap();
         let _rpass = cmd_seq.begin_render_pass(
             &frame,
             &RenderPassRequirements {
