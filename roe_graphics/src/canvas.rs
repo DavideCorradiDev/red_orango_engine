@@ -6,6 +6,40 @@ use super::{
 
 // TODO: fix crash on window minimization.
 
+fn canvas_texture_descriptor<'a>(
+    size: CanvasSize,
+    sample_count: SampleCount,
+    format: TextureFormat,
+    usage: TextureUsage,
+) -> TextureDescriptor<'a> {
+    TextureDescriptor {
+        label: None,
+        size: Extent3d {
+            width: size.width(),
+            height: size.height(),
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count,
+        format,
+        dimension: TextureDimension::D2,
+        usage: usage | TextureUsage::RENDER_ATTACHMENT,
+    }
+}
+
+fn canvas_texture_view_descriptor<'a>(format: TextureFormat) -> TextureViewDescriptor<'a> {
+    TextureViewDescriptor {
+        label: None,
+        format: Some(format),
+        dimension: Some(TextureViewDimension::D2),
+        aspect: TextureAspect::All,
+        base_mip_level: 0,
+        mip_level_count: None,
+        base_array_layer: 0,
+        array_layer_count: None,
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum CanvasColorBufferFormat {
     Rgba8Unorm,
@@ -113,49 +147,28 @@ pub struct CanvasSurface {
 
 impl CanvasSurface {
     pub fn new(instance: &Instance, surface: Surface, desc: &CanvasSurfaceDescriptor) -> Self {
-        let usage = TextureUsage::RENDER_ATTACHMENT;
-        let texture_format = TextureFormat::from(desc.format);
-        let width = desc.size.width();
-        let height = desc.size.height();
+        let format = TextureFormat::from(desc.format);
         surface.configure(
             instance,
             &SurfaceConfiguration {
-                usage,
-                format: texture_format,
-                width,
-                height,
+                usage: TextureUsage::RENDER_ATTACHMENT,
+                format,
+                width: desc.size.width(),
+                height: desc.size.height(),
                 present_mode: PresentMode::Mailbox,
             },
         );
         let multisampled_buffer = if desc.sample_count > 1 {
             let multisampling_buffer_texture = Texture::new(
                 instance,
-                &TextureDescriptor {
-                    size: Extent3d {
-                        width,
-                        height,
-                        depth_or_array_layers: 1,
-                    },
-                    mip_level_count: 1,
-                    sample_count: desc.sample_count,
-                    dimension: TextureDimension::D2,
-                    format: texture_format,
-                    usage,
-                    label: None,
-                },
+                &canvas_texture_descriptor(
+                    desc.size,
+                    desc.sample_count,
+                    format,
+                    TextureUsage::empty(),
+                ),
             );
-            Some(
-                multisampling_buffer_texture.create_view(&TextureViewDescriptor {
-                    label: None,
-                    format: Some(TextureFormat::from(texture_format)),
-                    dimension: Some(TextureViewDimension::D2),
-                    aspect: TextureAspect::All,
-                    base_mip_level: 0,
-                    mip_level_count: None,
-                    base_array_layer: 0,
-                    array_layer_count: None,
-                }),
-            )
+            Some(multisampling_buffer_texture.create_view(&canvas_texture_view_descriptor(format)))
         } else {
             None
         };
@@ -182,17 +195,11 @@ impl CanvasSurface {
 
     pub fn reference(&mut self) -> Result<CanvasSurfaceRef, SurfaceError> {
         let surface_texture = self.surface.get_current_texture()?;
-        // TODO: view descriptor should be populated...
-        let surface_view = surface_texture.texture.create_view(&TextureViewDescriptor {
-            label: None,
-            format: Some(TextureFormat::from(self.format)),
-            dimension: Some(TextureViewDimension::D2),
-            aspect: TextureAspect::All,
-            base_mip_level: 0,
-            mip_level_count: None,
-            base_array_layer: 0,
-            array_layer_count: None,
-        });
+        let surface_view = surface_texture
+            .texture
+            .create_view(&canvas_texture_view_descriptor(TextureFormat::from(
+                self.format,
+            )));
         let multisampled_buffer = match self.multisampled_buffer {
             Some(ref v) => Some(v),
             None => None,
@@ -274,29 +281,9 @@ pub struct CanvasColorBuffer {
 impl CanvasColorBuffer {
     pub fn new(instance: &Instance, desc: &CanvasColorBufferDescriptor) -> Self {
         let format = TextureFormat::from(desc.format);
-        let mut tex_desc = TextureDescriptor {
-            label: None,
-            size: Extent3d {
-                width: desc.size.width(),
-                height: desc.size.height(),
-                depth_or_array_layers: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            format,
-            dimension: TextureDimension::D2,
-            usage: TextureUsage::from(desc.usage) | TextureUsage::RENDER_ATTACHMENT,
-        };
-        let tex_view_desc = TextureViewDescriptor {
-            label: None,
-            format: Some(format),
-            dimension: Some(TextureViewDimension::D2),
-            aspect: TextureAspect::All,
-            base_mip_level: 0,
-            mip_level_count: None,
-            base_array_layer: 0,
-            array_layer_count: None,
-        };
+        let mut tex_desc =
+            canvas_texture_descriptor(desc.size, 1, format, TextureUsage::from(desc.usage));
+        let tex_view_desc = canvas_texture_view_descriptor(format);
 
         let main_buffer_texture = Texture::new(instance, &tex_desc);
         let main_buffer_view = main_buffer_texture.create_view(&tex_view_desc);
@@ -394,30 +381,9 @@ impl CanvasDepthStencilBuffer {
         let format = TextureFormat::from(desc.format);
         let buffer_texture = Texture::new(
             instance,
-            &TextureDescriptor {
-                size: Extent3d {
-                    width: desc.size.width(),
-                    height: desc.size.height(),
-                    depth_or_array_layers: 1,
-                },
-                mip_level_count: 1,
-                sample_count: desc.sample_count,
-                dimension: TextureDimension::D2,
-                format,
-                usage: TextureUsage::RENDER_ATTACHMENT,
-                label: None,
-            },
+            &canvas_texture_descriptor(desc.size, desc.sample_count, format, TextureUsage::empty()),
         );
-        let buffer_view = buffer_texture.create_view(&TextureViewDescriptor {
-            label: None,
-            format: Some(format),
-            dimension: Some(TextureViewDimension::D2),
-            aspect: TextureAspect::All,
-            base_mip_level: 0,
-            mip_level_count: None,
-            base_array_layer: 0,
-            array_layer_count: None,
-        });
+        let buffer_view = buffer_texture.create_view(&canvas_texture_view_descriptor(format));
         Self {
             size: desc.size,
             sample_count: desc.sample_count,
@@ -672,10 +638,7 @@ mod tests {
         );
 
         expect_that!(&surface.sample_count(), eq(2));
-        expect_that!(
-            &surface.format(),
-            eq(CanvasColorBufferFormat::Bgra8Unorm)
-        );
+        expect_that!(&surface.format(), eq(CanvasColorBufferFormat::Bgra8Unorm));
         expect_that!(surface.size(), eq(CanvasSize::new(12, 20)));
 
         let reference = surface.reference().unwrap();
