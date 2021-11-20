@@ -33,6 +33,7 @@ impl Default for CanvasWindowDescriptor {
 pub struct CanvasWindow {
     canvas_buffer: CanvasBuffer,
     window: Window,
+    color_buffer_format: CanvasColorBufferFormat
 }
 
 impl CanvasWindow {
@@ -80,11 +81,12 @@ impl CanvasWindow {
         Self {
             canvas_buffer,
             window,
+            color_buffer_format: desc.color_buffer_format
         }
     }
 
     pub fn color_buffer_format(&self) -> CanvasColorBufferFormat {
-        self.canvas_buffer.surface().unwrap().format()
+        self.color_buffer_format
     }
 
     pub fn depth_stencil_buffer_format(&self) -> Option<CanvasDepthStencilBufferFormat> {

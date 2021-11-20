@@ -4,8 +4,6 @@ use super::{
     TextureFormat, TextureUsage, TextureView, TextureViewDescriptor, TextureViewDimension,
 };
 
-// TODO: add tests for "invalid" canvas buffer.
-
 fn canvas_texture_descriptor<'a>(
     size: CanvasSize,
     sample_count: SampleCount,
@@ -617,15 +615,27 @@ impl CanvasBuffer {
     }
 
     pub fn surface(&self) -> Option<&CanvasSurface> {
-        self.canvas_surface.as_ref()
+        if self.is_valid() {
+            self.canvas_surface.as_ref()
+        } else {
+            None
+        }
     }
 
     pub fn color_buffers(&self) -> &[CanvasColorBuffer] {
-        self.canvas_color_buffers.as_slice()
+        if self.is_valid() {
+            self.canvas_color_buffers.as_slice()
+        } else {
+            &[]
+        }
     }
 
     pub fn depth_stencil_buffer(&self) -> Option<&CanvasDepthStencilBuffer> {
-        self.canvas_depth_stencil_buffer.as_ref()
+        if self.is_valid() {
+            self.canvas_depth_stencil_buffer.as_ref()
+        } else {
+            None
+        }
     }
 
     pub fn current_frame(&mut self) -> Result<Option<CanvasFrame>, SurfaceError> {
@@ -1235,7 +1245,7 @@ mod tests {
 
         expect_that!(buffer.size(), eq(CanvasSize::new(0, 0)));
         expect_that!(&buffer.sample_count(), eq(1));
-        expect_that!(buffer.surface().is_some());
+        expect_that!(buffer.surface().is_none());
         expect_that!(&buffer.color_buffers().len(), eq(0));
         expect_that!(buffer.depth_stencil_buffer().is_none());
         expect_that!(!buffer.is_valid());
@@ -1356,9 +1366,9 @@ mod tests {
 
         expect_that!(buffer.size(), eq(CanvasSize::new(0, 0)));
         expect_that!(&buffer.sample_count(), eq(2));
-        expect_that!(buffer.surface().is_some());
-        expect_that!(&buffer.color_buffers().len(), eq(2));
-        expect_that!(buffer.depth_stencil_buffer().is_some());
+        expect_that!(buffer.surface().is_none());
+        expect_that!(&buffer.color_buffers().len(), eq(0));
+        expect_that!(buffer.depth_stencil_buffer().is_none());
         expect_that!(!buffer.is_valid());
 
         expect_that!(buffer.current_frame().unwrap().is_none());
