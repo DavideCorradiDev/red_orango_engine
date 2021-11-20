@@ -49,7 +49,7 @@ impl CommandSequence {
         operations: &RenderPassOperations,
     ) -> RenderPass<'a> {
         // Define color attachments.
-        let has_swap_chain = canvas_frame.swap_chain().is_some();
+        let has_swap_chain = canvas_frame.surface().is_some();
         let required_color_buffer_count = requirements.color_buffer_formats.len();
         let mut color_attachments = Vec::with_capacity(required_color_buffer_count);
         for i in 0..required_color_buffer_count {
@@ -59,15 +59,15 @@ impl CommandSequence {
                 None => Operations::default(),
             };
             if i == 0 && has_swap_chain {
-                let swap_chain = canvas_frame.swap_chain().unwrap();
+                let surface = canvas_frame.surface().unwrap();
                 assert!(
-                    required_format == swap_chain.format()
-                        && requirements.sample_count == swap_chain.sample_count(),
+                    required_format == surface.format()
+                        && requirements.sample_count == surface.sample_count(),
                     "Incompatible swap chain"
                 );
                 color_attachments.push(RenderPassColorAttachmentDescriptor {
-                    view: swap_chain.attachment(),
-                    resolve_target: swap_chain.resolve_target(),
+                    view: surface.attachment(),
+                    resolve_target: surface.resolve_target(),
                     ops,
                 });
             } else {
@@ -139,7 +139,6 @@ mod tests {
         let _cmd_seq = CommandSequence::new(&instance);
     }
 
-    // TODO: call present().
     #[test]
     #[serial_test::serial]
     fn render_pass() {
@@ -150,7 +149,7 @@ mod tests {
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 1,
-                swap_chain_descriptor: None,
+                surface_descriptor: None,
                 color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
                     format: CanvasColorBufferFormat::default(),
                     usage: CanvasColorBufferUsage::empty(),
@@ -197,7 +196,7 @@ mod tests {
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
-                swap_chain_descriptor: None,
+                surface_descriptor: None,
                 color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
                     format: CanvasColorBufferFormat::default(),
                     usage: CanvasColorBufferUsage::empty(),
@@ -247,7 +246,7 @@ mod tests {
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 1,
-                swap_chain_descriptor: None,
+                surface_descriptor: None,
                 color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
                     format: CanvasColorBufferFormat::default(),
                     usage: CanvasColorBufferUsage::empty(),
@@ -281,7 +280,7 @@ mod tests {
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
-                swap_chain_descriptor: None,
+                surface_descriptor: None,
                 color_buffer_descriptors: Vec::new(),
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
             },
@@ -310,7 +309,7 @@ mod tests {
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
-                swap_chain_descriptor: None,
+                surface_descriptor: None,
                 color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
                     format: CanvasColorBufferFormat::Bgra8Unorm,
                     usage: CanvasColorBufferUsage::empty(),
@@ -342,7 +341,7 @@ mod tests {
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
-                swap_chain_descriptor: None,
+                surface_descriptor: None,
                 color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
                     format: CanvasColorBufferFormat::default(),
                     usage: CanvasColorBufferUsage::empty(),
@@ -374,7 +373,7 @@ mod tests {
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
-                swap_chain_descriptor: None,
+                surface_descriptor: None,
                 color_buffer_descriptors: Vec::new(),
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth24Plus),
             },

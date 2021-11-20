@@ -59,7 +59,7 @@ impl From<CanvasDepthStencilBufferFormat> for TextureFormat {
 pub type CanvasSize = Size<u32>;
 
 #[derive(Debug)]
-pub struct CanvasSwapChainRef<'a> {
+pub struct CanvasSurfaceRef<'a> {
     sample_count: SampleCount,
     format: CanvasColorBufferFormat,
     multisampled_buffer: Option<&'a TextureView>,
@@ -69,7 +69,7 @@ pub struct CanvasSwapChainRef<'a> {
     frame: TextureView,
 }
 
-impl<'a> CanvasSwapChainRef<'a> {
+impl<'a> CanvasSurfaceRef<'a> {
     pub fn attachment(&self) -> &TextureView {
         match self.multisampled_buffer {
             Some(v) => &v,
@@ -98,14 +98,14 @@ impl<'a> CanvasSwapChainRef<'a> {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct CanvasSwapChainDescriptor {
+pub struct CanvasSurfaceDescriptor {
     pub size: CanvasSize,
     pub sample_count: SampleCount,
     pub format: CanvasColorBufferFormat,
 }
 
 #[derive(Debug)]
-pub struct CanvasSwapChain {
+pub struct CanvasSurface {
     size: CanvasSize,
     sample_count: SampleCount,
     format: CanvasColorBufferFormat,
@@ -113,8 +113,8 @@ pub struct CanvasSwapChain {
     surface: Surface,
 }
 
-impl CanvasSwapChain {
-    pub fn new(instance: &Instance, surface: Surface, desc: &CanvasSwapChainDescriptor) -> Self {
+impl CanvasSurface {
+    pub fn new(instance: &Instance, surface: Surface, desc: &CanvasSurfaceDescriptor) -> Self {
         let usage = TextureUsage::RENDER_ATTACHMENT;
         let texture_format = TextureFormat::from(desc.format);
         let width = desc.size.width();
@@ -182,7 +182,7 @@ impl CanvasSwapChain {
         self.format
     }
 
-    pub fn reference(&mut self) -> Result<CanvasSwapChainRef, SurfaceError> {
+    pub fn reference(&mut self) -> Result<CanvasSurfaceRef, SurfaceError> {
         let surface_texture = self.surface.get_current_texture()?;
         // TODO: view descriptor should be populated...
         let frame = surface_texture.texture.create_view(&TextureViewDescriptor {
@@ -199,7 +199,7 @@ impl CanvasSwapChain {
             Some(ref v) => Some(v),
             None => None,
         };
-        Ok(CanvasSwapChainRef {
+        Ok(CanvasSurfaceRef {
             sample_count: self.sample_count,
             format: self.format,
             multisampled_buffer,
@@ -460,14 +460,14 @@ impl CanvasDepthStencilBuffer {
 
 #[derive(Debug)]
 pub struct CanvasFrame<'a> {
-    swap_chain: Option<CanvasSwapChainRef<'a>>,
+    surface: Option<CanvasSurfaceRef<'a>>,
     color_buffers: Vec<CanvasColorBufferRef<'a>>,
     depth_stencil_buffer: Option<CanvasDepthStencilBufferRef<'a>>,
 }
 
 impl<'a> CanvasFrame<'a> {
-    pub fn swap_chain(&self) -> Option<&CanvasSwapChainRef<'a>> {
-        self.swap_chain.as_ref()
+    pub fn surface(&self) -> Option<&CanvasSurfaceRef<'a>> {
+        self.surface.as_ref()
     }
 
     pub fn color_buffers(&self) -> &Vec<CanvasColorBufferRef<'a>> {
@@ -479,14 +479,14 @@ impl<'a> CanvasFrame<'a> {
     }
 
     pub fn present(self) {
-        if let Some(sc) = self.swap_chain {
+        if let Some(sc) = self.surface {
             sc.present();
         }
     }
 }
 
 #[derive(Debug)]
-pub struct CanvasBufferSwapChainDescriptor {
+pub struct CanvasBufferSurfaceDescriptor {
     pub surface: Surface,
     pub format: CanvasColorBufferFormat,
 }
@@ -510,7 +510,7 @@ impl Default for CanvasBufferColorBufferDescriptor {
 pub struct CanvasBufferDescriptor {
     pub size: CanvasSize,
     pub sample_count: SampleCount,
-    pub swap_chain_descriptor: Option<CanvasBufferSwapChainDescriptor>,
+    pub surface_descriptor: Option<CanvasBufferSurfaceDescriptor>,
     pub color_buffer_descriptors: Vec<CanvasBufferColorBufferDescriptor>,
     pub depth_stencil_buffer_format: Option<CanvasDepthStencilBufferFormat>,
 }
@@ -519,7 +519,7 @@ pub struct CanvasBufferDescriptor {
 pub struct CanvasBuffer {
     size: CanvasSize,
     sample_count: SampleCount,
-    swap_chain: Option<CanvasSwapChain>,
+    surface: Option<CanvasSurface>,
     color_buffers: Vec<CanvasColorBuffer>,
     depth_stencil_buffer: Option<CanvasDepthStencilBuffer>,
 }
@@ -527,11 +527,11 @@ pub struct CanvasBuffer {
 impl CanvasBuffer {
     // TODO: try to pass desc by ref.
     pub fn new(instance: &Instance, desc: CanvasBufferDescriptor) -> Self {
-        let swap_chain = match desc.swap_chain_descriptor {
-            Some(sc_desc) => Some(CanvasSwapChain::new(
+        let surface = match desc.surface_descriptor {
+            Some(sc_desc) => Some(CanvasSurface::new(
                 instance,
                 sc_desc.surface,
-                &CanvasSwapChainDescriptor {
+                &CanvasSurfaceDescriptor {
                     size: desc.size,
                     sample_count: desc.sample_count,
                     format: sc_desc.format,
@@ -566,14 +566,14 @@ impl CanvasBuffer {
         };
 
         assert!(
-            swap_chain.is_some() || !color_buffers.is_empty() || depth_stencil_buffer.is_some(),
+            surface.is_some() || !color_buffers.is_empty() || depth_stencil_buffer.is_some(),
             "No buffer defined for a canvas buffer"
         );
 
         Self {
             size: desc.size,
             sample_count: desc.sample_count,
-            swap_chain,
+            surface,
             color_buffers,
             depth_stencil_buffer,
         }
@@ -587,8 +587,8 @@ impl CanvasBuffer {
         self.sample_count
     }
 
-    pub fn swap_chain(&self) -> Option<&CanvasSwapChain> {
-        self.swap_chain.as_ref()
+    pub fn surface(&self) -> Option<&CanvasSurface> {
+        self.surface.as_ref()
     }
 
     pub fn color_buffers(&self) -> &Vec<CanvasColorBuffer> {
@@ -600,8 +600,8 @@ impl CanvasBuffer {
     }
 
     pub fn current_frame(&mut self) -> Result<CanvasFrame, SurfaceError> {
-        let swap_chain = match &mut self.swap_chain {
-            Some(swap_chain) => Some(swap_chain.reference()?),
+        let surface = match &mut self.surface {
+            Some(surface) => Some(surface.reference()?),
             None => None,
         };
 
@@ -616,7 +616,7 @@ impl CanvasBuffer {
         };
 
         Ok(CanvasFrame {
-            swap_chain,
+            surface,
             color_buffers,
             depth_stencil_buffer,
         })
@@ -624,10 +624,10 @@ impl CanvasBuffer {
 
     // TODO: handle this more appropriately?
     pub fn retrieve_surface(&mut self) -> Option<Surface> {
-        let mut extracted_swap_chain = None;
-        std::mem::swap(&mut extracted_swap_chain, &mut self.swap_chain);
-        match extracted_swap_chain {
-            Some(sc) => Some(sc.surface),
+        let mut extracted_surface = None;
+        std::mem::swap(&mut extracted_surface, &mut self.surface);
+        match extracted_surface {
+            Some(surface) => Some(surface.surface),
             None => None,
         }
     }
@@ -653,7 +653,7 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn canvas_swap_chain() {
+    fn canvas_surface() {
         let event_loop = EventLoop::<()>::new_any_thread();
         let window = WindowBuilder::new()
             .with_visible(false)
@@ -663,24 +663,24 @@ mod tests {
             Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
         };
 
-        let mut swap_chain = CanvasSwapChain::new(
+        let mut surface = CanvasSurface::new(
             &instance,
             surface,
-            &CanvasSwapChainDescriptor {
+            &CanvasSurfaceDescriptor {
                 sample_count: 2,
                 format: CanvasColorBufferFormat::Bgra8Unorm,
                 size: CanvasSize::new(12, 20),
             },
         );
 
-        expect_that!(&swap_chain.sample_count(), eq(2));
+        expect_that!(&surface.sample_count(), eq(2));
         expect_that!(
-            &swap_chain.format(),
+            &surface.format(),
             eq(CanvasColorBufferFormat::Bgra8Unorm)
         );
-        expect_that!(swap_chain.size(), eq(CanvasSize::new(12, 20)));
+        expect_that!(surface.size(), eq(CanvasSize::new(12, 20)));
 
-        let reference = swap_chain.reference().unwrap();
+        let reference = surface.reference().unwrap();
         expect_that!(&reference.sample_count(), eq(2));
         expect_that!(&reference.format(), eq(CanvasColorBufferFormat::Bgra8Unorm));
         expect_that!(reference.resolve_target().is_some());
@@ -755,7 +755,7 @@ mod tests {
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
-                swap_chain_descriptor: Some(CanvasBufferSwapChainDescriptor {
+                surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
                     surface: surface,
                     format: CanvasColorBufferFormat::default(),
                 }),
@@ -775,15 +775,15 @@ mod tests {
 
         expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
         expect_that!(&buffer.sample_count(), eq(2));
-        expect_that!(buffer.swap_chain().is_some());
+        expect_that!(buffer.surface().is_some());
         expect_that!(&buffer.color_buffers.len(), eq(2));
         expect_that!(buffer.depth_stencil_buffer().is_some());
 
         {
-            let swap_chain = buffer.swap_chain().unwrap();
-            expect_that!(&swap_chain.sample_count(), eq(2));
-            expect_that!(&swap_chain.format(), eq(CanvasColorBufferFormat::default()));
-            expect_that!(swap_chain.size(), eq(CanvasSize::new(12, 20)));
+            let surface = buffer.surface().unwrap();
+            expect_that!(&surface.sample_count(), eq(2));
+            expect_that!(&surface.format(), eq(CanvasColorBufferFormat::default()));
+            expect_that!(surface.size(), eq(CanvasSize::new(12, 20)));
         }
 
         {
@@ -812,7 +812,7 @@ mod tests {
 
         {
             let frame = buffer.current_frame().unwrap();
-            expect_that!(frame.swap_chain().is_some());
+            expect_that!(frame.surface().is_some());
             expect_that!(&frame.color_buffers().len(), eq(2));
             expect_that!(frame.depth_stencil_buffer.is_some());
         }
@@ -828,7 +828,7 @@ mod tests {
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
-                swap_chain_descriptor: None,
+                surface_descriptor: None,
                 color_buffer_descriptors: Vec::new(),
                 depth_stencil_buffer_format: None,
             },
