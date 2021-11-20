@@ -1,7 +1,7 @@
 use super::{
     Extent3d, Instance, PresentMode, SampleCount, Size, Surface, SurfaceConfiguration,
-    SurfaceError, Texture, TextureAspect, TextureDescriptor, TextureDimension, TextureFormat,
-    TextureUsage, TextureView, TextureViewDescriptor, TextureViewDimension,
+    SurfaceError, SurfaceTexture, Texture, TextureAspect, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureUsage, TextureView, TextureViewDescriptor, TextureViewDimension,
 };
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -62,6 +62,7 @@ pub struct CanvasSwapChainRef<'a> {
     format: CanvasColorBufferFormat,
     multisampled_buffer: Option<&'a TextureView>,
     // TODO: change to reference?
+    surface_texture: SurfaceTexture,
     frame: TextureView,
 }
 
@@ -92,6 +93,10 @@ impl<'a> CanvasSwapChainRef<'a> {
 
     pub fn format(&self) -> CanvasColorBufferFormat {
         self.format
+    }
+
+    pub fn present(self) {
+        self.surface_texture.present()
     }
 }
 
@@ -190,6 +195,7 @@ impl CanvasSwapChain {
             sample_count: self.sample_count,
             format: self.format,
             multisampled_buffer,
+            surface_texture,
             frame,
         })
     }
@@ -242,15 +248,27 @@ pub struct CanvasColorBufferRef<'a> {
 impl<'a> CanvasColorBufferRef<'a> {
     pub fn attachment(&self) -> &TextureView {
         match self.multisampled_buffer {
-            Some(v) => v,
-            None => self.main_buffer,
+            Some(v) => {
+                println!("TODO: multisampled attachment");
+                v
+            }
+            None => {
+                println!("TODO: non-multisampled attachment");
+                self.main_buffer
+            }
         }
     }
 
     pub fn resolve_target(&self) -> Option<&TextureView> {
         match self.multisampled_buffer {
-            Some(_) => Some(self.main_buffer),
-            None => None,
+            Some(_) => {
+                println!("TODO: multisampled resolve target");
+                Some(self.main_buffer)
+            }
+            None => {
+                println!("TODO: no resolve target");
+                None
+            }
         }
     }
 
@@ -297,7 +315,9 @@ pub struct CanvasColorBuffer {
 
 impl CanvasColorBuffer {
     pub fn new(instance: &Instance, desc: &CanvasColorBufferDescriptor) -> Self {
+        let format = TextureFormat::from(desc.format);
         let mut tex_desc = TextureDescriptor {
+            label: None,
             size: Extent3d {
                 width: desc.size.width(),
                 height: desc.size.height(),
@@ -305,18 +325,27 @@ impl CanvasColorBuffer {
             },
             mip_level_count: 1,
             sample_count: 1,
+            format,
             dimension: TextureDimension::D2,
-            format: TextureFormat::from(desc.format),
             usage: TextureUsage::from(desc.usage) | TextureUsage::RENDER_ATTACHMENT,
+        };
+        let tex_view_desc = TextureViewDescriptor {
             label: None,
+            format: Some(format),
+            dimension: Some(TextureViewDimension::D2),
+            aspect: TextureAspect::All,
+            base_mip_level: 0,
+            mip_level_count: None,
+            base_array_layer: 0,
+            array_layer_count: None,
         };
 
         let main_buffer_texture = Texture::new(instance, &tex_desc);
-        let main_buffer_view = main_buffer_texture.create_view(&TextureViewDescriptor::default());
+        let main_buffer_view = main_buffer_texture.create_view(&tex_view_desc);
 
         let multisampled_buffer = if desc.sample_count > 1 {
             tex_desc.sample_count = desc.sample_count;
-            Some(Texture::new(instance, &tex_desc).create_view(&TextureViewDescriptor::default()))
+            Some(Texture::new(instance, &tex_desc).create_view(&tex_view_desc))
         } else {
             None
         };
@@ -404,6 +433,7 @@ pub struct CanvasDepthStencilBuffer {
 
 impl CanvasDepthStencilBuffer {
     pub fn new(instance: &Instance, desc: &CanvasDepthStencilBufferDescriptor) -> Self {
+        let format = TextureFormat::from(desc.format);
         let buffer_texture = Texture::new(
             instance,
             &TextureDescriptor {
@@ -415,12 +445,21 @@ impl CanvasDepthStencilBuffer {
                 mip_level_count: 1,
                 sample_count: desc.sample_count,
                 dimension: TextureDimension::D2,
-                format: TextureFormat::from(desc.format),
+                format,
                 usage: TextureUsage::RENDER_ATTACHMENT,
                 label: None,
             },
         );
-        let buffer_view = buffer_texture.create_view(&TextureViewDescriptor::default());
+        let buffer_view = buffer_texture.create_view(&TextureViewDescriptor {
+            label: None,
+            format: Some(format),
+            dimension: Some(TextureViewDimension::D2),
+            aspect: TextureAspect::All,
+            base_mip_level: 0,
+            mip_level_count: None,
+            base_array_layer: 0,
+            array_layer_count: None,
+        });
         Self {
             size: desc.size,
             sample_count: desc.sample_count,
@@ -477,6 +516,12 @@ impl<'a> CanvasFrame<'a> {
 
     pub fn depth_stencil_buffer(&self) -> Option<&CanvasDepthStencilBufferRef<'a>> {
         self.depth_stencil_buffer.as_ref()
+    }
+
+    pub fn present(self) {
+        if let Some(sc) = self.swap_chain {
+            sc.present();
+        }
     }
 }
 

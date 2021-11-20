@@ -139,6 +139,7 @@ mod tests {
         let _cmd_seq = CommandSequence::new(&instance);
     }
 
+    // TODO: call present().
     #[test]
     #[serial_test::serial]
     fn render_pass() {
@@ -187,6 +188,7 @@ mod tests {
         cmd_seq.submit(&instance);
     }
 
+    // TODO: call present().
     #[test]
     #[serial_test::serial]
     fn render_pass_multisampled() {
