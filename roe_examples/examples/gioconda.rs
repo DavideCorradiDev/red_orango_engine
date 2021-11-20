@@ -276,29 +276,29 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                 );
 
                 // Single draw
-                // for sprite in &self.sprites {
-                //     rpass.draw_sprite(
-                //         &self.pipeline,
-                //         &sprite.uniform_constants,
-                //         &sprite.mesh,
-                //         &push_constants,
-                //         0..sprite.mesh.index_count(),
-                //     );
-                // }
-
-                // Multiple draw using std::Vec
                 for sprite in &self.sprites {
-                    rpass.draw_sprite_array(
+                    rpass.draw_sprite(
                         &self.pipeline,
-                        vec![(
-                            &sprite.uniform_constants,
-                            vec![(
-                                &sprite.mesh,
-                                vec![(&push_constants, vec![0..sprite.mesh.index_count()])],
-                            )],
-                        )],
+                        &sprite.uniform_constants,
+                        &sprite.mesh,
+                        &push_constants,
+                        0..sprite.mesh.index_count(),
                     );
                 }
+
+                // Multiple draw using std::Vec
+                // for sprite in &self.sprites {
+                //     rpass.draw_sprite_array(
+                //         &self.pipeline,
+                //         vec![(
+                //             &sprite.uniform_constants,
+                //             vec![(
+                //                 &sprite.mesh,
+                //                 vec![(&push_constants, vec![0..sprite.mesh.index_count()])],
+                //             )],
+                //         )],
+                //     );
+                // }
             }
             cmd_sequence.submit(&self.instance);
             frame.present();
