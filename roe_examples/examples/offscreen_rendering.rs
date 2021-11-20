@@ -216,57 +216,59 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         {
             // Render a triangle onto the canvas texture.
             let push_constants = self.generate_triangle_push_constants();
-            let frame = self.canvas.current_frame()?;
-            let mut cmd_sequence = CommandSequence::new(&self.instance);
-            {
-                let mut rpass = cmd_sequence.begin_render_pass(
-                    &frame,
-                    &self.shape2_pipeline.render_pass_requirements(),
-                    &RenderPassOperations {
-                        color_operations: vec![ColorOperations {
-                            load: LoadOp::Clear(ColorF64::BLACK),
-                            store: true,
-                        }],
-                        ..RenderPassOperations::default()
-                    },
-                );
-                rpass.draw_shape2(
-                    &self.shape2_pipeline,
-                    &self.triangle_mesh,
-                    &push_constants,
-                    0..self.triangle_mesh.index_count(),
-                );
+            if let Some(frame) = self.canvas.current_frame()? {
+                let mut cmd_sequence = CommandSequence::new(&self.instance);
+                {
+                    let mut rpass = cmd_sequence.begin_render_pass(
+                        &frame,
+                        &self.shape2_pipeline.render_pass_requirements(),
+                        &RenderPassOperations {
+                            color_operations: vec![ColorOperations {
+                                load: LoadOp::Clear(ColorF64::BLACK),
+                                store: true,
+                            }],
+                            ..RenderPassOperations::default()
+                        },
+                    );
+                    rpass.draw_shape2(
+                        &self.shape2_pipeline,
+                        &self.triangle_mesh,
+                        &push_constants,
+                        0..self.triangle_mesh.index_count(),
+                    );
+                }
+                cmd_sequence.submit(&self.instance);
+                frame.present();
             }
-            cmd_sequence.submit(&self.instance);
-            frame.present();
         }
         {
             // Render the canvas texture onto the canvas window.
             let push_constants = self.generate_blit_push_constants();
-            let frame = self.window.current_frame()?;
-            let mut cmd_sequence = CommandSequence::new(&self.instance);
-            {
-                let mut rpass = cmd_sequence.begin_render_pass(
-                    &frame,
-                    &self.sprite_pipeline.render_pass_requirements(),
-                    &RenderPassOperations {
-                        color_operations: vec![ColorOperations {
-                            load: LoadOp::Clear(ColorF64::WHITE),
-                            store: true,
-                        }],
-                        ..RenderPassOperations::default()
-                    },
-                );
-                rpass.draw_sprite(
-                    &self.sprite_pipeline,
-                    &self.sprite_uniform_constants,
-                    &self.quad_mesh,
-                    &push_constants,
-                    0..self.quad_mesh.index_count(),
-                );
+            if let Some(frame) = self.window.current_frame()? {
+                let mut cmd_sequence = CommandSequence::new(&self.instance);
+                {
+                    let mut rpass = cmd_sequence.begin_render_pass(
+                        &frame,
+                        &self.sprite_pipeline.render_pass_requirements(),
+                        &RenderPassOperations {
+                            color_operations: vec![ColorOperations {
+                                load: LoadOp::Clear(ColorF64::WHITE),
+                                store: true,
+                            }],
+                            ..RenderPassOperations::default()
+                        },
+                    );
+                    rpass.draw_sprite(
+                        &self.sprite_pipeline,
+                        &self.sprite_uniform_constants,
+                        &self.quad_mesh,
+                        &push_constants,
+                        0..self.quad_mesh.index_count(),
+                    );
+                }
+                cmd_sequence.submit(&self.instance);
+                frame.present();
             }
-            cmd_sequence.submit(&self.instance);
-            frame.present();
         }
         Ok(ControlFlow::Continue)
     }

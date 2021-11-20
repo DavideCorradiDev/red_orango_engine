@@ -215,11 +215,6 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
     }
 
     fn on_variable_update(&mut self, dt: std::time::Duration) -> Result<ControlFlow, Self::Error> {
-        // TODO: remove below
-        if self.window.inner_size().width == 0 {
-            return Ok(ControlFlow::Continue);
-        }
-        // TODO: remove above
         self.update_angle(dt);
 
         let mut draw_static_triangle_params =
@@ -233,45 +228,46 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
 
         let current_triangle_constants = self.generate_push_constant();
 
-        let frame = self.window.current_frame()?;
-        let mut cmd_sequence = CommandSequence::new(&self.instance);
+        if let Some(frame) = self.window.current_frame()? {
+            let mut cmd_sequence = CommandSequence::new(&self.instance);
 
-        {
-            let mut rpass = cmd_sequence.begin_render_pass(
-                &frame,
-                &self.pipeline.render_pass_requirements(),
-                &RenderPassOperations::default(),
-            );
-            rpass.draw_shape2_array(
-                &self.pipeline,
-                once((&self.triangle_mesh, draw_static_triangle_params)),
-            );
+            {
+                let mut rpass = cmd_sequence.begin_render_pass(
+                    &frame,
+                    &self.pipeline.render_pass_requirements(),
+                    &RenderPassOperations::default(),
+                );
+                rpass.draw_shape2_array(
+                    &self.pipeline,
+                    once((&self.triangle_mesh, draw_static_triangle_params)),
+                );
+            }
+
+            {
+                // Technically this could be done in the same render pass, just showing how to
+                // combine multiple render passes keeping what was rendered in the previous one.
+                let mut rpass = cmd_sequence.begin_render_pass(
+                    &frame,
+                    &self.pipeline.render_pass_requirements(),
+                    &RenderPassOperations {
+                        color_operations: vec![roe_graphics::Operations {
+                            load: roe_graphics::LoadOp::Load,
+                            store: true,
+                        }],
+                        ..RenderPassOperations::default()
+                    },
+                );
+                rpass.draw_shape2(
+                    &self.pipeline,
+                    &self.triangle_mesh,
+                    &current_triangle_constants,
+                    0..self.triangle_mesh.index_count(),
+                );
+            }
+
+            cmd_sequence.submit(&self.instance);
+            frame.present();
         }
-
-        {
-            // Technically this could be done in the same render pass, just showing how to
-            // combine multiple render passes keeping what was rendered in the previous one.
-            let mut rpass = cmd_sequence.begin_render_pass(
-                &frame,
-                &self.pipeline.render_pass_requirements(),
-                &RenderPassOperations {
-                    color_operations: vec![roe_graphics::Operations {
-                        load: roe_graphics::LoadOp::Load,
-                        store: true,
-                    }],
-                    ..RenderPassOperations::default()
-                },
-            );
-            rpass.draw_shape2(
-                &self.pipeline,
-                &self.triangle_mesh,
-                &current_triangle_constants,
-                0..self.triangle_mesh.index_count(),
-            );
-        }
-
-        cmd_sequence.submit(&self.instance);
-        frame.present();
         Ok(ControlFlow::Continue)
     }
 }
