@@ -100,17 +100,14 @@ impl CanvasWindow {
         // let current_size = CanvasSize::new(current_size.width, current_size.height);
         let current_size = CanvasSize::new(1.max(current_size.width), 1.max(current_size.height));
         if *self.canvas_size() != current_size {
-            println!("TODO: RECREATING CANVAS");
-            // TODO: handle this better.
-            let format = self.color_buffer_format();
-            let surface = self.canvas_buffer.retrieve_surface().unwrap();
-            self.canvas_buffer = CanvasBuffer::new(
+            self.canvas_buffer.configure(
                 instance,
-                Some(surface),
                 CanvasBufferDescriptor {
                     size: current_size,
                     sample_count: self.sample_count(),
-                    surface_descriptor: Some(CanvasBufferSurfaceDescriptor { format }),
+                    surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
+                        format: self.color_buffer_format(),
+                    }),
                     color_buffer_descriptors: Vec::new(),
                     depth_stencil_buffer_format: self.depth_stencil_buffer_format(),
                 },
