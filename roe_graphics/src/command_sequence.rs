@@ -159,8 +159,8 @@ mod tests {
             },
         );
 
+       let frame = buffer.current_frame().unwrap();
         {
-            let frame = buffer.current_frame().unwrap();
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
                 &RenderPassRequirements {
@@ -171,9 +171,7 @@ mod tests {
                 &RenderPassOperations::default(),
             );
         }
-
         {
-            let frame = buffer.current_frame().unwrap();
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
                 &RenderPassRequirements {
@@ -186,9 +184,9 @@ mod tests {
         }
 
         cmd_seq.submit(&instance);
+        frame.present();
     }
 
-    // TODO: call present().
     #[test]
     #[serial_test::serial]
     fn render_pass_multisampled() {
@@ -208,8 +206,8 @@ mod tests {
             },
         );
 
+        let frame = buffer.current_frame().unwrap();
         {
-            let frame = buffer.current_frame().unwrap();
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
                 &RenderPassRequirements {
@@ -220,9 +218,7 @@ mod tests {
                 &RenderPassOperations::default(),
             );
         }
-
         {
-            let frame = buffer.current_frame().unwrap();
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
                 &RenderPassRequirements {
@@ -235,9 +231,9 @@ mod tests {
         }
 
         cmd_seq.submit(&instance);
+        frame.present();
     }
 
-    // TODO: update sample counts to 4 where necessary...
     // TODO: investigate why 4 is the only supported sample count.
     // TODO: improve interfaces so that it is clear that sample count must be 4...
     #[test]
@@ -265,7 +261,7 @@ mod tests {
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
                 &RenderPassRequirements {
-                    sample_count: 2,
+                    sample_count: 4,
                     color_buffer_formats: vec![CanvasColorBufferFormat::default()],
                     depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
                 },
@@ -284,7 +280,7 @@ mod tests {
             &instance,
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
-                sample_count: 2,
+                sample_count: 4,
                 swap_chain_descriptor: None,
                 color_buffer_descriptors: Vec::new(),
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
@@ -295,7 +291,7 @@ mod tests {
         let _rpass = cmd_seq.begin_render_pass(
             &frame,
             &RenderPassRequirements {
-                sample_count: 2,
+                sample_count: 4,
                 color_buffer_formats: vec![CanvasColorBufferFormat::default()],
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
             },
@@ -313,7 +309,7 @@ mod tests {
             &instance,
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
-                sample_count: 2,
+                sample_count: 4,
                 swap_chain_descriptor: None,
                 color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
                     format: CanvasColorBufferFormat::Bgra8Unorm,
@@ -327,7 +323,7 @@ mod tests {
         let _rpass = cmd_seq.begin_render_pass(
             &frame,
             &RenderPassRequirements {
-                sample_count: 2,
+                sample_count: 4,
                 color_buffer_formats: vec![CanvasColorBufferFormat::Bgra8UnormSrgb],
                 depth_stencil_buffer_format: None,
             },
@@ -345,7 +341,7 @@ mod tests {
             &instance,
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
-                sample_count: 2,
+                sample_count: 4,
                 swap_chain_descriptor: None,
                 color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
                     format: CanvasColorBufferFormat::default(),
@@ -359,7 +355,7 @@ mod tests {
         let _rpass = cmd_seq.begin_render_pass(
             &frame,
             &RenderPassRequirements {
-                sample_count: 2,
+                sample_count: 4,
                 color_buffer_formats: vec![CanvasColorBufferFormat::default()],
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
             },
@@ -377,7 +373,7 @@ mod tests {
             &instance,
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
-                sample_count: 2,
+                sample_count: 4,
                 swap_chain_descriptor: None,
                 color_buffer_descriptors: Vec::new(),
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth24Plus),
@@ -388,7 +384,7 @@ mod tests {
         let _rpass = cmd_seq.begin_render_pass(
             &frame,
             &RenderPassRequirements {
-                sample_count: 2,
+                sample_count: 4,
                 color_buffer_formats: Vec::new(),
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
             },
