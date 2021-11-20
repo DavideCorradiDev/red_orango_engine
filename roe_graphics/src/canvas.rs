@@ -149,7 +149,18 @@ impl CanvasSwapChain {
                     label: None,
                 },
             );
-            Some(multisampling_buffer_texture.create_view(&TextureViewDescriptor::default()))
+            Some(
+                multisampling_buffer_texture.create_view(&TextureViewDescriptor {
+                    label: None,
+                    format: Some(TextureFormat::from(texture_format)),
+                    dimension: Some(TextureViewDimension::D2),
+                    aspect: TextureAspect::All,
+                    base_mip_level: 0,
+                    mip_level_count: None,
+                    base_array_layer: 0,
+                    array_layer_count: None,
+                }),
+            )
         } else {
             None
         };
@@ -345,6 +356,7 @@ impl CanvasColorBuffer {
 
         let multisampled_buffer = if desc.sample_count > 1 {
             tex_desc.sample_count = desc.sample_count;
+            println!("Sample count: {}", tex_desc.sample_count);
             Some(Texture::new(instance, &tex_desc).create_view(&tex_view_desc))
         } else {
             None
