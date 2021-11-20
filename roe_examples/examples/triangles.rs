@@ -149,6 +149,26 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         size: window::PhysicalSize<u32>,
     ) -> Result<ControlFlow, Self::Error> {
         if wid == self.window.id() {
+            println!("TODO: RESIZED EVENT {}, {}", size.width, size.height);
+            self.window.update_buffer(&self.instance);
+            self.projection_transform = OrthographicProjection::new(
+                0.,
+                1f32.max(size.width as f32),
+                1f32.max(size.height as f32),
+                0.,
+            )
+            .to_projective();
+        }
+        Ok(ControlFlow::Continue)
+    }
+
+    fn on_scale_factor_changed<'a>(
+        &mut self,
+        wid: WindowId,
+        _scale_factor: f64,
+        size: &'a mut window::PhysicalSize<u32>,
+    ) -> Result<ControlFlow, Self::Error> {
+        if wid == self.window.id() {
             self.window.update_buffer(&self.instance);
             self.projection_transform = OrthographicProjection::new(
                 0.,

@@ -47,7 +47,7 @@ where
     }
 
     fn on_scale_factor_changed<'a>(
-        &self,
+        &mut self,
         _wid: WindowId,
         _scale_factor: f64,
         _new_inner_size: &'a mut PhysicalSize<u32>,

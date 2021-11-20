@@ -96,8 +96,10 @@ impl CanvasWindow {
 
     pub fn update_buffer(&mut self, instance: &Instance) {
         let current_size = self.inner_size();
-        let current_size = CanvasSize::new(current_size.width, current_size.height);
+        // let current_size = CanvasSize::new(current_size.width, current_size.height);
+        let current_size = CanvasSize::new(1.max(current_size.width), 1.max(current_size.height));
         if *self.canvas_size() != current_size {
+            println!("TODO: RECREATING CANVAS");
             // TODO: handle this better.
             let format = self.color_buffer_format();
             let surface = self.canvas_buffer.retrieve_surface().unwrap();
@@ -106,14 +108,12 @@ impl CanvasWindow {
                 CanvasBufferDescriptor {
                     size: current_size,
                     sample_count: self.sample_count(),
-                    surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
-                        surface,
-                        format,
-                    }),
+                    surface_descriptor: Some(CanvasBufferSurfaceDescriptor { surface, format }),
                     color_buffer_descriptors: Vec::new(),
                     depth_stencil_buffer_format: self.depth_stencil_buffer_format(),
                 },
             );
+            println!("TODO: CANVAS RECREATED");
         }
     }
 

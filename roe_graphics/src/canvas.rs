@@ -148,6 +148,7 @@ pub struct CanvasSurface {
 impl CanvasSurface {
     pub fn new(instance: &Instance, surface: Surface, desc: &CanvasSurfaceDescriptor) -> Self {
         let format = TextureFormat::from(desc.format);
+        println!("TODO: call to surface configure");
         surface.configure(
             instance,
             &SurfaceConfiguration {
@@ -158,6 +159,7 @@ impl CanvasSurface {
                 present_mode: PresentMode::Mailbox,
             },
         );
+        println!("TODO: done");
         let multisampled_buffer = if desc.sample_count > 1 {
             let multisampling_buffer_texture = Texture::new(
                 instance,
