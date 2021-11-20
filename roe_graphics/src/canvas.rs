@@ -65,6 +65,7 @@ pub struct CanvasSwapChainRef<'a> {
     multisampled_buffer: Option<&'a TextureView>,
     // TODO: change to reference?
     surface_texture: SurfaceTexture,
+    // TODO: rename stuff where required.
     frame: TextureView,
 }
 
@@ -206,42 +207,6 @@ impl CanvasSwapChain {
             frame,
         })
     }
-
-    // pub fn configure(&mut self, instance: &Instance, desc: &CanvasSwapChainDescriptor) {
-    //     // TODO: remove repetition.
-    //     let usage = TextureUsage::RENDER_ATTACHMENT;
-    //     let texture_format = TextureFormat::from(desc.format);
-    //     let width = desc.size.width();
-    //     let height = desc.size.height();
-    //     surface.configure(instance, &SurfaceConfiguration {
-    //             usage,
-    //             format: texture_format,
-    //             width,
-    //             height,
-    //             present_mode: PresentMode::Mailbox,
-    //     });
-    //     let multisampled_buffer = if desc.sample_count > 1 {
-    //         let multisampling_buffer_texture = Texture::new(
-    //             instance,
-    //             &TextureDescriptor {
-    //                 size: Extent3d {
-    //                     width,
-    //                     height,
-    //                     depth_or_array_layers: 1,
-    //                 },
-    //                 mip_level_count: 1,
-    //                 sample_count: desc.sample_count,
-    //                 dimension: TextureDimension::D2,
-    //                 format: texture_format,
-    //                 usage,
-    //                 label: None,
-    //             },
-    //         );
-    //         Some(multisampling_buffer_texture.create_view(&TextureViewDescriptor::default()))
-    //     } else {
-    //         None
-    //     };
-    // }
 }
 
 #[derive(Debug)]
