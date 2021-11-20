@@ -66,11 +66,11 @@ impl CanvasWindow {
         let surface_size = window.inner_size();
         let canvas_buffer = CanvasBuffer::new(
             instance,
+            Some(surface),
             CanvasBufferDescriptor {
                 size: CanvasSize::new(surface_size.width, surface_size.height),
                 sample_count: desc.sample_count,
                 surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
-                    surface,
                     format: desc.color_buffer_format,
                 }),
                 color_buffer_descriptors: Vec::new(),
@@ -106,10 +106,11 @@ impl CanvasWindow {
             let surface = self.canvas_buffer.retrieve_surface().unwrap();
             self.canvas_buffer = CanvasBuffer::new(
                 instance,
+                Some(surface),
                 CanvasBufferDescriptor {
                     size: current_size,
                     sample_count: self.sample_count(),
-                    surface_descriptor: Some(CanvasBufferSurfaceDescriptor { surface, format }),
+                    surface_descriptor: Some(CanvasBufferSurfaceDescriptor { format }),
                     color_buffer_descriptors: Vec::new(),
                     depth_stencil_buffer_format: self.depth_stencil_buffer_format(),
                 },

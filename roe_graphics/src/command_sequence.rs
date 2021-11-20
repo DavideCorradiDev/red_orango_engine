@@ -146,6 +146,7 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
+            None,
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 1,
@@ -193,6 +194,7 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
+            None,
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
@@ -243,6 +245,7 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
+            None,
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 1,
@@ -277,6 +280,7 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
+            None,
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
@@ -306,6 +310,7 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
+            None,
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
@@ -338,6 +343,7 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
+            None,
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
@@ -370,6 +376,7 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
+            None,
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,

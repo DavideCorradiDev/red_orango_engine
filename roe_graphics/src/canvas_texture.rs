@@ -36,6 +36,7 @@ impl CanvasTexture {
     pub fn new(instance: &Instance, desc: &CanvasTextureDescriptor) -> Self {
         let canvas_buffer = CanvasBuffer::new(
             instance,
+            None,
             CanvasBufferDescriptor {
                 size: desc.size,
                 sample_count: desc.sample_count,

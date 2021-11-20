@@ -453,7 +453,6 @@ impl<'a> CanvasFrame<'a> {
 
 #[derive(Debug)]
 pub struct CanvasBufferSurfaceDescriptor {
-    pub surface: Surface,
     pub format: CanvasColorBufferFormat,
 }
 
@@ -492,17 +491,27 @@ pub struct CanvasBuffer {
 
 impl CanvasBuffer {
     // TODO: try to pass desc by ref.
-    pub fn new(instance: &Instance, desc: CanvasBufferDescriptor) -> Self {
-        let surface = match desc.surface_descriptor {
-            Some(sc_desc) => Some(CanvasSurface::new(
-                instance,
-                sc_desc.surface,
-                &CanvasSurfaceDescriptor {
-                    size: desc.size,
-                    sample_count: desc.sample_count,
-                    format: sc_desc.format,
-                },
-            )),
+    pub fn new(
+        instance: &Instance,
+        surface: Option<Surface>,
+        desc: CanvasBufferDescriptor,
+    ) -> Self {
+        let surface = match surface {
+            Some(surface) => {
+                let format = match desc.surface_descriptor {
+                    Some(sd) => sd.format,
+                    None => CanvasColorBufferFormat::default()
+                };
+                Some(CanvasSurface::new(
+                    instance,
+                    surface,
+                    &CanvasSurfaceDescriptor {
+                        size: desc.size,
+                        sample_count: desc.sample_count,
+                        format,
+                    },
+                ))
+            }
             None => None,
         };
 
@@ -715,11 +724,11 @@ mod tests {
 
         let mut buffer = CanvasBuffer::new(
             &instance,
+            Some(surface),
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
                 surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
-                    surface: surface,
                     format: CanvasColorBufferFormat::default(),
                 }),
                 color_buffer_descriptors: vec![
@@ -788,6 +797,7 @@ mod tests {
         let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
         let _buffer = CanvasBuffer::new(
             &instance,
+            None,
             CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
