@@ -215,6 +215,11 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
     }
 
     fn on_variable_update(&mut self, dt: std::time::Duration) -> Result<ControlFlow, Self::Error> {
+        // TODO: remove below
+        if self.window.inner_size().width == 0 {
+            return Ok(ControlFlow::Continue);
+        }
+        // TODO: remove above
         self.update_angle(dt);
 
         let mut draw_static_triangle_params =
