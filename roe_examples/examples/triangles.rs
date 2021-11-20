@@ -38,7 +38,7 @@ struct ApplicationImpl {
 }
 
 impl ApplicationImpl {
-    const SAMPLE_COUNT: SampleCount = 8;
+    const SAMPLE_COUNT: SampleCount = 4;
 
     pub fn update_angle(&mut self, dt: std::time::Duration) {
         const ANGULAR_SPEED: f32 = std::f32::consts::PI * 0.25;
@@ -246,6 +246,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         }
 
         cmd_sequence.submit(&self.instance);
+        frame.present();
         Ok(ControlFlow::Continue)
     }
 }

@@ -37,13 +37,13 @@ struct ApplicationImpl {
 }
 
 impl ApplicationImpl {
-    const SAMPLE_COUNT: SampleCount = 8;
+    const SAMPLE_COUNT: SampleCount = 4;
 
     fn create_sprites(instance: &Instance) -> Vec<Sprite> {
         let image = image::open("roe_examples/data/pictures/gioconda.jpg")
             .expect("Failed to load texture image")
             .into_rgba8();
-        let sprite_texture = Texture::from_image(instance, &image, TextureUsage::SAMPLED)
+        let sprite_texture = Texture::from_image(instance, &image, TextureUsage::TEXTURE_BINDING)
             .create_view(&TextureViewDescriptor::default());
 
         vec![
@@ -301,6 +301,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             }
         }
         cmd_sequence.submit(&self.instance);
+        frame.present();
         Ok(ControlFlow::Continue)
     }
 }

@@ -38,7 +38,7 @@ struct ApplicationImpl {
 }
 
 impl ApplicationImpl {
-    const SAMPLE_COUNT: SampleCount = 8;
+    const SAMPLE_COUNT: SampleCount = 4;
     const SCREENSHOT_PATH: &'static str = "screenshot.png";
 
     pub fn update_angle(&mut self, dt: std::time::Duration) {
@@ -100,7 +100,8 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                 sample_count: Self::SAMPLE_COUNT,
                 color_buffer_descriptor: Some(CanvasTextureColorBufferDescriptor {
                     format: CanvasColorBufferFormat::Rgba8UnormSrgb,
-                    usage: CanvasColorBufferUsage::SAMPLED | CanvasColorBufferUsage::COPY_SRC,
+                    usage: CanvasColorBufferUsage::TEXTURE_BINDING
+                        | CanvasColorBufferUsage::COPY_SRC,
                 }),
                 ..CanvasTextureDescriptor::default()
             },
@@ -237,6 +238,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                 );
             }
             cmd_sequence.submit(&self.instance);
+            frame.present();
         }
         {
             // Render the canvas texture onto the canvas window.
@@ -264,6 +266,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                 );
             }
             cmd_sequence.submit(&self.instance);
+            frame.present();
         }
         Ok(ControlFlow::Continue)
     }

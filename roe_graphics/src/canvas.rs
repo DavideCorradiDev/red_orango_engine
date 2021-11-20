@@ -4,6 +4,8 @@ use super::{
     TextureFormat, TextureUsage, TextureView, TextureViewDescriptor, TextureViewDimension,
 };
 
+// TODO: fix crash on window minimization.
+
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum CanvasColorBufferFormat {
     Rgba8Unorm,
@@ -69,14 +71,8 @@ pub struct CanvasSwapChainRef<'a> {
 impl<'a> CanvasSwapChainRef<'a> {
     pub fn attachment(&self) -> &TextureView {
         match self.multisampled_buffer {
-            Some(v) => {
-                println!("TODO: returning multisampled buffer!");
-                &v
-            }
-            None => {
-                println!("TODO: returning surface buffer!");
-                &self.frame
-            }
+            Some(v) => &v,
+            None => &self.frame,
         }
     }
 
@@ -259,27 +255,15 @@ pub struct CanvasColorBufferRef<'a> {
 impl<'a> CanvasColorBufferRef<'a> {
     pub fn attachment(&self) -> &TextureView {
         match self.multisampled_buffer {
-            Some(v) => {
-                println!("TODO: multisampled attachment");
-                v
-            }
-            None => {
-                println!("TODO: non-multisampled attachment");
-                self.main_buffer
-            }
+            Some(v) => v,
+            None => self.main_buffer,
         }
     }
 
     pub fn resolve_target(&self) -> Option<&TextureView> {
         match self.multisampled_buffer {
-            Some(_) => {
-                println!("TODO: multisampled resolve target");
-                Some(self.main_buffer)
-            }
-            None => {
-                println!("TODO: no resolve target");
-                None
-            }
+            Some(_) => Some(self.main_buffer),
+            None => None,
         }
     }
 
@@ -356,7 +340,6 @@ impl CanvasColorBuffer {
 
         let multisampled_buffer = if desc.sample_count > 1 {
             tex_desc.sample_count = desc.sample_count;
-            println!("Sample count: {}", tex_desc.sample_count);
             Some(Texture::new(instance, &tex_desc).create_view(&tex_view_desc))
         } else {
             None
@@ -676,7 +659,6 @@ impl CanvasBuffer {
 
     // TODO: handle this more appropriately?
     pub fn retrieve_surface(&mut self) -> Option<Surface> {
-        println!("TODO: RETRIVING SURFACE!!!");
         let mut extracted_swap_chain = None;
         std::mem::swap(&mut extracted_swap_chain, &mut self.swap_chain);
         match extracted_swap_chain {

@@ -76,12 +76,11 @@ impl CommandSequence {
                     .color_buffers()
                     .get(buffer_index)
                     .expect("Not enough color buffers");
-                // TODO: reactivate
-                // assert!(
-                //     required_format == color_buffer.format()
-                //         && requirements.sample_count == color_buffer.sample_count(),
-                //     "Incompatible color buffer"
-                // );
+                assert!(
+                    required_format == color_buffer.format()
+                        && requirements.sample_count == color_buffer.sample_count(),
+                    "Incompatible color buffer"
+                );
                 color_attachments.push(RenderPassColorAttachmentDescriptor {
                     view: color_buffer.attachment(),
                     resolve_target: color_buffer.resolve_target(),
@@ -94,12 +93,11 @@ impl CommandSequence {
         let depth_stencil_attachment = match requirements.depth_stencil_buffer_format {
             Some(required_format) => match canvas_frame.depth_stencil_buffer() {
                 Some(ds_buffer) => {
-                  // TODO: reactivate
-                  //   assert!(
-                  //       required_format == ds_buffer.format()
-                  //           && requirements.sample_count == ds_buffer.sample_count(),
-                  //       "Incompatible depth stencil buffer"
-                  //   );
+                    assert!(
+                        required_format == ds_buffer.format()
+                            && requirements.sample_count == ds_buffer.sample_count(),
+                        "Incompatible depth stencil buffer"
+                    );
                     Some(RenderPassDepthStencilAttachmentDescriptor {
                         view: ds_buffer.attachment(),
                         depth_ops: operations.depth_operations,
@@ -196,7 +194,6 @@ mod tests {
     fn render_pass_multisampled() {
         let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
         let mut cmd_seq = CommandSequence::new(&instance);
-        println!("TODO: CREATING BUFFER");
         let mut buffer = CanvasBuffer::new(
             &instance,
             CanvasBufferDescriptor {
@@ -210,13 +207,9 @@ mod tests {
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
             },
         );
-        println!("TODO: BUFFER CREATED");
 
         {
-            println!("TODO: RETRIEVING FRAME");
             let frame = buffer.current_frame().unwrap();
-            println!("TODO: FRAME RETRIEVED");
-            println!("TODO: BEGINNING PASS");
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
                 &RenderPassRequirements {
@@ -226,14 +219,10 @@ mod tests {
                 },
                 &RenderPassOperations::default(),
             );
-            println!("TODO: DONE");
         }
 
         {
-            println!("TODO: RETRIEVING FRAME");
             let frame = buffer.current_frame().unwrap();
-            println!("TODO: FRAME RETRIEVED");
-            println!("TODO: BEGINNING PASS");
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
                 &RenderPassRequirements {
@@ -243,14 +232,14 @@ mod tests {
                 },
                 &RenderPassOperations::default(),
             );
-            println!("TODO: DONE");
         }
 
-        println!("TODO: SUBMITTING COMMAND");
         cmd_seq.submit(&instance);
-        println!("TODO: DONE"); 
     }
 
+    // TODO: update sample counts to 4 where necessary...
+    // TODO: investigate why 4 is the only supported sample count.
+    // TODO: improve interfaces so that it is clear that sample count must be 4...
     #[test]
     #[serial_test::serial]
     #[should_panic(expected = "Incompatible color buffer")]
