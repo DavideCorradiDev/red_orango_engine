@@ -3,7 +3,7 @@ use std::{default::Default, iter};
 use super::{
     CanvasColorBufferFormat, CanvasDepthStencilBufferFormat, CanvasFrame, ColorOperations,
     CommandEncoder, CommandEncoderDescriptor, DepthOperations, Instance, Operations, RenderPass,
-    RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor,
+    RenderPassColorAttachment, RenderPassDepthStencilAttachment,
     RenderPassDescriptor, SampleCount, StencilOperations,
 };
 
@@ -65,7 +65,7 @@ impl CommandSequence {
                         && requirements.sample_count == surface.sample_count(),
                     "Incompatible swap chain"
                 );
-                color_attachments.push(RenderPassColorAttachmentDescriptor {
+                color_attachments.push(RenderPassColorAttachment {
                     view: surface.attachment(),
                     resolve_target: surface.resolve_target(),
                     ops,
@@ -81,7 +81,7 @@ impl CommandSequence {
                         && requirements.sample_count == color_buffer.sample_count(),
                     "Incompatible color buffer"
                 );
-                color_attachments.push(RenderPassColorAttachmentDescriptor {
+                color_attachments.push(RenderPassColorAttachment {
                     view: color_buffer.attachment(),
                     resolve_target: color_buffer.resolve_target(),
                     ops,
@@ -98,7 +98,7 @@ impl CommandSequence {
                             && requirements.sample_count == ds_buffer.sample_count(),
                         "Incompatible depth stencil buffer"
                     );
-                    Some(RenderPassDepthStencilAttachmentDescriptor {
+                    Some(RenderPassDepthStencilAttachment {
                         view: ds_buffer.attachment(),
                         depth_ops: operations.depth_operations,
                         stencil_ops: operations.stencil_operations,

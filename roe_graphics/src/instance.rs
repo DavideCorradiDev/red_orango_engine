@@ -11,11 +11,11 @@ use raw_window_handle::HasRawWindowHandle;
 
 use super::{
     AdapterInfo, Backend, BindGroupDescriptor, BindGroupLayoutDescriptor, BufferAddress,
-    BufferCopyView, BufferDescriptor, BufferInitDescriptor, BufferUsage, ColorF64, CommandBuffer,
+    ImageCopyBuffer, BufferDescriptor, BufferInitDescriptor, BufferUsage, ColorF64, CommandBuffer,
     CommandEncoderDescriptor, Extent3d, Features, Limits, Maintain, MapMode, Operations, Origin3d,
     PipelineLayoutDescriptor, PowerPreference, RenderBundleEncoderDescriptor,
     RenderPipelineDescriptor, SamplerDescriptor, ShaderModuleDescriptor, 
-    TextureAspect, TextureCopyView, TextureDataLayout, TextureDescriptor, TextureDimension,
+    TextureAspect, ImageCopyTexture, ImageDataLayout, TextureDescriptor, TextureDimension,
     TextureFormat, TextureUsage, SurfaceConfiguration, SurfaceTexture, SurfaceError
 };
 
@@ -128,9 +128,9 @@ impl Instance {
 
     pub fn write_texture(
         &self,
-        texture: TextureCopyView<'_>,
+        texture: ImageCopyTexture<'_>,
         data: &[u8],
-        data_layout: TextureDataLayout,
+        data_layout: ImageDataLayout,
         size: Extent3d,
     ) {
         self.queue.write_texture(texture, data, data_layout, size);
@@ -497,7 +497,7 @@ impl Texture {
             0,
             Origin3d::ZERO,
             img.as_flat_samples().as_slice(),
-            TextureDataLayout {
+            ImageDataLayout {
                 offset: 0,
                 bytes_per_row: core::num::NonZeroU32::new(4 * size.height),
                 rows_per_image: None,
@@ -521,15 +521,15 @@ impl Texture {
         let mut encoder = CommandEncoder::new(instance, &CommandEncoderDescriptor::default());
         {
             encoder.copy_texture_to_buffer(
-                TextureCopyView {
+                ImageCopyTexture {
                     texture: &self.value,
                     mip_level: 0,
                     origin: Origin3d::ZERO,
                     aspect: TextureAspect::All,
                 },
-                BufferCopyView {
+                ImageCopyBuffer {
                     buffer: &output_buffer,
-                    layout: TextureDataLayout {
+                    layout: ImageDataLayout {
                         offset: 0,
                         bytes_per_row: core::num::NonZeroU32::new(
                             buffer_size.padded_bytes_per_row as u32,
@@ -574,11 +574,11 @@ impl Texture {
         mip_level: u32,
         origin: Origin3d,
         data: &[u8],
-        data_layout: TextureDataLayout,
+        data_layout: ImageDataLayout,
         size: Extent3d,
     ) {
         instance.write_texture(
-            TextureCopyView {
+            ImageCopyTexture {
                 texture: self,
                 mip_level,
                 origin,

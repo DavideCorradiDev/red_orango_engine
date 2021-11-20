@@ -239,7 +239,7 @@ impl Font {
             0,
             gfx::Origin3d::ZERO,
             glyph_atlas_buffer.as_slice(),
-            gfx::TextureDataLayout {
+            gfx::ImageDataLayout {
                 offset: 0,
                 bytes_per_row: core::num::NonZeroU32::new(glyph_set.extent.width),
                 rows_per_image: core::num::NonZeroU32::new(glyph_set.extent.height),

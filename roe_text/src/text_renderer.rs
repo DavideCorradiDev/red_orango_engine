@@ -111,8 +111,8 @@ impl UniformConstants {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct RenderPipelineDescriptor {
-    pub color_blend: gfx::BlendDescriptor,
-    pub alpha_blend: gfx::BlendDescriptor,
+    pub color_blend: gfx::BlendComponent,
+    pub alpha_blend: gfx::BlendComponent,
     pub write_mask: gfx::ColorWrite,
     pub color_buffer_format: gfx::CanvasColorBufferFormat,
     pub sample_count: gfx::SampleCount,
@@ -121,12 +121,12 @@ pub struct RenderPipelineDescriptor {
 impl Default for RenderPipelineDescriptor {
     fn default() -> Self {
         Self {
-            color_blend: gfx::BlendDescriptor {
+            color_blend: gfx::BlendComponent {
                 src_factor: gfx::BlendFactor::SrcAlpha,
                 dst_factor: gfx::BlendFactor::OneMinusSrcAlpha,
                 operation: gfx::BlendOperation::Add,
             },
-            alpha_blend: gfx::BlendDescriptor {
+            alpha_blend: gfx::BlendComponent {
                 src_factor: gfx::BlendFactor::One,
                 dst_factor: gfx::BlendFactor::One,
                 operation: gfx::BlendOperation::Max,
@@ -185,7 +185,7 @@ impl RenderPipeline {
                     entry_point: "main",
                     buffers: &[gfx::VertexBufferLayout {
                         array_stride: std::mem::size_of::<Vertex>() as gfx::BufferAddress,
-                        step_mode: gfx::InputStepMode::Vertex,
+                        step_mode: gfx::VertexStepMode::Vertex,
                         attributes: &[
                             gfx::VertexAttribute {
                                 format: gfx::VertexFormat::Float32x2,

@@ -70,8 +70,8 @@ unsafe impl bytemuck::Pod for PushConstants {}
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct RenderPipelineDescriptor {
-    pub color_blend: roe_graphics::BlendDescriptor,
-    pub alpha_blend: roe_graphics::BlendDescriptor,
+    pub color_blend: roe_graphics::BlendComponent,
+    pub alpha_blend: roe_graphics::BlendComponent,
     pub write_mask: roe_graphics::ColorWrite,
     pub color_buffer_format: roe_graphics::CanvasColorBufferFormat,
     pub sample_count: roe_graphics::SampleCount,
@@ -80,12 +80,12 @@ pub struct RenderPipelineDescriptor {
 impl Default for RenderPipelineDescriptor {
     fn default() -> Self {
         Self {
-            color_blend: roe_graphics::BlendDescriptor {
+            color_blend: roe_graphics::BlendComponent {
                 src_factor: roe_graphics::BlendFactor::SrcAlpha,
                 dst_factor: roe_graphics::BlendFactor::OneMinusSrcAlpha,
                 operation: roe_graphics::BlendOperation::Add,
             },
-            alpha_blend: roe_graphics::BlendDescriptor {
+            alpha_blend: roe_graphics::BlendComponent {
                 src_factor: roe_graphics::BlendFactor::One,
                 dst_factor: roe_graphics::BlendFactor::One,
                 operation: roe_graphics::BlendOperation::Max,
@@ -135,7 +135,7 @@ impl RenderPipeline {
                     entry_point: "main",
                     buffers: &[roe_graphics::VertexBufferLayout {
                         array_stride: std::mem::size_of::<Vertex>() as roe_graphics::BufferAddress,
-                        step_mode: roe_graphics::InputStepMode::Vertex,
+                        step_mode: roe_graphics::VertexStepMode::Vertex,
                         attributes: &[roe_graphics::VertexAttribute {
                             format: roe_graphics::VertexFormat::Float32x2,
                             offset: 0,
