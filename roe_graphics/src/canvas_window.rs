@@ -67,7 +67,7 @@ impl CanvasWindow {
         let canvas_buffer = CanvasBuffer::new(
             instance,
             Some(surface),
-            CanvasBufferDescriptor {
+            &CanvasBufferDescriptor {
                 size: CanvasSize::new(surface_size.width, surface_size.height),
                 sample_count: desc.sample_count,
                 surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
@@ -100,7 +100,7 @@ impl CanvasWindow {
         if *self.canvas_size() != current_size {
             self.canvas_buffer.configure(
                 instance,
-                CanvasBufferDescriptor {
+                &CanvasBufferDescriptor {
                     size: current_size,
                     sample_count: self.sample_count(),
                     surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
@@ -110,7 +110,6 @@ impl CanvasWindow {
                     depth_stencil_buffer_format: self.depth_stencil_buffer_format(),
                 },
             );
-            println!("TODO: CANVAS RECREATED");
         }
     }
 

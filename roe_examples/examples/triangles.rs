@@ -149,7 +149,6 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         size: window::PhysicalSize<u32>,
     ) -> Result<ControlFlow, Self::Error> {
         if wid == self.window.id() {
-            println!("TODO: RESIZED EVENT {}, {}", size.width, size.height);
             self.window.update_buffer(&self.instance);
             self.projection_transform = OrthographicProjection::new(
                 0.,

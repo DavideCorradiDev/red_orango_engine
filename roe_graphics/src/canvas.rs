@@ -4,7 +4,6 @@ use super::{
     TextureFormat, TextureUsage, TextureView, TextureViewDescriptor, TextureViewDimension,
 };
 
-// TODO: fix crash on window minimization.
 // TODO: add tests for "invalid" canvas buffer.
 
 fn canvas_texture_descriptor<'a>(
@@ -521,17 +520,16 @@ pub struct CanvasBuffer {
 }
 
 impl CanvasBuffer {
-    // TODO: try to pass desc by ref.
     // TODO: make sure surface is tested properly.
     pub fn new(
         instance: &Instance,
         surface: Option<Surface>,
-        desc: CanvasBufferDescriptor,
+        desc: &CanvasBufferDescriptor,
     ) -> Self {
         // TODO: should we make sure that if surface is not passed, also descriptor is not passed?
         let canvas_surface = match surface {
             Some(surface) => {
-                let format = match desc.surface_descriptor {
+                let format = match &desc.surface_descriptor {
                     Some(sd) => sd.format,
                     None => CanvasColorBufferFormat::default(),
                 };
@@ -589,7 +587,7 @@ impl CanvasBuffer {
         }
     }
 
-    pub fn configure(&mut self, instance: &Instance, desc: CanvasBufferDescriptor) {
+    pub fn configure(&mut self, instance: &Instance, desc: &CanvasBufferDescriptor) {
         self.size = desc.size;
         self.sample_count = desc.sample_count;
 
@@ -600,7 +598,7 @@ impl CanvasBuffer {
         // TODO: should we make sure that if surface is not passed, also descriptor is not passed?
         // TODO: remove code duplication.
         if let Some(canvas_surface) = &mut self.canvas_surface {
-            let format = match desc.surface_descriptor {
+            let format = match &desc.surface_descriptor {
                 Some(sd) => sd.format,
                 None => CanvasColorBufferFormat::default(),
             };
@@ -816,7 +814,7 @@ mod tests {
         let mut buffer = CanvasBuffer::new(
             &instance,
             Some(surface),
-            CanvasBufferDescriptor {
+            &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
                 surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
@@ -889,7 +887,7 @@ mod tests {
         let _buffer = CanvasBuffer::new(
             &instance,
             None,
-            CanvasBufferDescriptor {
+            &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
                 surface_descriptor: None,

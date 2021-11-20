@@ -147,7 +147,7 @@ mod tests {
         let mut buffer = CanvasBuffer::new(
             &instance,
             None,
-            CanvasBufferDescriptor {
+            &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 1,
                 surface_descriptor: None,
@@ -195,7 +195,7 @@ mod tests {
         let mut buffer = CanvasBuffer::new(
             &instance,
             None,
-            CanvasBufferDescriptor {
+            &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
                 surface_descriptor: None,
@@ -246,7 +246,7 @@ mod tests {
         let mut buffer = CanvasBuffer::new(
             &instance,
             None,
-            CanvasBufferDescriptor {
+            &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 1,
                 surface_descriptor: None,
@@ -281,7 +281,7 @@ mod tests {
         let mut buffer = CanvasBuffer::new(
             &instance,
             None,
-            CanvasBufferDescriptor {
+            &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
                 surface_descriptor: None,
@@ -311,7 +311,7 @@ mod tests {
         let mut buffer = CanvasBuffer::new(
             &instance,
             None,
-            CanvasBufferDescriptor {
+            &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
                 surface_descriptor: None,
@@ -344,7 +344,7 @@ mod tests {
         let mut buffer = CanvasBuffer::new(
             &instance,
             None,
-            CanvasBufferDescriptor {
+            &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
                 surface_descriptor: None,
@@ -377,7 +377,7 @@ mod tests {
         let mut buffer = CanvasBuffer::new(
             &instance,
             None,
-            CanvasBufferDescriptor {
+            &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 4,
                 surface_descriptor: None,
