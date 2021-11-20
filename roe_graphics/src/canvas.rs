@@ -147,9 +147,20 @@ pub struct CanvasSurface {
 
 impl CanvasSurface {
     pub fn new(instance: &Instance, surface: Surface, desc: &CanvasSurfaceDescriptor) -> Self {
+        let mut canvas_surface = Self {
+            size: desc.size,
+            sample_count: 1,
+            format: desc.format,
+            multisampled_buffer: None,
+            surface,
+        };
+        canvas_surface.configure(instance, desc);
+        canvas_surface
+    }
+
+    pub fn configure(&mut self, instance: &Instance, desc: &CanvasSurfaceDescriptor) {
         let format = TextureFormat::from(desc.format);
-        println!("TODO: call to surface configure");
-        surface.configure(
+        self.surface.configure(
             instance,
             &SurfaceConfiguration {
                 usage: TextureUsage::RENDER_ATTACHMENT,
@@ -159,8 +170,7 @@ impl CanvasSurface {
                 present_mode: PresentMode::Mailbox,
             },
         );
-        println!("TODO: done");
-        let multisampled_buffer = if desc.sample_count > 1 {
+        self.multisampled_buffer = if desc.sample_count > 1 {
             let multisampling_buffer_texture = Texture::new(
                 instance,
                 &canvas_texture_descriptor(
@@ -174,13 +184,9 @@ impl CanvasSurface {
         } else {
             None
         };
-        Self {
-            size: desc.size,
-            sample_count: desc.sample_count,
-            format: desc.format,
-            multisampled_buffer,
-            surface,
-        }
+        self.format = desc.format;
+        self.sample_count = desc.sample_count;
+        self.size = desc.size;
     }
 
     pub fn size(&self) -> &CanvasSize {
