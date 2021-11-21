@@ -49,9 +49,11 @@ impl ApplicationImpl {
         vec![
             Sprite {
                 uniform_constants: roe_sprite::UniformConstants::new(
-                    instance,
-                    &sprite_texture,
-                    &Sampler::new(&instance, &SamplerDescriptor::default()),
+                    roe_graphics::TextureBindGroup::new(
+                        instance,
+                        &sprite_texture,
+                        &Sampler::new(&instance, &SamplerDescriptor::default()),
+                    ),
                 ),
                 mesh: roe_sprite::Mesh::quad(
                     instance,
@@ -61,16 +63,18 @@ impl ApplicationImpl {
             },
             Sprite {
                 uniform_constants: roe_sprite::UniformConstants::new(
-                    instance,
-                    &sprite_texture,
-                    &Sampler::new(
-                        &instance,
-                        &SamplerDescriptor {
-                            mag_filter: FilterMode::Nearest,
-                            min_filter: FilterMode::Linear,
-                            mipmap_filter: FilterMode::Nearest,
-                            ..SamplerDescriptor::default()
-                        },
+                    roe_graphics::TextureBindGroup::new(
+                        instance,
+                        &sprite_texture,
+                        &Sampler::new(
+                            &instance,
+                            &SamplerDescriptor {
+                                mag_filter: FilterMode::Nearest,
+                                min_filter: FilterMode::Linear,
+                                mipmap_filter: FilterMode::Nearest,
+                                ..SamplerDescriptor::default()
+                            },
+                        ),
                     ),
                 ),
                 mesh: roe_sprite::Mesh::quad(
@@ -81,16 +85,18 @@ impl ApplicationImpl {
             },
             Sprite {
                 uniform_constants: roe_sprite::UniformConstants::new(
-                    instance,
-                    &sprite_texture,
-                    &Sampler::new(
-                        &instance,
-                        &SamplerDescriptor {
-                            mag_filter: FilterMode::Linear,
-                            min_filter: FilterMode::Linear,
-                            mipmap_filter: FilterMode::Linear,
-                            ..SamplerDescriptor::default()
-                        },
+                    roe_graphics::TextureBindGroup::new(
+                        instance,
+                        &sprite_texture,
+                        &Sampler::new(
+                            &instance,
+                            &SamplerDescriptor {
+                                mag_filter: FilterMode::Linear,
+                                min_filter: FilterMode::Linear,
+                                mipmap_filter: FilterMode::Linear,
+                                ..SamplerDescriptor::default()
+                            },
+                        ),
                     ),
                 ),
                 mesh: roe_sprite::Mesh::quad(
@@ -101,16 +107,18 @@ impl ApplicationImpl {
             },
             Sprite {
                 uniform_constants: roe_sprite::UniformConstants::new(
-                    instance,
-                    &sprite_texture,
-                    &Sampler::new(
-                        &instance,
-                        &SamplerDescriptor {
-                            mag_filter: FilterMode::Linear,
-                            min_filter: FilterMode::Linear,
-                            mipmap_filter: FilterMode::Linear,
-                            ..SamplerDescriptor::default()
-                        },
+                    roe_graphics::TextureBindGroup::new(
+                        instance,
+                        &sprite_texture,
+                        &Sampler::new(
+                            &instance,
+                            &SamplerDescriptor {
+                                mag_filter: FilterMode::Linear,
+                                min_filter: FilterMode::Linear,
+                                mipmap_filter: FilterMode::Linear,
+                                ..SamplerDescriptor::default()
+                            },
+                        ),
                     ),
                 ),
                 mesh: roe_sprite::Mesh::quad(
@@ -121,16 +129,18 @@ impl ApplicationImpl {
             },
             Sprite {
                 uniform_constants: roe_sprite::UniformConstants::new(
-                    instance,
-                    &sprite_texture,
-                    &Sampler::new(
-                        &instance,
-                        &SamplerDescriptor {
-                            mag_filter: FilterMode::Nearest,
-                            min_filter: FilterMode::Linear,
-                            mipmap_filter: FilterMode::Nearest,
-                            ..SamplerDescriptor::default()
-                        },
+                    roe_graphics::TextureBindGroup::new(
+                        instance,
+                        &sprite_texture,
+                        &Sampler::new(
+                            &instance,
+                            &SamplerDescriptor {
+                                mag_filter: FilterMode::Nearest,
+                                min_filter: FilterMode::Linear,
+                                mipmap_filter: FilterMode::Nearest,
+                                ..SamplerDescriptor::default()
+                            },
+                        ),
                     ),
                 ),
                 mesh: roe_sprite::Mesh::quad(
@@ -141,15 +151,17 @@ impl ApplicationImpl {
             },
             Sprite {
                 uniform_constants: roe_sprite::UniformConstants::new(
-                    instance,
-                    &sprite_texture,
-                    &Sampler::new(
-                        &instance,
-                        &SamplerDescriptor {
-                            address_mode_u: AddressMode::Repeat,
-                            address_mode_v: AddressMode::ClampToEdge,
-                            ..SamplerDescriptor::default()
-                        },
+                    roe_graphics::TextureBindGroup::new(
+                        instance,
+                        &sprite_texture,
+                        &Sampler::new(
+                            &instance,
+                            &SamplerDescriptor {
+                                address_mode_u: AddressMode::Repeat,
+                                address_mode_v: AddressMode::ClampToEdge,
+                                ..SamplerDescriptor::default()
+                            },
+                        ),
                     ),
                 ),
                 mesh: roe_sprite::Mesh::quad(
@@ -160,15 +172,17 @@ impl ApplicationImpl {
             },
             Sprite {
                 uniform_constants: roe_sprite::UniformConstants::new(
-                    instance,
-                    &sprite_texture,
-                    &Sampler::new(
-                        &instance,
-                        &SamplerDescriptor {
-                            address_mode_u: AddressMode::MirrorRepeat,
-                            address_mode_v: AddressMode::ClampToEdge,
-                            ..SamplerDescriptor::default()
-                        },
+                    roe_graphics::TextureBindGroup::new(
+                        instance,
+                        &sprite_texture,
+                        &Sampler::new(
+                            &instance,
+                            &SamplerDescriptor {
+                                address_mode_u: AddressMode::MirrorRepeat,
+                                address_mode_v: AddressMode::ClampToEdge,
+                                ..SamplerDescriptor::default()
+                            },
+                        ),
                     ),
                 ),
                 mesh: roe_sprite::Mesh::quad(
