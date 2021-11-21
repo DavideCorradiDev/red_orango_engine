@@ -42,3 +42,6 @@ pub use command_sequence::*;
 
 mod mesh;
 pub use mesh::*;
+
+mod texture_bind_group;
+pub use texture_bind_group::*;
