@@ -135,16 +135,66 @@ unsafe impl bytemuck::Zeroable for PushConstants {
 
 unsafe impl bytemuck::Pod for PushConstants {}
 
+fn bind_group_layout(instance: &gfx::Instance) -> gfx::BindGroupLayout {
+    gfx::BindGroupLayout::new(
+        instance,
+        &gfx::BindGroupLayoutDescriptor {
+            label: None,
+            entries: &[
+                gfx::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: gfx::ShaderStage::FRAGMENT,
+                    ty: gfx::BindingType::Texture {
+                        multisampled: false,
+                        sample_type: gfx::TextureSampleType::Float { filterable: true },
+                        view_dimension: gfx::TextureViewDimension::D2,
+                    },
+                    count: None,
+                },
+                gfx::BindGroupLayoutEntry {
+                    binding: 1,
+                    visibility: gfx::ShaderStage::FRAGMENT,
+                    ty: gfx::BindingType::Sampler {
+                        filtering: true,
+                        comparison: false,
+                    },
+                    count: None,
+                },
+            ],
+        },
+    )
+}
+
 #[derive(Debug)]
 pub struct UniformConstants {
-    texture_bind_group: gfx::TextureBindGroup,
+    bind_group: gfx::BindGroup,
 }
 
 impl UniformConstants {
     pub fn new(
-        texture_bind_group: gfx::TextureBindGroup,
+        instance: &gfx::Instance,
+        texture: &gfx::TextureView,
+        sampler: &gfx::Sampler,
     ) -> Self {
-        Self { texture_bind_group }
+        let layout = bind_group_layout(instance);
+        let bind_group = gfx::BindGroup::new(
+            instance,
+            &gfx::BindGroupDescriptor {
+                label: None,
+                layout: &layout,
+                entries: &[
+                    gfx::BindGroupEntry {
+                        binding: 0,
+                        resource: gfx::BindingResource::TextureView(texture),
+                    },
+                    gfx::BindGroupEntry {
+                        binding: 1,
+                        resource: gfx::BindingResource::Sampler(sampler),
+                    },
+                ],
+            },
+        );
+        Self { bind_group }
     }
 }
 
@@ -187,7 +237,7 @@ pub struct RenderPipeline {
 
 impl RenderPipeline {
     pub fn new(instance: &gfx::Instance, desc: &RenderPipelineDescriptor) -> Self {
-        let bind_group_layout = gfx::TextureBindGroup::create_bind_group_layout(instance);
+        let bind_group_layout = bind_group_layout(instance);
         let pipeline_layout = gfx::PipelineLayout::new(
             instance,
             &gfx::PipelineLayoutDescriptor {
@@ -309,7 +359,7 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
         index_range: MeshIndexRange,
     ) {
         self.set_pipeline(&pipeline.pipeline);
-        self.set_bind_group(0, &uniform_constants.texture_bind_group, &[]);
+        self.set_bind_group(0, &uniform_constants.bind_group, &[]);
         self.set_index_buffer(mesh.index_buffer().slice(..), gfx::IndexFormat::Uint16);
         self.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
         self.set_push_constants(
@@ -332,7 +382,7 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
     {
         self.set_pipeline(&pipeline.pipeline);
         for (uc, meshes) in draw_commands.into_iter() {
-            self.set_bind_group(0, &uc.texture_bind_group, &[]);
+            self.set_bind_group(0, &uc.bind_group, &[]);
             for (mesh, pcs) in meshes.into_iter() {
                 self.set_index_buffer(mesh.index_buffer().slice(..), gfx::IndexFormat::Uint16);
                 self.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));

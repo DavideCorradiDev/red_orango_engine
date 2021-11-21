@@ -16,7 +16,33 @@ impl TextureBindGroup {
             instance,
             &BindGroupDescriptor {
                 label: None,
-                layout: &Self::create_bind_group_layout(instance),
+                layout: &BindGroupLayout::new(
+                    instance,
+                    &BindGroupLayoutDescriptor {
+                        label: None,
+                        entries: &[
+                            BindGroupLayoutEntry {
+                                binding: 0,
+                                visibility: ShaderStage::FRAGMENT,
+                                ty: BindingType::Texture {
+                                    multisampled: false,
+                                    sample_type: TextureSampleType::Float { filterable: true },
+                                    view_dimension: TextureViewDimension::D2Array,
+                                },
+                                count: None,
+                            },
+                            BindGroupLayoutEntry {
+                                binding: 1,
+                                visibility: ShaderStage::FRAGMENT,
+                                ty: BindingType::Sampler {
+                                    filtering: true,
+                                    comparison: false,
+                                },
+                                count: None,
+                            },
+                        ],
+                    },
+                ),
                 entries: &[
                     BindGroupEntry {
                         binding: 0,
@@ -29,45 +55,10 @@ impl TextureBindGroup {
                 ],
             },
         );
-        Self {
-            bind_group,
-        }
+        Self { bind_group }
     }
 
-    pub fn create_bind_group_layout(instance: &Instance) -> BindGroupLayout {
-        BindGroupLayout::new(
-            instance,
-            &BindGroupLayoutDescriptor {
-                label: None,
-                entries: &[
-                    BindGroupLayoutEntry {
-                        binding: 0,
-                        visibility: ShaderStage::FRAGMENT,
-                        ty: BindingType::Texture {
-                            multisampled: false,
-                            sample_type: TextureSampleType::Float { filterable: true },
-                            view_dimension: TextureViewDimension::D2Array,
-                        },
-                        count: None,
-                    },
-                    BindGroupLayoutEntry {
-                        binding: 1,
-                        visibility: ShaderStage::FRAGMENT,
-                        ty: BindingType::Sampler {
-                            filtering: true,
-                            comparison: false,
-                        },
-                        count: None,
-                    },
-                ],
-            },
-        )
-    }
-}
-
-impl std::ops::Deref for TextureBindGroup {
-    type Target = BindGroup;
-    fn deref(&self) -> &Self::Target {
+    pub fn bind_group(&self) -> &BindGroup {
         &self.bind_group
     }
 }
