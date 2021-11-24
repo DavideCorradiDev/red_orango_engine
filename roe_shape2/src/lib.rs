@@ -258,10 +258,9 @@ mod tests {
         let _pipeline = RenderPipeline::new(&instance, &RenderPipelineDescriptor::default());
     }
 
-    // TODO: move data to data/image
     #[test]
     #[serial_test::serial]
-    fn draw_shape_2() {
+    fn draw_text() {
         let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
         let mut canvas = gfx::CanvasTexture::new(
             &instance,
@@ -358,7 +357,7 @@ mod tests {
         }
 
         let expected_image = image::load(
-            std::io::BufReader::new(std::fs::File::open("data/test_result.png").unwrap()),
+            std::io::BufReader::new(std::fs::File::open("data/pictures/test_result.png").unwrap()),
             image::ImageFormat::Png,
         )
         .unwrap();

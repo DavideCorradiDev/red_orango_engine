@@ -374,7 +374,7 @@ mod tests {
             frame.present();
         }
         let expected_image = image::load(
-            std::io::BufReader::new(std::fs::File::open("data/test_result.png").unwrap()),
+            std::io::BufReader::new(std::fs::File::open("data/pictures/test_result.png").unwrap()),
             image::ImageFormat::Png,
         )
         .unwrap();

@@ -417,7 +417,7 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn draw_shape_2() {
+    fn draw_sprite() {
         let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
         let mut canvas = gfx::CanvasTexture::new(
             &instance,
@@ -440,7 +440,7 @@ mod tests {
         );
         let texture = gfx::Texture::from_image(
             &instance,
-            &image::open("data/gioconda.jpg").unwrap().into_rgba8(),
+            &image::open("data/pictures/gioconda.jpg").unwrap().into_rgba8(),
             gfx::TextureUsage::TEXTURE_BINDING,
         )
         .create_view(&gfx::TextureViewDescriptor::default());
@@ -576,7 +576,7 @@ mod tests {
         }
 
         let expected_image = image::load(
-            std::io::BufReader::new(std::fs::File::open("data/test_result.png").unwrap()),
+            std::io::BufReader::new(std::fs::File::open("data/pictures/test_result.png").unwrap()),
             image::ImageFormat::Png,
         )
         .unwrap();
