@@ -31,7 +31,7 @@ struct ApplicationImpl {
 }
 
 impl ApplicationImpl {
-    const SAMPLE_COUNT: SampleCount = 8;
+    const SAMPLE_COUNT: SampleCount = 4;
     const FONT_PATH: &'static str = "roe_text/data/fonts/Roboto-Regular.ttf";
 }
 
@@ -120,32 +120,34 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
     }
 
     fn on_variable_update(&mut self, _dt: std::time::Duration) -> Result<ControlFlow, Self::Error> {
-        let frame = self.window.current_frame()?;
-        let mut cmd_sequence = CommandSequence::new(&self.instance);
+        if let Some(frame) = self.window.current_frame()? {
+            let mut cmd_sequence = CommandSequence::new(&self.instance);
 
-        {
-            let mut rpass = cmd_sequence.begin_render_pass(
-                &frame,
-                &self.pipeline.render_pass_requirements(),
-                &RenderPassOperations::default(),
-            );
-            rpass.draw_text(
-                &self.pipeline,
-                &self.font,
-                "Lorem ipsum dolor sit amet",
-                &convert(self.projection_transform * Translation::new(100., 100.)),
-                &ColorF32::BLUE,
-            );
-            rpass.draw_text(
-                &self.pipeline,
-                &self.font,
-                "Hello world!",
-                &convert(self.projection_transform * Translation::new(300., 300.)),
-                &ColorF32::RED,
-            );
+            {
+                let mut rpass = cmd_sequence.begin_render_pass(
+                    &frame,
+                    &self.pipeline.render_pass_requirements(),
+                    &RenderPassOperations::default(),
+                );
+                rpass.draw_text(
+                    &self.pipeline,
+                    &self.font,
+                    "Lorem ipsum dolor sit amet",
+                    &convert(self.projection_transform * Translation::new(100., 100.)),
+                    &ColorF32::BLUE,
+                );
+                rpass.draw_text(
+                    &self.pipeline,
+                    &self.font,
+                    "Hello world!",
+                    &convert(self.projection_transform * Translation::new(300., 300.)),
+                    &ColorF32::RED,
+                );
+            }
+
+            cmd_sequence.submit(&self.instance);
+            frame.present();
         }
-
-        cmd_sequence.submit(&self.instance);
         Ok(ControlFlow::Continue)
     }
 }

@@ -38,7 +38,7 @@ struct ApplicationImpl {
 }
 
 impl ApplicationImpl {
-    const SAMPLE_COUNT: SampleCount = 8;
+    const SAMPLE_COUNT: SampleCount = 4;
 
     pub fn update_angle(&mut self, dt: std::time::Duration) {
         const ANGULAR_SPEED: f32 = std::f32::consts::PI * 0.25;
@@ -161,6 +161,25 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         Ok(ControlFlow::Continue)
     }
 
+    fn on_scale_factor_changed<'a>(
+        &mut self,
+        wid: WindowId,
+        _scale_factor: f64,
+        size: &'a mut window::PhysicalSize<u32>,
+    ) -> Result<ControlFlow, Self::Error> {
+        if wid == self.window.id() {
+            self.window.update_buffer(&self.instance);
+            self.projection_transform = OrthographicProjection::new(
+                0.,
+                1f32.max(size.width as f32),
+                1f32.max(size.height as f32),
+                0.,
+            )
+            .to_projective();
+        }
+        Ok(ControlFlow::Continue)
+    }
+
     fn on_cursor_moved(
         &mut self,
         wid: WindowId,
@@ -208,44 +227,46 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
 
         let current_triangle_constants = self.generate_push_constant();
 
-        let frame = self.window.current_frame()?;
-        let mut cmd_sequence = CommandSequence::new(&self.instance);
+        if let Some(frame) = self.window.current_frame()? {
+            let mut cmd_sequence = CommandSequence::new(&self.instance);
 
-        {
-            let mut rpass = cmd_sequence.begin_render_pass(
-                &frame,
-                &self.pipeline.render_pass_requirements(),
-                &RenderPassOperations::default(),
-            );
-            rpass.draw_shape2_array(
-                &self.pipeline,
-                once((&self.triangle_mesh, draw_static_triangle_params)),
-            );
+            {
+                let mut rpass = cmd_sequence.begin_render_pass(
+                    &frame,
+                    &self.pipeline.render_pass_requirements(),
+                    &RenderPassOperations::default(),
+                );
+                rpass.draw_shape2_array(
+                    &self.pipeline,
+                    once((&self.triangle_mesh, draw_static_triangle_params)),
+                );
+            }
+
+            {
+                // Technically this could be done in the same render pass, just showing how to
+                // combine multiple render passes keeping what was rendered in the previous one.
+                let mut rpass = cmd_sequence.begin_render_pass(
+                    &frame,
+                    &self.pipeline.render_pass_requirements(),
+                    &RenderPassOperations {
+                        color_operations: vec![roe_graphics::Operations {
+                            load: roe_graphics::LoadOp::Load,
+                            store: true,
+                        }],
+                        ..RenderPassOperations::default()
+                    },
+                );
+                rpass.draw_shape2(
+                    &self.pipeline,
+                    &self.triangle_mesh,
+                    &current_triangle_constants,
+                    0..self.triangle_mesh.index_count(),
+                );
+            }
+
+            cmd_sequence.submit(&self.instance);
+            frame.present();
         }
-
-        {
-            // Technically this could be done in the same render pass, just showing how to
-            // combine multiple render passes keeping what was rendered in the previous one.
-            let mut rpass = cmd_sequence.begin_render_pass(
-                &frame,
-                &self.pipeline.render_pass_requirements(),
-                &RenderPassOperations {
-                    color_operations: vec![roe_graphics::Operations {
-                        load: roe_graphics::LoadOp::Load,
-                        store: true,
-                    }],
-                    ..RenderPassOperations::default()
-                },
-            );
-            rpass.draw_shape2(
-                &self.pipeline,
-                &self.triangle_mesh,
-                &current_triangle_constants,
-                0..self.triangle_mesh.index_count(),
-            );
-        }
-
-        cmd_sequence.submit(&self.instance);
         Ok(ControlFlow::Continue)
     }
 }

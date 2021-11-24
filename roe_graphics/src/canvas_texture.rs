@@ -3,7 +3,7 @@ use std::default::Default;
 use super::{
     Canvas, CanvasBuffer, CanvasBufferColorBufferDescriptor, CanvasBufferDescriptor,
     CanvasColorBufferFormat, CanvasDepthStencilBufferFormat, CanvasFrame, CanvasSize, Instance,
-    SampleCount, Size, SwapChainError, Texture, TextureView,
+    SampleCount, Size, SurfaceError, Texture, TextureView,
 };
 
 pub type CanvasTextureColorBufferDescriptor = CanvasBufferColorBufferDescriptor;
@@ -36,10 +36,11 @@ impl CanvasTexture {
     pub fn new(instance: &Instance, desc: &CanvasTextureDescriptor) -> Self {
         let canvas_buffer = CanvasBuffer::new(
             instance,
+            None,
             &CanvasBufferDescriptor {
                 size: desc.size,
                 sample_count: desc.sample_count,
-                swap_chain_descriptor: None,
+                surface_descriptor: None,
                 color_buffer_descriptors: match &desc.color_buffer_descriptor {
                     Some(v) => vec![v.clone()],
                     None => Vec::new(),
@@ -51,10 +52,11 @@ impl CanvasTexture {
     }
 
     pub fn color_buffer_format(&self) -> Option<CanvasColorBufferFormat> {
-        if self.canvas_buffer.color_buffers().is_empty() {
+        let buffers = self.canvas_buffer.color_buffers();
+        if buffers.is_empty() {
             None
         } else {
-            Some(self.canvas_buffer.color_buffers()[0].format())
+            Some(buffers[0].format())
         }
     }
 
@@ -66,10 +68,11 @@ impl CanvasTexture {
     }
 
     pub fn color_texture_view(&self) -> Option<&TextureView> {
-        if self.canvas_buffer.color_buffers().is_empty() {
+        let buffers = self.canvas_buffer.color_buffers();
+        if buffers.is_empty() {
             None
         } else {
-            Some(self.canvas_buffer.color_buffers()[0].texture_view())
+            Some(buffers[0].texture_view())
         }
     }
 
@@ -81,10 +84,11 @@ impl CanvasTexture {
     }
 
     pub fn color_texture(&self) -> Option<&Texture> {
-        if self.canvas_buffer.color_buffers().is_empty() {
+        let buffers = self.canvas_buffer.color_buffers();
+        if buffers.is_empty() {
             None
         } else {
-            Some(self.canvas_buffer.color_buffers()[0].texture())
+            Some(buffers[0].texture())
         }
     }
 
@@ -97,7 +101,7 @@ impl CanvasTexture {
 }
 
 impl Canvas for CanvasTexture {
-    fn current_frame(&mut self) -> Result<CanvasFrame, SwapChainError> {
+    fn current_frame(&mut self) -> Result<Option<CanvasFrame>, SurfaceError> {
         self.canvas_buffer.current_frame()
     }
 
@@ -131,8 +135,8 @@ mod tests {
         );
         expect_that!(&texture.depth_stencil_buffer_format(), eq(None));
 
-        let frame = texture.current_frame().unwrap();
-        expect_that!(frame.swap_chain().is_none());
+        let frame = texture.current_frame().unwrap().unwrap();
+        expect_that!(frame.surface().is_none());
         expect_that!(&frame.color_buffers().len(), eq(1));
         expect_that!(frame.depth_stencil_buffer().is_none());
 
@@ -164,8 +168,8 @@ mod tests {
         );
         expect_that!(&texture.depth_stencil_buffer_format(), eq(None));
 
-        let frame = texture.current_frame().unwrap();
-        expect_that!(frame.swap_chain().is_none());
+        let frame = texture.current_frame().unwrap().unwrap();
+        expect_that!(frame.surface().is_none());
         expect_that!(&frame.color_buffers().len(), eq(1));
         expect_that!(frame.depth_stencil_buffer().is_none());
 
@@ -197,8 +201,8 @@ mod tests {
         );
         expect_that!(&texture.depth_stencil_buffer_format(), eq(None));
 
-        let frame = texture.current_frame().unwrap();
-        expect_that!(frame.swap_chain().is_none());
+        let frame = texture.current_frame().unwrap().unwrap();
+        expect_that!(frame.surface().is_none());
         expect_that!(&frame.color_buffers().len(), eq(1));
         expect_that!(frame.depth_stencil_buffer().is_none());
 
@@ -233,8 +237,8 @@ mod tests {
             eq(Some(CanvasDepthStencilBufferFormat::Depth24Plus))
         );
 
-        let frame = texture.current_frame().unwrap();
-        expect_that!(frame.swap_chain().is_none());
+        let frame = texture.current_frame().unwrap().unwrap();
+        expect_that!(frame.surface().is_none());
         expect_that!(&frame.color_buffers().len(), eq(1));
         expect_that!(frame.depth_stencil_buffer().is_some());
 
@@ -274,8 +278,8 @@ mod tests {
             eq(Some(CanvasDepthStencilBufferFormat::Depth24Plus))
         );
 
-        let frame = texture.current_frame().unwrap();
-        expect_that!(frame.swap_chain().is_none());
+        let frame = texture.current_frame().unwrap().unwrap();
+        expect_that!(frame.surface().is_none());
         expect_that!(&frame.color_buffers().is_empty());
         expect_that!(frame.depth_stencil_buffer().is_some());
 
@@ -311,8 +315,8 @@ mod tests {
             eq(Some(CanvasDepthStencilBufferFormat::Depth24Plus))
         );
 
-        let frame = texture.current_frame().unwrap();
-        expect_that!(frame.swap_chain().is_none());
+        let frame = texture.current_frame().unwrap().unwrap();
+        expect_that!(frame.surface().is_none());
         expect_that!(&frame.color_buffers().len(), eq(1));
         expect_that!(frame.depth_stencil_buffer().is_some());
 

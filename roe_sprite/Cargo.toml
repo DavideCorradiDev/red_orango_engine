@@ -19,7 +19,6 @@ roe_math = {path = "../roe_math", features = [
 ]}
 roe_graphics = {path = "../roe_graphics"}
 serde = {version = "1.0.*", features = ["derive"]}
-wgpu = {version = "0.6.*", features = ["trace", "replay"]}
 
 [dev-dependencies]
 galvanic-assert = "0.8.*"

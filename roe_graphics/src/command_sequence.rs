@@ -3,8 +3,8 @@ use std::{default::Default, iter};
 use super::{
     CanvasColorBufferFormat, CanvasDepthStencilBufferFormat, CanvasFrame, ColorOperations,
     CommandEncoder, CommandEncoderDescriptor, DepthOperations, Instance, Operations, RenderPass,
-    RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor,
-    RenderPassDescriptor, SampleCount, StencilOperations,
+    RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor, SampleCount,
+    StencilOperations,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -49,7 +49,7 @@ impl CommandSequence {
         operations: &RenderPassOperations,
     ) -> RenderPass<'a> {
         // Define color attachments.
-        let has_swap_chain = canvas_frame.swap_chain().is_some();
+        let has_swap_chain = canvas_frame.surface().is_some();
         let required_color_buffer_count = requirements.color_buffer_formats.len();
         let mut color_attachments = Vec::with_capacity(required_color_buffer_count);
         for i in 0..required_color_buffer_count {
@@ -59,15 +59,15 @@ impl CommandSequence {
                 None => Operations::default(),
             };
             if i == 0 && has_swap_chain {
-                let swap_chain = canvas_frame.swap_chain().unwrap();
+                let surface = canvas_frame.surface().unwrap();
                 assert!(
-                    required_format == swap_chain.format()
-                        && requirements.sample_count == swap_chain.sample_count(),
+                    required_format == surface.format()
+                        && requirements.sample_count == surface.sample_count(),
                     "Incompatible swap chain"
                 );
-                color_attachments.push(RenderPassColorAttachmentDescriptor {
-                    attachment: swap_chain.attachment(),
-                    resolve_target: swap_chain.resolve_target(),
+                color_attachments.push(RenderPassColorAttachment {
+                    view: surface.attachment(),
+                    resolve_target: surface.resolve_target(),
                     ops,
                 });
             } else {
@@ -81,8 +81,8 @@ impl CommandSequence {
                         && requirements.sample_count == color_buffer.sample_count(),
                     "Incompatible color buffer"
                 );
-                color_attachments.push(RenderPassColorAttachmentDescriptor {
-                    attachment: color_buffer.attachment(),
+                color_attachments.push(RenderPassColorAttachment {
+                    view: color_buffer.attachment(),
                     resolve_target: color_buffer.resolve_target(),
                     ops,
                 })
@@ -98,8 +98,8 @@ impl CommandSequence {
                             && requirements.sample_count == ds_buffer.sample_count(),
                         "Incompatible depth stencil buffer"
                     );
-                    Some(RenderPassDepthStencilAttachmentDescriptor {
-                        attachment: ds_buffer.attachment(),
+                    Some(RenderPassDepthStencilAttachment {
+                        view: ds_buffer.attachment(),
                         depth_ops: operations.depth_operations,
                         stencil_ops: operations.stencil_operations,
                     })
@@ -113,6 +113,7 @@ impl CommandSequence {
         let render_pass_desc = RenderPassDescriptor {
             color_attachments: color_attachments.as_slice(),
             depth_stencil_attachment,
+            label: None,
         };
         self.encoder.begin_render_pass(&render_pass_desc)
     }
@@ -145,10 +146,11 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
+            None,
             &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
-                sample_count: 2,
-                swap_chain_descriptor: None,
+                sample_count: 1,
+                surface_descriptor: None,
                 color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
                     format: CanvasColorBufferFormat::default(),
                     usage: CanvasColorBufferUsage::empty(),
@@ -157,25 +159,23 @@ mod tests {
             },
         );
 
+        let frame = buffer.current_frame().unwrap().unwrap();
         {
-            let frame = buffer.current_frame().unwrap();
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
                 &RenderPassRequirements {
-                    sample_count: 2,
+                    sample_count: 1,
                     color_buffer_formats: vec![CanvasColorBufferFormat::default()],
                     depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
                 },
                 &RenderPassOperations::default(),
             );
         }
-
         {
-            let frame = buffer.current_frame().unwrap();
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
                 &RenderPassRequirements {
-                    sample_count: 2,
+                    sample_count: 1,
                     color_buffer_formats: vec![CanvasColorBufferFormat::default()],
                     depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
                 },
@@ -184,6 +184,55 @@ mod tests {
         }
 
         cmd_seq.submit(&instance);
+        frame.present();
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn render_pass_multisampled() {
+        let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
+        let mut cmd_seq = CommandSequence::new(&instance);
+        let mut buffer = CanvasBuffer::new(
+            &instance,
+            None,
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
+                sample_count: 4,
+                surface_descriptor: None,
+                color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                    usage: CanvasColorBufferUsage::empty(),
+                }],
+                depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
+            },
+        );
+
+        let frame = buffer.current_frame().unwrap().unwrap();
+        {
+            let _rpass = cmd_seq.begin_render_pass(
+                &frame,
+                &RenderPassRequirements {
+                    sample_count: 4,
+                    color_buffer_formats: vec![CanvasColorBufferFormat::default()],
+                    depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
+                },
+                &RenderPassOperations::default(),
+            );
+        }
+        {
+            let _rpass = cmd_seq.begin_render_pass(
+                &frame,
+                &RenderPassRequirements {
+                    sample_count: 4,
+                    color_buffer_formats: vec![CanvasColorBufferFormat::default()],
+                    depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
+                },
+                &RenderPassOperations::default(),
+            );
+        }
+
+        cmd_seq.submit(&instance);
+        frame.present();
     }
 
     #[test]
@@ -194,10 +243,11 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
+            None,
             &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 1,
-                swap_chain_descriptor: None,
+                surface_descriptor: None,
                 color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
                     format: CanvasColorBufferFormat::default(),
                     usage: CanvasColorBufferUsage::empty(),
@@ -207,11 +257,11 @@ mod tests {
         );
 
         {
-            let frame = buffer.current_frame().unwrap();
+            let frame = buffer.current_frame().unwrap().unwrap();
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
                 &RenderPassRequirements {
-                    sample_count: 2,
+                    sample_count: 4,
                     color_buffer_formats: vec![CanvasColorBufferFormat::default()],
                     depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
                 },
@@ -228,20 +278,21 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
+            None,
             &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
-                sample_count: 2,
-                swap_chain_descriptor: None,
+                sample_count: 4,
+                surface_descriptor: None,
                 color_buffer_descriptors: Vec::new(),
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
             },
         );
 
-        let frame = buffer.current_frame().unwrap();
+        let frame = buffer.current_frame().unwrap().unwrap();
         let _rpass = cmd_seq.begin_render_pass(
             &frame,
             &RenderPassRequirements {
-                sample_count: 2,
+                sample_count: 4,
                 color_buffer_formats: vec![CanvasColorBufferFormat::default()],
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
             },
@@ -257,10 +308,11 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
+            None,
             &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
-                sample_count: 2,
-                swap_chain_descriptor: None,
+                sample_count: 4,
+                surface_descriptor: None,
                 color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
                     format: CanvasColorBufferFormat::Bgra8Unorm,
                     usage: CanvasColorBufferUsage::empty(),
@@ -269,11 +321,11 @@ mod tests {
             },
         );
 
-        let frame = buffer.current_frame().unwrap();
+        let frame = buffer.current_frame().unwrap().unwrap();
         let _rpass = cmd_seq.begin_render_pass(
             &frame,
             &RenderPassRequirements {
-                sample_count: 2,
+                sample_count: 4,
                 color_buffer_formats: vec![CanvasColorBufferFormat::Bgra8UnormSrgb],
                 depth_stencil_buffer_format: None,
             },
@@ -289,10 +341,11 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
+            None,
             &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
-                sample_count: 2,
-                swap_chain_descriptor: None,
+                sample_count: 4,
+                surface_descriptor: None,
                 color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
                     format: CanvasColorBufferFormat::default(),
                     usage: CanvasColorBufferUsage::empty(),
@@ -301,11 +354,11 @@ mod tests {
             },
         );
 
-        let frame = buffer.current_frame().unwrap();
+        let frame = buffer.current_frame().unwrap().unwrap();
         let _rpass = cmd_seq.begin_render_pass(
             &frame,
             &RenderPassRequirements {
-                sample_count: 2,
+                sample_count: 4,
                 color_buffer_formats: vec![CanvasColorBufferFormat::default()],
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
             },
@@ -321,20 +374,21 @@ mod tests {
         let mut cmd_seq = CommandSequence::new(&instance);
         let mut buffer = CanvasBuffer::new(
             &instance,
+            None,
             &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
-                sample_count: 2,
-                swap_chain_descriptor: None,
+                sample_count: 4,
+                surface_descriptor: None,
                 color_buffer_descriptors: Vec::new(),
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth24Plus),
             },
         );
 
-        let frame = buffer.current_frame().unwrap();
+        let frame = buffer.current_frame().unwrap().unwrap();
         let _rpass = cmd_seq.begin_render_pass(
             &frame,
             &RenderPassRequirements {
-                sample_count: 2,
+                sample_count: 4,
                 color_buffer_formats: Vec::new(),
                 depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
             },

@@ -12,13 +12,6 @@ use roe_math::{conversion::ToHomogeneousMatrix3, geometry2, geometry3};
 
 use super::{i26dot6_to_fsize, Font, GlyphRenderingInfo};
 
-fn as_push_constants_slice<T>(value: &T) -> &[u32] {
-    let data: *const T = value;
-    let data = data as *const u8;
-    let data = unsafe { std::slice::from_raw_parts(data, size_of::<T>()) };
-    bytemuck::cast_slice(&data)
-}
-
 #[repr(C, packed)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Vertex {
@@ -54,17 +47,20 @@ fn bind_group_layout(instance: &gfx::Instance) -> gfx::BindGroupLayout {
                 gfx::BindGroupLayoutEntry {
                     binding: 0,
                     visibility: gfx::ShaderStage::FRAGMENT,
-                    ty: gfx::BindingType::SampledTexture {
+                    ty: gfx::BindingType::Texture {
                         multisampled: false,
-                        component_type: gfx::TextureComponentType::Float,
-                        dimension: gfx::TextureViewDimension::D2Array,
+                        sample_type: gfx::TextureSampleType::Float { filterable: true },
+                        view_dimension: gfx::TextureViewDimension::D2Array,
                     },
                     count: None,
                 },
                 gfx::BindGroupLayoutEntry {
                     binding: 1,
                     visibility: gfx::ShaderStage::FRAGMENT,
-                    ty: gfx::BindingType::Sampler { comparison: false },
+                    ty: gfx::BindingType::Sampler {
+                        filtering: true,
+                        comparison: false,
+                    },
                     count: None,
                 },
             ],
@@ -107,8 +103,8 @@ impl UniformConstants {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct RenderPipelineDescriptor {
-    pub color_blend: gfx::BlendDescriptor,
-    pub alpha_blend: gfx::BlendDescriptor,
+    pub color_blend: gfx::BlendComponent,
+    pub alpha_blend: gfx::BlendComponent,
     pub write_mask: gfx::ColorWrite,
     pub color_buffer_format: gfx::CanvasColorBufferFormat,
     pub sample_count: gfx::SampleCount,
@@ -117,12 +113,12 @@ pub struct RenderPipelineDescriptor {
 impl Default for RenderPipelineDescriptor {
     fn default() -> Self {
         Self {
-            color_blend: gfx::BlendDescriptor {
+            color_blend: gfx::BlendComponent {
                 src_factor: gfx::BlendFactor::SrcAlpha,
                 dst_factor: gfx::BlendFactor::OneMinusSrcAlpha,
                 operation: gfx::BlendOperation::Add,
             },
-            alpha_blend: gfx::BlendDescriptor {
+            alpha_blend: gfx::BlendComponent {
                 src_factor: gfx::BlendFactor::One,
                 dst_factor: gfx::BlendFactor::One,
                 operation: gfx::BlendOperation::Max,
@@ -165,60 +161,64 @@ impl RenderPipeline {
         );
         let vs_module = gfx::ShaderModule::new(
             instance,
-            gfx::include_spirv!("shaders/gen/spirv/text.vert.spv"),
+            &gfx::include_spirv!("shaders/gen/spirv/text.vert.spv"),
         );
         let fs_module = gfx::ShaderModule::new(
             instance,
-            gfx::include_spirv!("shaders/gen/spirv/text.frag.spv"),
+            &gfx::include_spirv!("shaders/gen/spirv/text.frag.spv"),
         );
         let pipeline = gfx::RenderPipeline::new(
             instance,
             &gfx::RenderPipelineDescriptor {
                 label: None,
                 layout: Some(&pipeline_layout),
-                vertex_stage: gfx::ProgrammableStageDescriptor {
+                vertex: gfx::VertexState {
                     module: &vs_module,
                     entry_point: "main",
-                },
-                fragment_stage: Some(gfx::ProgrammableStageDescriptor {
-                    module: &fs_module,
-                    entry_point: "main",
-                }),
-                rasterization_state: Some(gfx::RasterizationStateDescriptor {
-                    front_face: gfx::FrontFace::Ccw,
-                    cull_mode: gfx::CullMode::Back,
-                    ..Default::default()
-                }),
-                primitive_topology: gfx::PrimitiveTopology::TriangleList,
-                color_states: &[gfx::ColorStateDescriptor {
-                    format: gfx::TextureFormat::from(desc.color_buffer_format),
-                    color_blend: desc.color_blend.clone(),
-                    alpha_blend: desc.alpha_blend.clone(),
-                    write_mask: desc.write_mask,
-                }],
-                depth_stencil_state: None,
-                vertex_state: gfx::VertexStateDescriptor {
-                    index_format: gfx::IndexFormat::Uint16,
-                    vertex_buffers: &[gfx::VertexBufferDescriptor {
-                        stride: std::mem::size_of::<Vertex>() as gfx::BufferAddress,
-                        step_mode: gfx::InputStepMode::Vertex,
+                    buffers: &[gfx::VertexBufferLayout {
+                        array_stride: std::mem::size_of::<Vertex>() as gfx::BufferAddress,
+                        step_mode: gfx::VertexStepMode::Vertex,
                         attributes: &[
-                            gfx::VertexAttributeDescriptor {
-                                format: gfx::VertexFormat::Float2,
+                            gfx::VertexAttribute {
+                                format: gfx::VertexFormat::Float32x2,
                                 offset: 0,
                                 shader_location: 0,
                             },
-                            gfx::VertexAttributeDescriptor {
-                                format: gfx::VertexFormat::Float3,
+                            gfx::VertexAttribute {
+                                format: gfx::VertexFormat::Float32x3,
                                 offset: 8,
                                 shader_location: 1,
                             },
                         ],
                     }],
                 },
-                sample_count: desc.sample_count,
-                sample_mask: !0,
-                alpha_to_coverage_enabled: false,
+                primitive: gfx::PrimitiveState {
+                    topology: gfx::PrimitiveTopology::TriangleList,
+                    strip_index_format: None,
+                    front_face: gfx::FrontFace::Ccw,
+                    cull_mode: Some(gfx::Face::Back),
+                    clamp_depth: false,
+                    polygon_mode: gfx::PolygonMode::Fill,
+                    conservative: false,
+                },
+                depth_stencil: None,
+                multisample: gfx::MultisampleState {
+                    count: desc.sample_count,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
+                fragment: Some(gfx::FragmentState {
+                    module: &fs_module,
+                    entry_point: "main",
+                    targets: &[gfx::ColorTargetState {
+                        format: gfx::TextureFormat::from(desc.color_buffer_format),
+                        blend: Some(gfx::BlendState {
+                            color: desc.color_blend.clone(),
+                            alpha: desc.alpha_blend.clone(),
+                        }),
+                        write_mask: desc.write_mask,
+                    }],
+                }),
             },
         );
         Self {
@@ -264,7 +264,7 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
 
         self.set_pipeline(&pipeline.pipeline);
         self.set_bind_group(0, &font.uniform_constants().bind_group, &[]);
-        self.set_index_buffer(font.index_buffer().slice(..));
+        self.set_index_buffer(font.index_buffer().slice(..), gfx::IndexFormat::Uint16);
         self.set_vertex_buffer(0, font.vertex_buffer().slice(..));
 
         let pc = (
@@ -272,7 +272,7 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
             geometry3::HomogeneousVector::<f32>::zero(),
             color.clone(),
         );
-        self.set_push_constants(gfx::ShaderStage::VERTEX, 0, as_push_constants_slice(&pc));
+        self.set_push_constants(gfx::ShaderStage::VERTEX, 0, gfx::utility::as_slice(&pc));
 
         let mut cursor_pos = geometry2::HomogeneousVector::<f32>::zero();
         for (position, info) in positions.iter().zip(infos) {
@@ -288,12 +288,105 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
             self.set_push_constants(
                 gfx::ShaderStage::VERTEX,
                 PC_GLYPH_OFFSET_MEM_OFFSET,
-                as_push_constants_slice(&offset),
+                gfx::utility::as_slice(&offset),
             );
             self.draw_indexed(index_range.clone(), 0, 0..1);
 
             cursor_pos.x = cursor_pos.x + i26dot6_to_fsize(position.x_advance);
             cursor_pos.y = cursor_pos.y + i26dot6_to_fsize(position.y_advance);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        super::{character_set, Face, Font, FontLibrary},
+        *,
+    };
+    use galvanic_assert::{matchers::*, *};
+    use gfx::Canvas;
+    use roe_math::{conversion::convert, geometry2 as geo};
+
+    #[test]
+    #[serial_test::serial]
+    fn creation() {
+        let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
+        let _pipeline = RenderPipeline::new(&instance, &RenderPipelineDescriptor::default());
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn draw_text() {
+        let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
+        let mut canvas = gfx::CanvasTexture::new(
+            &instance,
+            &gfx::CanvasTextureDescriptor {
+                size: gfx::CanvasSize::new(300, 300),
+                sample_count: 1,
+                color_buffer_descriptor: Some(gfx::CanvasTextureColorBufferDescriptor {
+                    format: gfx::CanvasColorBufferFormat::Rgba8Unorm,
+                    usage: gfx::CanvasColorBufferUsage::COPY_SRC,
+                }),
+                depth_stencil_buffer_format: None,
+            },
+        );
+        let pipeline = RenderPipeline::new(
+            &instance,
+            &RenderPipelineDescriptor {
+                color_buffer_format: gfx::CanvasColorBufferFormat::Rgba8Unorm,
+                ..RenderPipelineDescriptor::default()
+            },
+        );
+
+        let font_lib = FontLibrary::new().unwrap();
+        let face = Face::from_file(&font_lib, "data/fonts/Roboto-Regular.ttf", 0).unwrap();
+        let font = Font::new(&instance, &face, 10., character_set::english().as_slice()).unwrap();
+
+        let projection_transform =
+            geo::OrthographicProjection::new(0., 300., 300., 0.).to_projective();
+
+        {
+            let frame = canvas.current_frame().unwrap().unwrap();
+            let mut cmd_sequence = gfx::CommandSequence::new(&instance);
+            {
+                let mut rpass = cmd_sequence.begin_render_pass(
+                    &frame,
+                    &pipeline.render_pass_requirements(),
+                    &gfx::RenderPassOperations::default(),
+                );
+                rpass.draw_text(
+                    &pipeline,
+                    &font,
+                    "Lorem ipsum dolor sit amet",
+                    &convert(projection_transform * geo::Translation::new(10., 60.)),
+                    &gfx::ColorF32::BLUE,
+                );
+                rpass.draw_text(
+                    &pipeline,
+                    &font,
+                    "Hello world!",
+                    &convert(projection_transform * geo::Translation::new(30., 150.)),
+                    &gfx::ColorF32::RED,
+                );
+            }
+            cmd_sequence.submit(&instance);
+            frame.present();
+        }
+        let expected_image = image::load(
+            std::io::BufReader::new(std::fs::File::open("data/pictures/test_result.png").unwrap()),
+            image::ImageFormat::Png,
+        )
+        .unwrap();
+        assert_that!(
+            &expected_image,
+            is_variant!(image::DynamicImage::ImageRgba8)
+        );
+
+        if let image::DynamicImage::ImageRgba8(expected_image) = expected_image {
+            let result_image = canvas.color_texture().unwrap().to_image(&instance);
+
+            expect_that!(&result_image, eq(expected_image));
         }
     }
 }

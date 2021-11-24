@@ -137,7 +137,7 @@ impl GlyphSet {
         let extent = gfx::Extent3d {
             width: glyphs.iter().map(|x| x.width).max().unwrap() as u32,
             height: glyphs.iter().map(|x| x.rows).max().unwrap() as u32,
-            depth: characters.len() as u32,
+            depth_or_array_layers: characters.len() as u32,
         };
         Ok(Self { glyphs, extent })
     }
@@ -206,7 +206,8 @@ impl Font {
         let glyph_atlas_row_byte_count = glyph_set.extent.width as usize;
         let glyph_atlas_slice_byte_count =
             (glyph_set.extent.width * glyph_set.extent.height) as usize;
-        let glyph_atlas_byte_count = glyph_atlas_slice_byte_count * glyph_set.extent.depth as usize;
+        let glyph_atlas_byte_count =
+            glyph_atlas_slice_byte_count * glyph_set.extent.depth_or_array_layers as usize;
 
         let mut glyph_atlas_buffer = vec![0; glyph_atlas_byte_count];
         for (i, g) in glyph_set.glyphs.iter().enumerate() {
@@ -230,7 +231,7 @@ impl Font {
                 sample_count: 1,
                 dimension: gfx::TextureDimension::D2,
                 format: gfx::TextureFormat::R8Unorm,
-                usage: gfx::TextureUsage::SAMPLED | gfx::TextureUsage::COPY_DST,
+                usage: gfx::TextureUsage::TEXTURE_BINDING | gfx::TextureUsage::COPY_DST,
             },
         );
         glyph_atlas_texture.write(
@@ -238,10 +239,10 @@ impl Font {
             0,
             gfx::Origin3d::ZERO,
             glyph_atlas_buffer.as_slice(),
-            gfx::TextureDataLayout {
+            gfx::ImageDataLayout {
                 offset: 0,
-                bytes_per_row: glyph_set.extent.width,
-                rows_per_image: glyph_set.extent.height,
+                bytes_per_row: core::num::NonZeroU32::new(glyph_set.extent.width),
+                rows_per_image: core::num::NonZeroU32::new(glyph_set.extent.height),
             },
             glyph_set.extent,
         );

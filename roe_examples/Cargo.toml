@@ -33,7 +33,7 @@ path = "examples/gioconda.rs"
 [[example]]
 name = "offscreen_rendering"
 path = "examples/offscreen_rendering.rs"
-
+ 
 [[example]]
 name = "text_rendering"
 path = "examples/text_rendering.rs"

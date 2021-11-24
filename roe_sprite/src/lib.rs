@@ -4,6 +4,8 @@ use num_traits::Zero;
 
 use roe_math::{conversion::ToHomogeneousMatrix3, geometry2, geometry3};
 
+use roe_graphics as gfx;
+
 #[repr(C, packed)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Vertex {
@@ -38,17 +40,17 @@ unsafe impl bytemuck::Zeroable for Vertex {
 
 unsafe impl bytemuck::Pod for Vertex {}
 
-pub type MeshIndexRange = roe_graphics::MeshIndexRange;
-pub type MeshIndex = roe_graphics::MeshIndex;
-pub type Mesh = roe_graphics::IndexedMesh<Vertex>;
+pub type MeshIndexRange = gfx::MeshIndexRange;
+pub type MeshIndex = gfx::MeshIndex;
+pub type Mesh = gfx::IndexedMesh<Vertex>;
 
 pub trait MeshTemplates {
-    fn rectangle(instance: &roe_graphics::Instance, width: f32, height: f32) -> Self;
-    fn quad(instance: &roe_graphics::Instance, v1: &Vertex, v2: &Vertex) -> Self;
+    fn rectangle(instance: &gfx::Instance, width: f32, height: f32) -> Self;
+    fn quad(instance: &gfx::Instance, v1: &Vertex, v2: &Vertex) -> Self;
 }
 
 impl MeshTemplates for Mesh {
-    fn rectangle(instance: &roe_graphics::Instance, width: f32, height: f32) -> Self {
+    fn rectangle(instance: &gfx::Instance, width: f32, height: f32) -> Self {
         let vertex_list = vec![
             Vertex::new([0., 0.], [0., 0.]),
             Vertex::new([0., height], [0., 1.]),
@@ -59,7 +61,7 @@ impl MeshTemplates for Mesh {
         Self::new(instance, &vertex_list, &index_list)
     }
 
-    fn quad(instance: &roe_graphics::Instance, v1: &Vertex, v2: &Vertex) -> Self {
+    fn quad(instance: &gfx::Instance, v1: &Vertex, v2: &Vertex) -> Self {
         let (lp, rp, lt, rt) = {
             if v1.position[0] <= v2.position[0] {
                 (
@@ -110,22 +112,15 @@ impl MeshTemplates for Mesh {
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct PushConstants {
     transform: geometry3::HomogeneousMatrix<f32>,
-    color: roe_graphics::ColorF32,
+    color: gfx::ColorF32,
 }
 
 impl PushConstants {
-    pub fn new(transform: &geometry2::Transform<f32>, color: roe_graphics::ColorF32) -> Self {
+    pub fn new(transform: &geometry2::Transform<f32>, color: gfx::ColorF32) -> Self {
         Self {
             transform: transform.to_homogeneous3(),
             color,
         }
-    }
-
-    fn as_slice(&self) -> &[u32] {
-        let pc: *const PushConstants = self;
-        let pc: *const u8 = pc as *const u8;
-        let data = unsafe { std::slice::from_raw_parts(pc, std::mem::size_of::<PushConstants>()) };
-        bytemuck::cast_slice(&data)
     }
 }
 
@@ -133,33 +128,36 @@ unsafe impl bytemuck::Zeroable for PushConstants {
     fn zeroed() -> Self {
         Self {
             transform: geometry3::HomogeneousMatrix::zero(),
-            color: roe_graphics::ColorF32::default(),
+            color: gfx::ColorF32::default(),
         }
     }
 }
 
 unsafe impl bytemuck::Pod for PushConstants {}
 
-fn bind_group_layout(instance: &roe_graphics::Instance) -> roe_graphics::BindGroupLayout {
-    roe_graphics::BindGroupLayout::new(
+fn bind_group_layout(instance: &gfx::Instance) -> gfx::BindGroupLayout {
+    gfx::BindGroupLayout::new(
         instance,
-        &roe_graphics::BindGroupLayoutDescriptor {
+        &gfx::BindGroupLayoutDescriptor {
             label: None,
             entries: &[
-                roe_graphics::BindGroupLayoutEntry {
+                gfx::BindGroupLayoutEntry {
                     binding: 0,
-                    visibility: roe_graphics::ShaderStage::FRAGMENT,
-                    ty: roe_graphics::BindingType::SampledTexture {
+                    visibility: gfx::ShaderStage::FRAGMENT,
+                    ty: gfx::BindingType::Texture {
                         multisampled: false,
-                        component_type: roe_graphics::TextureComponentType::Float,
-                        dimension: roe_graphics::TextureViewDimension::D2,
+                        sample_type: gfx::TextureSampleType::Float { filterable: true },
+                        view_dimension: gfx::TextureViewDimension::D2,
                     },
                     count: None,
                 },
-                roe_graphics::BindGroupLayoutEntry {
+                gfx::BindGroupLayoutEntry {
                     binding: 1,
-                    visibility: roe_graphics::ShaderStage::FRAGMENT,
-                    ty: roe_graphics::BindingType::Sampler { comparison: false },
+                    visibility: gfx::ShaderStage::FRAGMENT,
+                    ty: gfx::BindingType::Sampler {
+                        filtering: true,
+                        comparison: false,
+                    },
                     count: None,
                 },
             ],
@@ -169,29 +167,29 @@ fn bind_group_layout(instance: &roe_graphics::Instance) -> roe_graphics::BindGro
 
 #[derive(Debug)]
 pub struct UniformConstants {
-    bind_group: roe_graphics::BindGroup,
+    bind_group: gfx::BindGroup,
 }
 
 impl UniformConstants {
     pub fn new(
-        instance: &roe_graphics::Instance,
-        texture: &roe_graphics::TextureView,
-        sampler: &roe_graphics::Sampler,
+        instance: &gfx::Instance,
+        texture: &gfx::TextureView,
+        sampler: &gfx::Sampler,
     ) -> Self {
         let layout = bind_group_layout(instance);
-        let bind_group = roe_graphics::BindGroup::new(
+        let bind_group = gfx::BindGroup::new(
             instance,
-            &roe_graphics::BindGroupDescriptor {
+            &gfx::BindGroupDescriptor {
                 label: None,
                 layout: &layout,
                 entries: &[
-                    roe_graphics::BindGroupEntry {
+                    gfx::BindGroupEntry {
                         binding: 0,
-                        resource: roe_graphics::BindingResource::TextureView(texture),
+                        resource: gfx::BindingResource::TextureView(texture),
                     },
-                    roe_graphics::BindGroupEntry {
+                    gfx::BindGroupEntry {
                         binding: 1,
-                        resource: roe_graphics::BindingResource::Sampler(sampler),
+                        resource: gfx::BindingResource::Sampler(sampler),
                     },
                 ],
             },
@@ -202,28 +200,28 @@ impl UniformConstants {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct RenderPipelineDescriptor {
-    pub color_blend: roe_graphics::BlendDescriptor,
-    pub alpha_blend: roe_graphics::BlendDescriptor,
-    pub write_mask: roe_graphics::ColorWrite,
-    pub color_buffer_format: roe_graphics::CanvasColorBufferFormat,
-    pub sample_count: roe_graphics::SampleCount,
+    pub color_blend: gfx::BlendComponent,
+    pub alpha_blend: gfx::BlendComponent,
+    pub write_mask: gfx::ColorWrite,
+    pub color_buffer_format: gfx::CanvasColorBufferFormat,
+    pub sample_count: gfx::SampleCount,
 }
 
 impl Default for RenderPipelineDescriptor {
     fn default() -> Self {
         Self {
-            color_blend: roe_graphics::BlendDescriptor {
-                src_factor: roe_graphics::BlendFactor::SrcAlpha,
-                dst_factor: roe_graphics::BlendFactor::OneMinusSrcAlpha,
-                operation: roe_graphics::BlendOperation::Add,
+            color_blend: gfx::BlendComponent {
+                src_factor: gfx::BlendFactor::SrcAlpha,
+                dst_factor: gfx::BlendFactor::OneMinusSrcAlpha,
+                operation: gfx::BlendOperation::Add,
             },
-            alpha_blend: roe_graphics::BlendDescriptor {
-                src_factor: roe_graphics::BlendFactor::One,
-                dst_factor: roe_graphics::BlendFactor::One,
-                operation: roe_graphics::BlendOperation::Max,
+            alpha_blend: gfx::BlendComponent {
+                src_factor: gfx::BlendFactor::One,
+                dst_factor: gfx::BlendFactor::One,
+                operation: gfx::BlendOperation::Max,
             },
-            write_mask: roe_graphics::ColorWrite::ALL,
-            color_buffer_format: roe_graphics::CanvasColorBufferFormat::default(),
+            write_mask: gfx::ColorWrite::ALL,
+            color_buffer_format: gfx::CanvasColorBufferFormat::default(),
             sample_count: 1,
         }
     }
@@ -231,82 +229,86 @@ impl Default for RenderPipelineDescriptor {
 
 #[derive(Debug)]
 pub struct RenderPipeline {
-    pipeline: roe_graphics::RenderPipeline,
-    bind_group_layout: roe_graphics::BindGroupLayout,
-    sample_count: roe_graphics::SampleCount,
-    color_buffer_format: roe_graphics::CanvasColorBufferFormat,
+    pipeline: gfx::RenderPipeline,
+    bind_group_layout: gfx::BindGroupLayout,
+    sample_count: gfx::SampleCount,
+    color_buffer_format: gfx::CanvasColorBufferFormat,
 }
 
 impl RenderPipeline {
-    pub fn new(instance: &roe_graphics::Instance, desc: &RenderPipelineDescriptor) -> Self {
+    pub fn new(instance: &gfx::Instance, desc: &RenderPipelineDescriptor) -> Self {
         let bind_group_layout = bind_group_layout(instance);
-        let pipeline_layout = roe_graphics::PipelineLayout::new(
+        let pipeline_layout = gfx::PipelineLayout::new(
             instance,
-            &roe_graphics::PipelineLayoutDescriptor {
+            &gfx::PipelineLayoutDescriptor {
                 label: None,
                 bind_group_layouts: &[&bind_group_layout],
-                push_constant_ranges: &[roe_graphics::PushConstantRange {
-                    stages: roe_graphics::ShaderStage::VERTEX,
+                push_constant_ranges: &[gfx::PushConstantRange {
+                    stages: gfx::ShaderStage::VERTEX,
                     range: 0..std::mem::size_of::<PushConstants>() as u32,
                 }],
             },
         );
-        let vs_module = roe_graphics::ShaderModule::new(
+        let vs_module = gfx::ShaderModule::new(
             instance,
-            roe_graphics::include_spirv!("shaders/gen/spirv/sprite.vert.spv"),
+            &gfx::include_spirv!("shaders/gen/spirv/sprite.vert.spv"),
         );
-        let fs_module = roe_graphics::ShaderModule::new(
+        let fs_module = gfx::ShaderModule::new(
             instance,
-            roe_graphics::include_spirv!("shaders/gen/spirv/sprite.frag.spv"),
+            &gfx::include_spirv!("shaders/gen/spirv/sprite.frag.spv"),
         );
-        let pipeline = roe_graphics::RenderPipeline::new(
+        let pipeline = gfx::RenderPipeline::new(
             instance,
-            &roe_graphics::RenderPipelineDescriptor {
+            &gfx::RenderPipelineDescriptor {
                 label: None,
                 layout: Some(&pipeline_layout),
-                vertex_stage: roe_graphics::ProgrammableStageDescriptor {
+                vertex: gfx::VertexState {
                     module: &vs_module,
                     entry_point: "main",
-                },
-                fragment_stage: Some(roe_graphics::ProgrammableStageDescriptor {
-                    module: &fs_module,
-                    entry_point: "main",
-                }),
-                rasterization_state: Some(roe_graphics::RasterizationStateDescriptor {
-                    front_face: roe_graphics::FrontFace::Ccw,
-                    cull_mode: roe_graphics::CullMode::Back,
-                    ..Default::default()
-                }),
-                primitive_topology: roe_graphics::PrimitiveTopology::TriangleList,
-                color_states: &[roe_graphics::ColorStateDescriptor {
-                    format: roe_graphics::TextureFormat::from(desc.color_buffer_format),
-                    color_blend: desc.color_blend.clone(),
-                    alpha_blend: desc.alpha_blend.clone(),
-                    write_mask: desc.write_mask,
-                }],
-                depth_stencil_state: None,
-                vertex_state: roe_graphics::VertexStateDescriptor {
-                    index_format: roe_graphics::IndexFormat::Uint16,
-                    vertex_buffers: &[roe_graphics::VertexBufferDescriptor {
-                        stride: std::mem::size_of::<Vertex>() as roe_graphics::BufferAddress,
-                        step_mode: roe_graphics::InputStepMode::Vertex,
+                    buffers: &[gfx::VertexBufferLayout {
+                        array_stride: std::mem::size_of::<Vertex>() as gfx::BufferAddress,
+                        step_mode: gfx::VertexStepMode::Vertex,
                         attributes: &[
-                            roe_graphics::VertexAttributeDescriptor {
-                                format: roe_graphics::VertexFormat::Float2,
+                            gfx::VertexAttribute {
+                                format: gfx::VertexFormat::Float32x2,
                                 offset: 0,
                                 shader_location: 0,
                             },
-                            roe_graphics::VertexAttributeDescriptor {
-                                format: roe_graphics::VertexFormat::Float2,
+                            gfx::VertexAttribute {
+                                format: gfx::VertexFormat::Float32x2,
                                 offset: 8,
                                 shader_location: 1,
                             },
                         ],
                     }],
                 },
-                sample_count: desc.sample_count,
-                sample_mask: !0,
-                alpha_to_coverage_enabled: false,
+                primitive: gfx::PrimitiveState {
+                    topology: gfx::PrimitiveTopology::TriangleList,
+                    strip_index_format: None,
+                    front_face: gfx::FrontFace::Ccw,
+                    cull_mode: Some(gfx::Face::Back),
+                    clamp_depth: false,
+                    polygon_mode: gfx::PolygonMode::Fill,
+                    conservative: false,
+                },
+                depth_stencil: None,
+                multisample: gfx::MultisampleState {
+                    count: desc.sample_count,
+                    mask: !0,
+                    alpha_to_coverage_enabled: false,
+                },
+                fragment: Some(gfx::FragmentState {
+                    module: &fs_module,
+                    entry_point: "main",
+                    targets: &[gfx::ColorTargetState {
+                        format: gfx::TextureFormat::from(desc.color_buffer_format),
+                        blend: Some(gfx::BlendState {
+                            color: desc.color_blend.clone(),
+                            alpha: desc.alpha_blend.clone(),
+                        }),
+                        write_mask: desc.write_mask,
+                    }],
+                }),
             },
         );
         Self {
@@ -317,8 +319,8 @@ impl RenderPipeline {
         }
     }
 
-    pub fn render_pass_requirements(&self) -> roe_graphics::RenderPassRequirements {
-        roe_graphics::RenderPassRequirements {
+    pub fn render_pass_requirements(&self) -> gfx::RenderPassRequirements {
+        gfx::RenderPassRequirements {
             sample_count: self.sample_count,
             color_buffer_formats: vec![self.color_buffer_format],
             depth_stencil_buffer_format: None,
@@ -344,10 +346,10 @@ pub trait Renderer<'a> {
         UcIt: IntoIterator<Item = (&'a UniformConstants, MeshIt)>,
         MeshIt: IntoIterator<Item = (&'a Mesh, PcIt)>,
         PcIt: IntoIterator<Item = (&'a PushConstants, RangeIt)>,
-        RangeIt: IntoIterator<Item = roe_graphics::MeshIndexRange>;
+        RangeIt: IntoIterator<Item = gfx::MeshIndexRange>;
 }
 
-impl<'a> Renderer<'a> for roe_graphics::RenderPass<'a> {
+impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
     fn draw_sprite(
         &mut self,
         pipeline: &'a RenderPipeline,
@@ -358,12 +360,12 @@ impl<'a> Renderer<'a> for roe_graphics::RenderPass<'a> {
     ) {
         self.set_pipeline(&pipeline.pipeline);
         self.set_bind_group(0, &uniform_constants.bind_group, &[]);
-        self.set_index_buffer(mesh.index_buffer().slice(..));
+        self.set_index_buffer(mesh.index_buffer().slice(..), gfx::IndexFormat::Uint16);
         self.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
         self.set_push_constants(
-            roe_graphics::ShaderStage::VERTEX,
+            gfx::ShaderStage::VERTEX,
             0,
-            push_constants.as_slice(),
+            gfx::utility::as_slice(push_constants),
         );
         self.draw_indexed(index_range, 0, 0..1);
     }
@@ -376,16 +378,20 @@ impl<'a> Renderer<'a> for roe_graphics::RenderPass<'a> {
         UcIt: IntoIterator<Item = (&'a UniformConstants, MeshIt)>,
         MeshIt: IntoIterator<Item = (&'a Mesh, PcIt)>,
         PcIt: IntoIterator<Item = (&'a PushConstants, RangeIt)>,
-        RangeIt: IntoIterator<Item = roe_graphics::MeshIndexRange>,
+        RangeIt: IntoIterator<Item = gfx::MeshIndexRange>,
     {
         self.set_pipeline(&pipeline.pipeline);
         for (uc, meshes) in draw_commands.into_iter() {
             self.set_bind_group(0, &uc.bind_group, &[]);
             for (mesh, pcs) in meshes.into_iter() {
-                self.set_index_buffer(mesh.index_buffer().slice(..));
+                self.set_index_buffer(mesh.index_buffer().slice(..), gfx::IndexFormat::Uint16);
                 self.set_vertex_buffer(0, mesh.vertex_buffer().slice(..));
                 for (pc, ranges) in pcs.into_iter() {
-                    self.set_push_constants(roe_graphics::ShaderStage::VERTEX, 0, pc.as_slice());
+                    self.set_push_constants(
+                        gfx::ShaderStage::VERTEX,
+                        0,
+                        gfx::utility::as_slice(pc),
+                    );
                     for range in ranges.into_iter() {
                         self.draw_indexed(range, 0, 0..1);
                     }
@@ -398,12 +404,186 @@ impl<'a> Renderer<'a> for roe_graphics::RenderPass<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use galvanic_assert::{matchers::*, *};
+    use gfx::Canvas;
+    use roe_math::{conversion::convert, geometry2 as geo};
 
     #[test]
     #[serial_test::serial]
     fn creation() {
-        let instance =
-            roe_graphics::Instance::new(&roe_graphics::InstanceDescriptor::default()).unwrap();
+        let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
         let _pipeline = RenderPipeline::new(&instance, &RenderPipelineDescriptor::default());
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn draw_sprite() {
+        let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
+        let mut canvas = gfx::CanvasTexture::new(
+            &instance,
+            &gfx::CanvasTextureDescriptor {
+                size: gfx::CanvasSize::new(100, 100),
+                sample_count: 1,
+                color_buffer_descriptor: Some(gfx::CanvasTextureColorBufferDescriptor {
+                    format: gfx::CanvasColorBufferFormat::Rgba8Unorm,
+                    usage: gfx::CanvasColorBufferUsage::COPY_SRC,
+                }),
+                depth_stencil_buffer_format: None,
+            },
+        );
+        let pipeline = RenderPipeline::new(
+            &instance,
+            &RenderPipelineDescriptor {
+                color_buffer_format: gfx::CanvasColorBufferFormat::Rgba8Unorm,
+                ..RenderPipelineDescriptor::default()
+            },
+        );
+        let texture = gfx::Texture::from_image(
+            &instance,
+            &image::open("data/pictures/gioconda.jpg")
+                .unwrap()
+                .into_rgba8(),
+            gfx::TextureUsage::TEXTURE_BINDING,
+        )
+        .create_view(&gfx::TextureViewDescriptor::default());
+
+        let mesh_1 = Mesh::quad(
+            &instance,
+            &Vertex::new([0., 0.], [0., 0.]),
+            &Vertex::new([400., 400.], [1., 1.]),
+        );
+
+        let mesh_2 = Mesh::quad(
+            &instance,
+            &Vertex::new([0., 0.], [0., 0.]),
+            &Vertex::new([400., 400.], [1., 1.]),
+        );
+
+        let mesh_3 = Mesh::quad(
+            &instance,
+            &Vertex::new([000., 400.], [-0.5, -0.5]),
+            &Vertex::new([400., 800.], [1.5, 1.5]),
+        );
+
+        let uniform_constants_1 = UniformConstants::new(
+            &instance,
+            &texture,
+            &gfx::Sampler::new(&instance, &gfx::SamplerDescriptor::default()),
+        );
+
+        let uniform_constants_2 = UniformConstants::new(
+            &instance,
+            &texture,
+            &gfx::Sampler::new(
+                &instance,
+                &gfx::SamplerDescriptor {
+                    mag_filter: gfx::FilterMode::Nearest,
+                    min_filter: gfx::FilterMode::Linear,
+                    mipmap_filter: gfx::FilterMode::Nearest,
+                    ..gfx::SamplerDescriptor::default()
+                },
+            ),
+        );
+
+        let uniform_constants_3 = UniformConstants::new(
+            &instance,
+            &texture,
+            &gfx::Sampler::new(
+                &instance,
+                &gfx::SamplerDescriptor {
+                    address_mode_u: gfx::AddressMode::Repeat,
+                    address_mode_v: gfx::AddressMode::ClampToEdge,
+                    ..gfx::SamplerDescriptor::default()
+                },
+            ),
+        );
+
+        let projection_transform =
+            geo::OrthographicProjection::new(0., 100., 100., 0.).to_projective();
+
+        let push_constants_1 = PushConstants::new(
+            &convert(
+                projection_transform
+                    * geo::Similarity::<f32>::from_parts(
+                        geo::Translation::new(50., 60.),
+                        geo::UnitComplex::new(std::f32::consts::PI * 0.5),
+                        0.1,
+                    ),
+            ),
+            gfx::ColorF32::CYAN,
+        );
+        let push_constants_2 = PushConstants::new(
+            &convert(
+                projection_transform
+                    * geo::Similarity::<f32>::from_parts(
+                        geo::Translation::new(70., 30.),
+                        geo::UnitComplex::new(0.),
+                        0.05,
+                    ),
+            ),
+            gfx::ColorF32::RED,
+        );
+
+        let push_constants_3 = PushConstants::new(
+            &convert(
+                projection_transform
+                    * geo::Similarity::<f32>::from_parts(
+                        geo::Translation::new(20., 80.),
+                        geo::UnitComplex::new(std::f32::consts::PI),
+                        0.02,
+                    ),
+            ),
+            gfx::ColorF32::YELLOW,
+        );
+
+        {
+            let frame = canvas.current_frame().unwrap().unwrap();
+            let mut cmd_sequence = gfx::CommandSequence::new(&instance);
+            {
+                let mut rpass = cmd_sequence.begin_render_pass(
+                    &frame,
+                    &pipeline.render_pass_requirements(),
+                    &gfx::RenderPassOperations::default(),
+                );
+                rpass.draw_sprite(
+                    &pipeline,
+                    &uniform_constants_1,
+                    &mesh_1,
+                    &push_constants_1,
+                    0..mesh_1.index_count(),
+                );
+                rpass.draw_sprite_array(
+                    &pipeline,
+                    [
+                        (
+                            &uniform_constants_2,
+                            [(&mesh_2, [(&push_constants_2, [0..mesh_2.index_count()])])],
+                        ),
+                        (
+                            &uniform_constants_3,
+                            [(&mesh_3, [(&push_constants_3, [0..mesh_3.index_count()])])],
+                        ),
+                    ],
+                );
+            }
+            cmd_sequence.submit(&instance);
+            frame.present();
+        }
+
+        let expected_image = image::load(
+            std::io::BufReader::new(std::fs::File::open("data/pictures/test_result.png").unwrap()),
+            image::ImageFormat::Png,
+        )
+        .unwrap();
+        assert_that!(
+            &expected_image,
+            is_variant!(image::DynamicImage::ImageRgba8)
+        );
+
+        if let image::DynamicImage::ImageRgba8(expected_image) = expected_image {
+            let result_image = canvas.color_texture().unwrap().to_image(&instance);
+
+            expect_that!(&result_image, eq(expected_image));
+        }
     }
 }

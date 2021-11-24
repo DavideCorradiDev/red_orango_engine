@@ -1,8 +1,42 @@
 use super::{
-    Extent3d, Instance, PresentMode, SampleCount, Size, Surface, SwapChain, SwapChainDescriptor,
-    SwapChainError, SwapChainFrame, Texture, TextureDescriptor, TextureDimension, TextureFormat,
-    TextureUsage, TextureView, TextureViewDescriptor,
+    Extent3d, Instance, PresentMode, SampleCount, Size, Surface, SurfaceConfiguration,
+    SurfaceError, SurfaceTexture, Texture, TextureAspect, TextureDescriptor, TextureDimension,
+    TextureFormat, TextureUsage, TextureView, TextureViewDescriptor, TextureViewDimension,
 };
+
+fn canvas_texture_descriptor<'a>(
+    size: CanvasSize,
+    sample_count: SampleCount,
+    format: TextureFormat,
+    usage: TextureUsage,
+) -> TextureDescriptor<'a> {
+    TextureDescriptor {
+        label: None,
+        size: Extent3d {
+            width: size.width(),
+            height: size.height(),
+            depth_or_array_layers: 1,
+        },
+        mip_level_count: 1,
+        sample_count,
+        format,
+        dimension: TextureDimension::D2,
+        usage: usage | TextureUsage::RENDER_ATTACHMENT,
+    }
+}
+
+fn canvas_texture_view_descriptor<'a>(format: TextureFormat) -> TextureViewDescriptor<'a> {
+    TextureViewDescriptor {
+        label: None,
+        format: Some(format),
+        dimension: Some(TextureViewDimension::D2),
+        aspect: TextureAspect::All,
+        base_mip_level: 0,
+        mip_level_count: None,
+        base_array_layer: 0,
+        array_layer_count: None,
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum CanvasColorBufferFormat {
@@ -57,24 +91,25 @@ impl From<CanvasDepthStencilBufferFormat> for TextureFormat {
 pub type CanvasSize = Size<u32>;
 
 #[derive(Debug)]
-pub struct CanvasSwapChainRef<'a> {
+pub struct CanvasSurfaceRef<'a> {
     sample_count: SampleCount,
     format: CanvasColorBufferFormat,
     multisampled_buffer: Option<&'a TextureView>,
-    frame: SwapChainFrame,
+    surface_texture: SurfaceTexture,
+    surface_view: TextureView,
 }
 
-impl<'a> CanvasSwapChainRef<'a> {
+impl<'a> CanvasSurfaceRef<'a> {
     pub fn attachment(&self) -> &TextureView {
         match self.multisampled_buffer {
             Some(v) => &v,
-            None => &self.frame.output.view,
+            None => &self.surface_view,
         }
     }
 
     pub fn resolve_target(&self) -> Option<&TextureView> {
         match self.multisampled_buffer {
-            Some(_) => Some(&self.frame.output.view),
+            Some(_) => Some(&self.surface_view),
             None => None,
         }
     }
@@ -86,69 +121,68 @@ impl<'a> CanvasSwapChainRef<'a> {
     pub fn format(&self) -> CanvasColorBufferFormat {
         self.format
     }
+
+    pub fn present(self) {
+        self.surface_texture.present()
+    }
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub struct CanvasSwapChainDescriptor {
+pub struct CanvasSurfaceDescriptor {
     pub size: CanvasSize,
     pub sample_count: SampleCount,
     pub format: CanvasColorBufferFormat,
 }
 
 #[derive(Debug)]
-pub struct CanvasSwapChain {
+pub struct CanvasSurface {
     size: CanvasSize,
     sample_count: SampleCount,
     format: CanvasColorBufferFormat,
     multisampled_buffer: Option<TextureView>,
-    swap_chain: SwapChain,
+    surface: Surface,
 }
 
-impl CanvasSwapChain {
-    pub fn new(instance: &Instance, surface: &Surface, desc: &CanvasSwapChainDescriptor) -> Self {
-        let usage = TextureUsage::OUTPUT_ATTACHMENT;
-        let texture_format = TextureFormat::from(desc.format);
-        let width = desc.size.width();
-        let height = desc.size.height();
-        let swap_chain = SwapChain::new(
-            instance,
+impl CanvasSurface {
+    pub fn new(surface: Surface) -> Self {
+        Self {
+            size: CanvasSize::new(0, 0),
+            sample_count: 1,
+            format: CanvasColorBufferFormat::default(),
+            multisampled_buffer: None,
             surface,
-            &SwapChainDescriptor {
-                usage,
-                format: texture_format,
-                width,
-                height,
+        }
+    }
+
+    pub fn configure(&mut self, instance: &Instance, desc: &CanvasSurfaceDescriptor) {
+        let format = TextureFormat::from(desc.format);
+        self.surface.configure(
+            instance,
+            &SurfaceConfiguration {
+                usage: TextureUsage::RENDER_ATTACHMENT,
+                format,
+                width: desc.size.width(),
+                height: desc.size.height(),
                 present_mode: PresentMode::Mailbox,
             },
         );
-        let multisampled_buffer = if desc.sample_count > 1 {
+        self.multisampled_buffer = if desc.sample_count > 1 {
             let multisampling_buffer_texture = Texture::new(
                 instance,
-                &TextureDescriptor {
-                    size: Extent3d {
-                        width,
-                        height,
-                        depth: 1,
-                    },
-                    mip_level_count: 1,
-                    sample_count: desc.sample_count,
-                    dimension: TextureDimension::D2,
-                    format: texture_format,
-                    usage,
-                    label: None,
-                },
+                &canvas_texture_descriptor(
+                    desc.size,
+                    desc.sample_count,
+                    format,
+                    TextureUsage::empty(),
+                ),
             );
-            Some(multisampling_buffer_texture.create_view(&TextureViewDescriptor::default()))
+            Some(multisampling_buffer_texture.create_view(&canvas_texture_view_descriptor(format)))
         } else {
             None
         };
-        Self {
-            size: desc.size,
-            sample_count: desc.sample_count,
-            format: desc.format,
-            multisampled_buffer,
-            swap_chain,
-        }
+        self.size = desc.size;
+        self.sample_count = desc.sample_count;
+        self.format = desc.format;
     }
 
     pub fn size(&self) -> &CanvasSize {
@@ -163,17 +197,23 @@ impl CanvasSwapChain {
         self.format
     }
 
-    pub fn reference(&mut self) -> Result<CanvasSwapChainRef, SwapChainError> {
-        let frame = self.swap_chain.get_current_frame()?;
+    pub fn reference(&mut self) -> Result<CanvasSurfaceRef, SurfaceError> {
+        let surface_texture = self.surface.get_current_texture()?;
+        let surface_view = surface_texture
+            .texture
+            .create_view(&canvas_texture_view_descriptor(TextureFormat::from(
+                self.format,
+            )));
         let multisampled_buffer = match self.multisampled_buffer {
             Some(ref v) => Some(v),
             None => None,
         };
-        Ok(CanvasSwapChainRef {
+        Ok(CanvasSurfaceRef {
             sample_count: self.sample_count,
             format: self.format,
             multisampled_buffer,
-            frame,
+            surface_texture,
+            surface_view,
         })
     }
 }
@@ -214,7 +254,7 @@ bitflags::bitflags! {
     pub struct CanvasColorBufferUsage : u32 {
         const COPY_SRC = TextureUsage::COPY_SRC.bits();
         const COPY_DST = TextureUsage::COPY_DST.bits();
-        const SAMPLED = TextureUsage::SAMPLED.bits();
+        const TEXTURE_BINDING = TextureUsage::TEXTURE_BINDING.bits();
     }
 }
 
@@ -244,26 +284,17 @@ pub struct CanvasColorBuffer {
 
 impl CanvasColorBuffer {
     pub fn new(instance: &Instance, desc: &CanvasColorBufferDescriptor) -> Self {
-        let mut tex_desc = TextureDescriptor {
-            size: Extent3d {
-                width: desc.size.width(),
-                height: desc.size.height(),
-                depth: 1,
-            },
-            mip_level_count: 1,
-            sample_count: 1,
-            dimension: TextureDimension::D2,
-            format: TextureFormat::from(desc.format),
-            usage: TextureUsage::from(desc.usage) | TextureUsage::OUTPUT_ATTACHMENT,
-            label: None,
-        };
+        let format = TextureFormat::from(desc.format);
+        let mut tex_desc =
+            canvas_texture_descriptor(desc.size, 1, format, TextureUsage::from(desc.usage));
+        let tex_view_desc = canvas_texture_view_descriptor(format);
 
         let main_buffer_texture = Texture::new(instance, &tex_desc);
-        let main_buffer_view = main_buffer_texture.create_view(&TextureViewDescriptor::default());
+        let main_buffer_view = main_buffer_texture.create_view(&tex_view_desc);
 
         let multisampled_buffer = if desc.sample_count > 1 {
             tex_desc.sample_count = desc.sample_count;
-            Some(Texture::new(instance, &tex_desc).create_view(&TextureViewDescriptor::default()))
+            Some(Texture::new(instance, &tex_desc).create_view(&tex_view_desc))
         } else {
             None
         };
@@ -351,23 +382,12 @@ pub struct CanvasDepthStencilBuffer {
 
 impl CanvasDepthStencilBuffer {
     pub fn new(instance: &Instance, desc: &CanvasDepthStencilBufferDescriptor) -> Self {
+        let format = TextureFormat::from(desc.format);
         let buffer_texture = Texture::new(
             instance,
-            &TextureDescriptor {
-                size: Extent3d {
-                    width: desc.size.width(),
-                    height: desc.size.height(),
-                    depth: 1,
-                },
-                mip_level_count: 1,
-                sample_count: desc.sample_count,
-                dimension: TextureDimension::D2,
-                format: TextureFormat::from(desc.format),
-                usage: TextureUsage::OUTPUT_ATTACHMENT,
-                label: None,
-            },
+            &canvas_texture_descriptor(desc.size, desc.sample_count, format, TextureUsage::empty()),
         );
-        let buffer_view = buffer_texture.create_view(&TextureViewDescriptor::default());
+        let buffer_view = buffer_texture.create_view(&canvas_texture_view_descriptor(format));
         Self {
             size: desc.size,
             sample_count: desc.sample_count,
@@ -408,14 +428,14 @@ impl CanvasDepthStencilBuffer {
 
 #[derive(Debug)]
 pub struct CanvasFrame<'a> {
-    swap_chain: Option<CanvasSwapChainRef<'a>>,
+    surface: Option<CanvasSurfaceRef<'a>>,
     color_buffers: Vec<CanvasColorBufferRef<'a>>,
     depth_stencil_buffer: Option<CanvasDepthStencilBufferRef<'a>>,
 }
 
 impl<'a> CanvasFrame<'a> {
-    pub fn swap_chain(&self) -> Option<&CanvasSwapChainRef<'a>> {
-        self.swap_chain.as_ref()
+    pub fn surface(&self) -> Option<&CanvasSurfaceRef<'a>> {
+        self.surface.as_ref()
     }
 
     pub fn color_buffers(&self) -> &Vec<CanvasColorBufferRef<'a>> {
@@ -425,11 +445,16 @@ impl<'a> CanvasFrame<'a> {
     pub fn depth_stencil_buffer(&self) -> Option<&CanvasDepthStencilBufferRef<'a>> {
         self.depth_stencil_buffer.as_ref()
     }
+
+    pub fn present(self) {
+        if let Some(sc) = self.surface {
+            sc.present();
+        }
+    }
 }
 
-#[derive(Debug, Clone)]
-pub struct CanvasBufferSwapChainDescriptor<'a> {
-    pub surface: &'a Surface,
+#[derive(Debug)]
+pub struct CanvasBufferSurfaceDescriptor {
     pub format: CanvasColorBufferFormat,
 }
 
@@ -448,11 +473,11 @@ impl Default for CanvasBufferColorBufferDescriptor {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct CanvasBufferDescriptor<'a> {
+#[derive(Debug)]
+pub struct CanvasBufferDescriptor {
     pub size: CanvasSize,
     pub sample_count: SampleCount,
-    pub swap_chain_descriptor: Option<CanvasBufferSwapChainDescriptor<'a>>,
+    pub surface_descriptor: Option<CanvasBufferSurfaceDescriptor>,
     pub color_buffer_descriptors: Vec<CanvasBufferColorBufferDescriptor>,
     pub depth_stencil_buffer_format: Option<CanvasDepthStencilBufferFormat>,
 }
@@ -461,29 +486,84 @@ pub struct CanvasBufferDescriptor<'a> {
 pub struct CanvasBuffer {
     size: CanvasSize,
     sample_count: SampleCount,
-    swap_chain: Option<CanvasSwapChain>,
-    color_buffers: Vec<CanvasColorBuffer>,
-    depth_stencil_buffer: Option<CanvasDepthStencilBuffer>,
+    // rename similar varialbes
+    canvas_surface: Option<CanvasSurface>,
+    canvas_color_buffers: Vec<CanvasColorBuffer>,
+    canvas_depth_stencil_buffer: Option<CanvasDepthStencilBuffer>,
 }
 
 impl CanvasBuffer {
-    pub fn new(instance: &Instance, desc: &CanvasBufferDescriptor) -> Self {
-        let swap_chain = match &desc.swap_chain_descriptor {
-            Some(sc_desc) => Some(CanvasSwapChain::new(
-                instance,
-                sc_desc.surface,
-                &CanvasSwapChainDescriptor {
-                    size: desc.size,
-                    sample_count: desc.sample_count,
-                    format: sc_desc.format,
-                },
-            )),
+    pub fn new(
+        instance: &Instance,
+        surface: Option<Surface>,
+        desc: &CanvasBufferDescriptor,
+    ) -> Self {
+        let canvas_surface = match surface {
+            Some(surface) => Some(CanvasSurface::new(surface)),
             None => None,
         };
+        let mut canvas_buffer = Self {
+            size: desc.size,
+            sample_count: desc.sample_count,
+            canvas_surface,
+            canvas_color_buffers: Vec::new(),
+            canvas_depth_stencil_buffer: None,
+        };
+        canvas_buffer.configure(instance, desc);
+        canvas_buffer
+    }
 
-        let mut color_buffers = Vec::with_capacity(desc.color_buffer_descriptors.len());
+    pub fn configure(&mut self, instance: &Instance, desc: &CanvasBufferDescriptor) {
+        self.size = desc.size;
+        self.sample_count = desc.sample_count;
+
+        // If the requested surface area is 0, don't actually reconfigure (it won't work).
+        // Instead, only the variables above are set, so that the canvas buffer can currently be
+        // flagged as "invalid", no frames are returned, and the surface will be recreated when the
+        // size changes again to a valid value.
+        if desc.size.width() == 0 || desc.size.height() == 0 {
+            return;
+        }
+
+        self.configure_canvas_surface(instance, desc);
+        self.canvas_color_buffers = Self::create_color_buffers(instance, desc);
+        self.canvas_depth_stencil_buffer = Self::create_depth_stencil_buffer(instance, desc);
+        self.assert_has_buffer();
+    }
+
+    fn configure_canvas_surface(&mut self, instance: &Instance, desc: &CanvasBufferDescriptor) {
+        match &mut self.canvas_surface {
+            Some(canvas_surface) => {
+                let format = match &desc.surface_descriptor {
+                    Some(sd) => sd.format,
+                    None => {
+                        panic!("Canvas buffer created with a surface, but no surface descriptor")
+                    }
+                };
+                canvas_surface.configure(
+                    instance,
+                    &CanvasSurfaceDescriptor {
+                        size: desc.size,
+                        sample_count: desc.sample_count,
+                        format,
+                    },
+                );
+            }
+            None => {
+                if let Some(_) = &desc.surface_descriptor {
+                    panic!("Canvas buffer created with a surface descriptor, but no surface")
+                }
+            }
+        }
+    }
+
+    fn create_color_buffers(
+        instance: &Instance,
+        desc: &CanvasBufferDescriptor,
+    ) -> Vec<CanvasColorBuffer> {
+        let mut canvas_color_buffers = Vec::with_capacity(desc.color_buffer_descriptors.len());
         for cbd in desc.color_buffer_descriptors.iter() {
-            color_buffers.push(CanvasColorBuffer::new(
+            canvas_color_buffers.push(CanvasColorBuffer::new(
                 instance,
                 &CanvasColorBufferDescriptor {
                     size: desc.size,
@@ -493,8 +573,14 @@ impl CanvasBuffer {
                 },
             ));
         }
+        canvas_color_buffers
+    }
 
-        let depth_stencil_buffer = match &desc.depth_stencil_buffer_format {
+    fn create_depth_stencil_buffer(
+        instance: &Instance,
+        desc: &CanvasBufferDescriptor,
+    ) -> Option<CanvasDepthStencilBuffer> {
+        match &desc.depth_stencil_buffer_format {
             Some(format) => Some(CanvasDepthStencilBuffer::new(
                 instance,
                 &CanvasDepthStencilBufferDescriptor {
@@ -504,20 +590,20 @@ impl CanvasBuffer {
                 },
             )),
             None => None,
-        };
+        }
+    }
 
+    fn assert_has_buffer(&self) {
         assert!(
-            swap_chain.is_some() || !color_buffers.is_empty() || depth_stencil_buffer.is_some(),
+            self.canvas_surface.is_some()
+                || !self.canvas_color_buffers.is_empty()
+                || self.canvas_depth_stencil_buffer.is_some(),
             "No buffer defined for a canvas buffer"
         );
+    }
 
-        Self {
-            size: desc.size,
-            sample_count: desc.sample_count,
-            swap_chain,
-            color_buffers,
-            depth_stencil_buffer,
-        }
+    pub fn is_valid(&self) -> bool {
+        self.size.width() != 0 && self.size.height() != 0
     }
 
     pub fn size(&self) -> &CanvasSize {
@@ -528,44 +614,60 @@ impl CanvasBuffer {
         self.sample_count
     }
 
-    pub fn swap_chain(&self) -> Option<&CanvasSwapChain> {
-        self.swap_chain.as_ref()
+    pub fn surface(&self) -> Option<&CanvasSurface> {
+        if self.is_valid() {
+            self.canvas_surface.as_ref()
+        } else {
+            None
+        }
     }
 
-    pub fn color_buffers(&self) -> &Vec<CanvasColorBuffer> {
-        &self.color_buffers
+    pub fn color_buffers(&self) -> &[CanvasColorBuffer] {
+        if self.is_valid() {
+            self.canvas_color_buffers.as_slice()
+        } else {
+            &[]
+        }
     }
 
     pub fn depth_stencil_buffer(&self) -> Option<&CanvasDepthStencilBuffer> {
-        self.depth_stencil_buffer.as_ref()
+        if self.is_valid() {
+            self.canvas_depth_stencil_buffer.as_ref()
+        } else {
+            None
+        }
     }
 
-    pub fn current_frame(&mut self) -> Result<CanvasFrame, SwapChainError> {
-        let swap_chain = match &mut self.swap_chain {
-            Some(swap_chain) => Some(swap_chain.reference()?),
+    pub fn current_frame(&mut self) -> Result<Option<CanvasFrame>, SurfaceError> {
+        if !self.is_valid() {
+            return Ok(None);
+        }
+
+        let surface = match &mut self.canvas_surface {
+            Some(surface) => Some(surface.reference()?),
             None => None,
         };
 
-        let mut color_buffers = Vec::with_capacity(self.color_buffers.len());
-        for color_buffer in self.color_buffers.iter() {
+        let mut color_buffers = Vec::with_capacity(self.canvas_color_buffers.len());
+        for color_buffer in self.canvas_color_buffers.iter() {
             color_buffers.push(color_buffer.reference());
         }
 
-        let depth_stencil_buffer = match &self.depth_stencil_buffer {
+        let depth_stencil_buffer = match &self.canvas_depth_stencil_buffer {
             Some(depth_stencil_buffer) => Some(depth_stencil_buffer.reference()),
             None => None,
         };
 
-        Ok(CanvasFrame {
-            swap_chain,
+        Ok(Some(CanvasFrame {
+            surface,
             color_buffers,
             depth_stencil_buffer,
-        })
+        }))
     }
 }
 
 pub trait Canvas {
-    fn current_frame(&mut self) -> Result<CanvasFrame, SwapChainError>;
+    fn current_frame(&mut self) -> Result<Option<CanvasFrame>, SurfaceError>;
     fn canvas_size(&self) -> &CanvasSize;
     fn sample_count(&self) -> SampleCount;
 }
@@ -584,7 +686,43 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn canvas_swap_chain() {
+    fn canvas_surface() {
+        let event_loop = EventLoop::<()>::new_any_thread();
+        let window = WindowBuilder::new()
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+        let (_instance, surface) = unsafe {
+            Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
+        };
+
+        let surface = CanvasSurface::new(surface);
+
+        expect_that!(&surface.sample_count(), eq(1));
+        expect_that!(&surface.format(), eq(CanvasColorBufferFormat::default()));
+        expect_that!(surface.size(), eq(CanvasSize::new(0, 0)));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    #[should_panic(expected = "Surface was not configured")]
+    fn retrieve_canvas_surface_reference_before_configuration() {
+        let event_loop = EventLoop::<()>::new_any_thread();
+        let window = WindowBuilder::new()
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+        let (_instance, surface) = unsafe {
+            Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
+        };
+
+        let mut surface = CanvasSurface::new(surface);
+        surface.reference().unwrap();
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn canvas_surface_configure() {
         let event_loop = EventLoop::<()>::new_any_thread();
         let window = WindowBuilder::new()
             .with_visible(false)
@@ -594,24 +732,21 @@ mod tests {
             Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
         };
 
-        let mut swap_chain = CanvasSwapChain::new(
+        let mut surface = CanvasSurface::new(surface);
+        surface.configure(
             &instance,
-            &surface,
-            &CanvasSwapChainDescriptor {
+            &CanvasSurfaceDescriptor {
                 sample_count: 2,
                 format: CanvasColorBufferFormat::Bgra8Unorm,
                 size: CanvasSize::new(12, 20),
             },
         );
 
-        expect_that!(&swap_chain.sample_count(), eq(2));
-        expect_that!(
-            &swap_chain.format(),
-            eq(CanvasColorBufferFormat::Bgra8Unorm)
-        );
-        expect_that!(swap_chain.size(), eq(CanvasSize::new(12, 20)));
+        expect_that!(&surface.sample_count(), eq(2));
+        expect_that!(&surface.format(), eq(CanvasColorBufferFormat::Bgra8Unorm));
+        expect_that!(surface.size(), eq(CanvasSize::new(12, 20)));
 
-        let reference = swap_chain.reference().unwrap();
+        let reference = surface.reference().unwrap();
         expect_that!(&reference.sample_count(), eq(2));
         expect_that!(&reference.format(), eq(CanvasColorBufferFormat::Bgra8Unorm));
         expect_that!(reference.resolve_target().is_some());
@@ -671,7 +806,7 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn canvas_buffer() {
+    fn canvas_buffer_complex_creation() {
         let event_loop = EventLoop::<()>::new_any_thread();
         let window = WindowBuilder::new()
             .with_visible(false)
@@ -683,11 +818,11 @@ mod tests {
 
         let mut buffer = CanvasBuffer::new(
             &instance,
+            Some(surface),
             &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
-                swap_chain_descriptor: Some(CanvasBufferSwapChainDescriptor {
-                    surface: &surface,
+                surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
                     format: CanvasColorBufferFormat::default(),
                 }),
                 color_buffer_descriptors: vec![
@@ -706,15 +841,16 @@ mod tests {
 
         expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
         expect_that!(&buffer.sample_count(), eq(2));
-        expect_that!(buffer.swap_chain().is_some());
-        expect_that!(&buffer.color_buffers.len(), eq(2));
+        expect_that!(buffer.surface().is_some());
+        expect_that!(&buffer.color_buffers().len(), eq(2));
         expect_that!(buffer.depth_stencil_buffer().is_some());
+        expect_that!(buffer.is_valid());
 
         {
-            let swap_chain = buffer.swap_chain().unwrap();
-            expect_that!(&swap_chain.sample_count(), eq(2));
-            expect_that!(&swap_chain.format(), eq(CanvasColorBufferFormat::default()));
-            expect_that!(swap_chain.size(), eq(CanvasSize::new(12, 20)));
+            let surface = buffer.surface().unwrap();
+            expect_that!(&surface.sample_count(), eq(2));
+            expect_that!(&surface.format(), eq(CanvasColorBufferFormat::default()));
+            expect_that!(surface.size(), eq(CanvasSize::new(12, 20)));
         }
 
         {
@@ -742,8 +878,8 @@ mod tests {
         }
 
         {
-            let frame = buffer.current_frame().unwrap();
-            expect_that!(frame.swap_chain().is_some());
+            let frame = buffer.current_frame().unwrap().unwrap();
+            expect_that!(frame.surface().is_some());
             expect_that!(&frame.color_buffers().len(), eq(2));
             expect_that!(frame.depth_stencil_buffer.is_some());
         }
@@ -751,18 +887,490 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    #[should_panic(expected = "No buffer defined for a canvas buffer")]
-    fn canvas_buffer_creation_error() {
-        let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
-        let _buffer = CanvasBuffer::new(
+    fn canvas_buffer_only_surface() {
+        let event_loop = EventLoop::<()>::new_any_thread();
+        let window = WindowBuilder::new()
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+        let (instance, surface) = unsafe {
+            Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
+        };
+
+        let mut buffer = CanvasBuffer::new(
             &instance,
+            Some(surface),
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
+                sample_count: 1,
+                surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                }),
+                color_buffer_descriptors: vec![],
+                depth_stencil_buffer_format: None,
+            },
+        );
+
+        expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        expect_that!(&buffer.sample_count(), eq(1));
+        expect_that!(buffer.surface().is_some());
+        expect_that!(&buffer.color_buffers().len(), eq(0));
+        expect_that!(buffer.depth_stencil_buffer().is_none());
+        expect_that!(buffer.is_valid());
+
+        {
+            let surface = buffer.surface().unwrap();
+            expect_that!(&surface.sample_count(), eq(1));
+            expect_that!(&surface.format(), eq(CanvasColorBufferFormat::default()));
+            expect_that!(surface.size(), eq(CanvasSize::new(12, 20)));
+        }
+
+        {
+            let frame = buffer.current_frame().unwrap().unwrap();
+            expect_that!(frame.surface().is_some());
+            expect_that!(&frame.color_buffers().len(), eq(0));
+            expect_that!(frame.depth_stencil_buffer.is_none());
+        }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn canvas_buffer_only_multisampled_surface() {
+        let event_loop = EventLoop::<()>::new_any_thread();
+        let window = WindowBuilder::new()
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+        let (instance, surface) = unsafe {
+            Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
+        };
+
+        let mut buffer = CanvasBuffer::new(
+            &instance,
+            Some(surface),
             &CanvasBufferDescriptor {
                 size: CanvasSize::new(12, 20),
                 sample_count: 2,
-                swap_chain_descriptor: None,
+                surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                }),
+                color_buffer_descriptors: vec![],
+                depth_stencil_buffer_format: None,
+            },
+        );
+
+        expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        expect_that!(&buffer.sample_count(), eq(2));
+        expect_that!(buffer.surface().is_some());
+        expect_that!(&buffer.color_buffers().len(), eq(0));
+        expect_that!(buffer.depth_stencil_buffer().is_none());
+        expect_that!(buffer.is_valid());
+
+        {
+            let surface = buffer.surface().unwrap();
+            expect_that!(&surface.sample_count(), eq(2));
+            expect_that!(&surface.format(), eq(CanvasColorBufferFormat::default()));
+            expect_that!(surface.size(), eq(CanvasSize::new(12, 20)));
+        }
+
+        {
+            let frame = buffer.current_frame().unwrap().unwrap();
+            expect_that!(frame.surface().is_some());
+            expect_that!(&frame.color_buffers().len(), eq(0));
+            expect_that!(frame.depth_stencil_buffer.is_none());
+        }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn canvas_buffer_only_color() {
+        let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
+        let mut buffer = CanvasBuffer::new(
+            &instance,
+            None,
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
+                sample_count: 1,
+                surface_descriptor: None,
+                color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                    usage: CanvasColorBufferUsage::empty(),
+                }],
+                depth_stencil_buffer_format: None,
+            },
+        );
+
+        expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        expect_that!(&buffer.sample_count(), eq(1));
+        expect_that!(buffer.surface().is_none());
+        expect_that!(&buffer.color_buffers().len(), eq(1));
+        expect_that!(buffer.depth_stencil_buffer().is_none());
+        expect_that!(buffer.is_valid());
+
+        {
+            let buffer = &buffer.color_buffers()[0];
+            expect_that!(&buffer.sample_count(), eq(1));
+            expect_that!(&buffer.format(), eq(CanvasColorBufferFormat::default()));
+            expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        }
+
+        {
+            let frame = buffer.current_frame().unwrap().unwrap();
+            expect_that!(frame.surface().is_none());
+            expect_that!(&frame.color_buffers().len(), eq(1));
+            expect_that!(frame.depth_stencil_buffer.is_none());
+        }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn canvas_buffer_only_multisampled_color() {
+        let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
+        let mut buffer = CanvasBuffer::new(
+            &instance,
+            None,
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
+                sample_count: 2,
+                surface_descriptor: None,
+                color_buffer_descriptors: vec![CanvasBufferColorBufferDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                    usage: CanvasColorBufferUsage::empty(),
+                }],
+                depth_stencil_buffer_format: None,
+            },
+        );
+
+        expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        expect_that!(&buffer.sample_count(), eq(2));
+        expect_that!(buffer.surface().is_none());
+        expect_that!(&buffer.color_buffers().len(), eq(1));
+        expect_that!(buffer.depth_stencil_buffer().is_none());
+        expect_that!(buffer.is_valid());
+
+        {
+            let buffer = &buffer.color_buffers()[0];
+            expect_that!(&buffer.sample_count(), eq(2));
+            expect_that!(&buffer.format(), eq(CanvasColorBufferFormat::default()));
+            expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        }
+
+        {
+            let frame = buffer.current_frame().unwrap().unwrap();
+            expect_that!(frame.surface().is_none());
+            expect_that!(&frame.color_buffers().len(), eq(1));
+            expect_that!(frame.depth_stencil_buffer.is_none());
+        }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn canvas_buffer_only_depth_stencil() {
+        let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
+        let mut buffer = CanvasBuffer::new(
+            &instance,
+            None,
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
+                sample_count: 1,
+                surface_descriptor: None,
+                color_buffer_descriptors: vec![],
+                depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
+            },
+        );
+
+        expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        expect_that!(&buffer.sample_count(), eq(1));
+        expect_that!(buffer.surface().is_none());
+        expect_that!(&buffer.color_buffers().len(), eq(0));
+        expect_that!(buffer.depth_stencil_buffer().is_some());
+        expect_that!(buffer.is_valid());
+
+        {
+            let buffer = buffer.depth_stencil_buffer().unwrap();
+            expect_that!(&buffer.sample_count(), eq(1));
+            expect_that!(
+                &buffer.format(),
+                eq(CanvasDepthStencilBufferFormat::Depth32Float)
+            );
+            expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        }
+
+        {
+            let frame = buffer.current_frame().unwrap().unwrap();
+            expect_that!(frame.surface().is_none());
+            expect_that!(&frame.color_buffers().len(), eq(0));
+            expect_that!(frame.depth_stencil_buffer.is_some());
+        }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn canvas_buffer_only_multisampled_depth_stencil() {
+        let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
+        let mut buffer = CanvasBuffer::new(
+            &instance,
+            None,
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
+                sample_count: 2,
+                surface_descriptor: None,
+                color_buffer_descriptors: vec![],
+                depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
+            },
+        );
+
+        expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        expect_that!(&buffer.sample_count(), eq(2));
+        expect_that!(buffer.surface().is_none());
+        expect_that!(&buffer.color_buffers().len(), eq(0));
+        expect_that!(buffer.depth_stencil_buffer().is_some());
+        expect_that!(buffer.is_valid());
+
+        {
+            let buffer = buffer.depth_stencil_buffer().unwrap();
+            expect_that!(&buffer.sample_count(), eq(2));
+            expect_that!(
+                &buffer.format(),
+                eq(CanvasDepthStencilBufferFormat::Depth32Float)
+            );
+            expect_that!(buffer.size(), eq(CanvasSize::new(12, 20)));
+        }
+
+        {
+            let frame = buffer.current_frame().unwrap().unwrap();
+            expect_that!(frame.surface().is_none());
+            expect_that!(&frame.color_buffers().len(), eq(0));
+            expect_that!(frame.depth_stencil_buffer.is_some());
+        }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    #[should_panic(expected = "No buffer defined for a canvas buffer")]
+    fn canvas_buffer_error_no_buffers() {
+        let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
+        let _buffer = CanvasBuffer::new(
+            &instance,
+            None,
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
+                sample_count: 2,
+                surface_descriptor: None,
                 color_buffer_descriptors: Vec::new(),
                 depth_stencil_buffer_format: None,
             },
         );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    #[should_panic(expected = "Canvas buffer created with a surface, but no surface descriptor")]
+    fn canvas_buffer_error_no_surface_descriptor() {
+        let event_loop = EventLoop::<()>::new_any_thread();
+        let window = WindowBuilder::new()
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+        let (instance, surface) = unsafe {
+            Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
+        };
+        CanvasBuffer::new(
+            &instance,
+            Some(surface),
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
+                sample_count: 2,
+                surface_descriptor: None,
+                color_buffer_descriptors: vec![],
+                depth_stencil_buffer_format: None,
+            },
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    #[should_panic(expected = "Canvas buffer created with a surface descriptor, but no surface")]
+    fn canvas_buffer_error_no_surface() {
+        let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
+        CanvasBuffer::new(
+            &instance,
+            None,
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(12, 20),
+                sample_count: 2,
+                surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                }),
+                color_buffer_descriptors: vec![],
+                depth_stencil_buffer_format: None,
+            },
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn canvas_buffer_zero_size() {
+        let event_loop = EventLoop::<()>::new_any_thread();
+        let window = WindowBuilder::new()
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+        let (instance, surface) = unsafe {
+            Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
+        };
+
+        let mut buffer = CanvasBuffer::new(
+            &instance,
+            Some(surface),
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(0, 0),
+                sample_count: 1,
+                surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                }),
+                color_buffer_descriptors: vec![
+                    CanvasBufferColorBufferDescriptor {
+                        format: CanvasColorBufferFormat::default(),
+                        usage: CanvasColorBufferUsage::empty(),
+                    },
+                    CanvasBufferColorBufferDescriptor {
+                        format: CanvasColorBufferFormat::Bgra8Unorm,
+                        usage: CanvasColorBufferUsage::empty(),
+                    },
+                ],
+                depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
+            },
+        );
+
+        expect_that!(buffer.size(), eq(CanvasSize::new(0, 0)));
+        expect_that!(&buffer.sample_count(), eq(1));
+        expect_that!(buffer.surface().is_none());
+        expect_that!(&buffer.color_buffers().len(), eq(0));
+        expect_that!(buffer.depth_stencil_buffer().is_none());
+        expect_that!(!buffer.is_valid());
+
+        expect_that!(buffer.current_frame().unwrap().is_none());
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn canvas_buffer_configure() {
+        let event_loop = EventLoop::<()>::new_any_thread();
+        let window = WindowBuilder::new()
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+        let (instance, surface) = unsafe {
+            Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
+        };
+
+        let mut buffer = CanvasBuffer::new(
+            &instance,
+            Some(surface),
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(10, 20),
+                sample_count: 1,
+                surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                }),
+                color_buffer_descriptors: vec![
+                    CanvasBufferColorBufferDescriptor {
+                        format: CanvasColorBufferFormat::default(),
+                        usage: CanvasColorBufferUsage::empty(),
+                    },
+                    CanvasBufferColorBufferDescriptor {
+                        format: CanvasColorBufferFormat::Bgra8Unorm,
+                        usage: CanvasColorBufferUsage::empty(),
+                    },
+                ],
+                depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
+            },
+        );
+
+        buffer.configure(
+            &instance,
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(30, 10),
+                sample_count: 2,
+                surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                }),
+                color_buffer_descriptors: vec![],
+                depth_stencil_buffer_format: None,
+            },
+        );
+
+        expect_that!(buffer.size(), eq(CanvasSize::new(30, 10)));
+        expect_that!(&buffer.sample_count(), eq(2));
+        expect_that!(buffer.surface().is_some());
+        expect_that!(&buffer.color_buffers().len(), eq(0));
+        expect_that!(buffer.depth_stencil_buffer().is_none());
+        expect_that!(buffer.is_valid());
+
+        {
+            let frame = buffer.current_frame().unwrap().unwrap();
+            expect_that!(frame.surface().is_some());
+            expect_that!(&frame.color_buffers().len(), eq(0));
+            expect_that!(frame.depth_stencil_buffer.is_none());
+        }
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn canvas_buffer_configure_to_zero_size() {
+        let event_loop = EventLoop::<()>::new_any_thread();
+        let window = WindowBuilder::new()
+            .with_visible(false)
+            .build(&event_loop)
+            .unwrap();
+        let (instance, surface) = unsafe {
+            Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
+        };
+
+        let mut buffer = CanvasBuffer::new(
+            &instance,
+            Some(surface),
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(10, 20),
+                sample_count: 1,
+                surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                }),
+                color_buffer_descriptors: vec![
+                    CanvasBufferColorBufferDescriptor {
+                        format: CanvasColorBufferFormat::default(),
+                        usage: CanvasColorBufferUsage::empty(),
+                    },
+                    CanvasBufferColorBufferDescriptor {
+                        format: CanvasColorBufferFormat::Bgra8Unorm,
+                        usage: CanvasColorBufferUsage::empty(),
+                    },
+                ],
+                depth_stencil_buffer_format: Some(CanvasDepthStencilBufferFormat::Depth32Float),
+            },
+        );
+
+        buffer.configure(
+            &instance,
+            &CanvasBufferDescriptor {
+                size: CanvasSize::new(0, 0),
+                sample_count: 2,
+                surface_descriptor: Some(CanvasBufferSurfaceDescriptor {
+                    format: CanvasColorBufferFormat::default(),
+                }),
+                color_buffer_descriptors: vec![],
+                depth_stencil_buffer_format: None,
+            },
+        );
+
+        expect_that!(buffer.size(), eq(CanvasSize::new(0, 0)));
+        expect_that!(&buffer.sample_count(), eq(2));
+        expect_that!(buffer.surface().is_none());
+        expect_that!(&buffer.color_buffers().len(), eq(0));
+        expect_that!(buffer.depth_stencil_buffer().is_none());
+        expect_that!(!buffer.is_valid());
+
+        expect_that!(buffer.current_frame().unwrap().is_none());
     }
 }

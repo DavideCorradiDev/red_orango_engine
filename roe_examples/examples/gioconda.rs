@@ -37,13 +37,13 @@ struct ApplicationImpl {
 }
 
 impl ApplicationImpl {
-    const SAMPLE_COUNT: SampleCount = 8;
+    const SAMPLE_COUNT: SampleCount = 4;
 
     fn create_sprites(instance: &Instance) -> Vec<Sprite> {
         let image = image::open("roe_examples/data/pictures/gioconda.jpg")
             .expect("Failed to load texture image")
             .into_rgba8();
-        let sprite_texture = Texture::from_image(instance, &image, TextureUsage::SAMPLED)
+        let sprite_texture = Texture::from_image(instance, &image, TextureUsage::TEXTURE_BINDING)
             .create_view(&TextureViewDescriptor::default());
 
         vec![
@@ -266,41 +266,43 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             *self.color.current_color(),
         );
 
-        let frame = self.window.current_frame()?;
-        let mut cmd_sequence = CommandSequence::new(&self.instance);
-        {
-            let mut rpass = cmd_sequence.begin_render_pass(
-                &frame,
-                &self.pipeline.render_pass_requirements(),
-                &RenderPassOperations::default(),
-            );
-
-            // Single draw
-            // for sprite in &self.sprites {
-            //     rpass.draw_sprite(
-            //         &self.pipeline,
-            //         &sprite.uniform_constants,
-            //         &sprite.mesh,
-            //         &push_constants,
-            //         0..sprite.mesh.index_count(),
-            //     );
-            // }
-
-            // Multiple draw using std::Vec
-            for sprite in &self.sprites {
-                rpass.draw_sprite_array(
-                    &self.pipeline,
-                    vec![(
-                        &sprite.uniform_constants,
-                        vec![(
-                            &sprite.mesh,
-                            vec![(&push_constants, vec![0..sprite.mesh.index_count()])],
-                        )],
-                    )],
+        if let Some(frame) = self.window.current_frame()? {
+            let mut cmd_sequence = CommandSequence::new(&self.instance);
+            {
+                let mut rpass = cmd_sequence.begin_render_pass(
+                    &frame,
+                    &self.pipeline.render_pass_requirements(),
+                    &RenderPassOperations::default(),
                 );
+
+                // Single draw
+                for sprite in &self.sprites {
+                    rpass.draw_sprite(
+                        &self.pipeline,
+                        &sprite.uniform_constants,
+                        &sprite.mesh,
+                        &push_constants,
+                        0..sprite.mesh.index_count(),
+                    );
+                }
+
+                // Multiple draw using std::Vec
+                // for sprite in &self.sprites {
+                //     rpass.draw_sprite_array(
+                //         &self.pipeline,
+                //         vec![(
+                //             &sprite.uniform_constants,
+                //             vec![(
+                //                 &sprite.mesh,
+                //                 vec![(&push_constants, vec![0..sprite.mesh.index_count()])],
+                //             )],
+                //         )],
+                //     );
+                // }
             }
+            cmd_sequence.submit(&self.instance);
+            frame.present();
         }
-        cmd_sequence.submit(&self.instance);
         Ok(ControlFlow::Continue)
     }
 }

@@ -127,7 +127,7 @@ impl EventHandler<ApplicationError, CustomEvent> for ApplicationImpl {
     }
 
     fn on_scale_factor_changed<'a>(
-        &self,
+        &mut self,
         wid: WindowId,
         scale_factor: f64,
         new_inner_size: &'a mut PhysicalSize<u32>,
