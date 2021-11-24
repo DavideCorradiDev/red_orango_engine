@@ -317,7 +317,7 @@ mod tests {
 
     #[test]
     #[serial_test::serial]
-    fn draw_shape_2() {
+    fn draw_text() {
         let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
         let mut canvas = gfx::CanvasTexture::new(
             &instance,
