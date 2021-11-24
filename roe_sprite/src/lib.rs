@@ -404,11 +404,191 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use galvanic_assert::{matchers::*, *};
+    use gfx::Canvas;
+    use roe_math::{conversion::convert, geometry2 as geo};
 
     #[test]
     #[serial_test::serial]
     fn creation() {
         let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
         let _pipeline = RenderPipeline::new(&instance, &RenderPipelineDescriptor::default());
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn draw_shape_2() {
+        let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
+        let mut canvas = gfx::CanvasTexture::new(
+            &instance,
+            &gfx::CanvasTextureDescriptor {
+                size: gfx::CanvasSize::new(100, 100),
+                sample_count: 1,
+                color_buffer_descriptor: Some(gfx::CanvasTextureColorBufferDescriptor {
+                    format: gfx::CanvasColorBufferFormat::Rgba8Unorm,
+                    usage: gfx::CanvasColorBufferUsage::COPY_SRC,
+                }),
+                depth_stencil_buffer_format: None,
+            },
+        );
+        let pipeline = RenderPipeline::new(
+            &instance,
+            &RenderPipelineDescriptor {
+                color_buffer_format: gfx::CanvasColorBufferFormat::Rgba8Unorm,
+                ..RenderPipelineDescriptor::default()
+            },
+        );
+        let texture = gfx::Texture::from_image(
+            &instance,
+            &image::open("data/gioconda.jpg").unwrap().into_rgba8(),
+            gfx::TextureUsage::TEXTURE_BINDING,
+        )
+        .create_view(&gfx::TextureViewDescriptor::default());
+
+        let mesh_1 = Mesh::quad(
+            &instance,
+            &Vertex::new([0., 0.], [0., 0.]),
+            &Vertex::new([400., 400.], [1., 1.]),
+        );
+
+        let mesh_2 = Mesh::quad(
+            &instance,
+            &Vertex::new([0., 0.], [0., 0.]),
+            &Vertex::new([400., 400.], [1., 1.]),
+        );
+
+        let mesh_3 = Mesh::quad(
+            &instance,
+            &Vertex::new([000., 400.], [-0.5, -0.5]),
+            &Vertex::new([400., 800.], [1.5, 1.5]),
+        );
+
+        let uniform_constants_1 = UniformConstants::new(
+            &instance,
+            &texture,
+            &gfx::Sampler::new(&instance, &gfx::SamplerDescriptor::default()),
+        );
+
+        let uniform_constants_2 = UniformConstants::new(
+            &instance,
+            &texture,
+            &gfx::Sampler::new(
+                &instance,
+                &gfx::SamplerDescriptor {
+                    mag_filter: gfx::FilterMode::Nearest,
+                    min_filter: gfx::FilterMode::Linear,
+                    mipmap_filter: gfx::FilterMode::Nearest,
+                    ..gfx::SamplerDescriptor::default()
+                },
+            ),
+        );
+
+        let uniform_constants_3 = UniformConstants::new(
+            &instance,
+            &texture,
+            &gfx::Sampler::new(
+                &instance,
+                &gfx::SamplerDescriptor {
+                    address_mode_u: gfx::AddressMode::Repeat,
+                    address_mode_v: gfx::AddressMode::ClampToEdge,
+                    ..gfx::SamplerDescriptor::default()
+                },
+            ),
+        );
+
+        let projection_transform =
+            geo::OrthographicProjection::new(0., 100., 100., 0.).to_projective();
+
+        let push_constants_1 = PushConstants::new(
+            &convert(
+                projection_transform
+                    * geo::Similarity::<f32>::from_parts(
+                        geo::Translation::new(50., 60.),
+                        geo::UnitComplex::new(std::f32::consts::PI * 0.5),
+                        0.1,
+                    ),
+            ),
+            gfx::ColorF32::CYAN,
+        );
+        let push_constants_2 = PushConstants::new(
+            &convert(
+                projection_transform
+                    * geo::Similarity::<f32>::from_parts(
+                        geo::Translation::new(70., 30.),
+                        geo::UnitComplex::new(0.),
+                        0.05,
+                    ),
+            ),
+            gfx::ColorF32::RED,
+        );
+
+        let push_constants_3 = PushConstants::new(
+            &convert(
+                projection_transform
+                    * geo::Similarity::<f32>::from_parts(
+                        geo::Translation::new(20., 80.),
+                        geo::UnitComplex::new(std::f32::consts::PI),
+                        0.02,
+                    ),
+            ),
+            gfx::ColorF32::YELLOW,
+        );
+
+        {
+            let frame = canvas.current_frame().unwrap().unwrap();
+            let mut cmd_sequence = gfx::CommandSequence::new(&instance);
+            {
+                let mut rpass = cmd_sequence.begin_render_pass(
+                    &frame,
+                    &pipeline.render_pass_requirements(),
+                    &gfx::RenderPassOperations::default(),
+                );
+                rpass.draw_sprite(
+                    &pipeline,
+                    &uniform_constants_1,
+                    &mesh_1,
+                    &push_constants_1,
+                    0..mesh_1.index_count(),
+                );
+                rpass.draw_sprite_array(
+                    &pipeline,
+                    [(
+                        &uniform_constants_2,
+                        [(
+                            &mesh_2,
+                            [
+                                (&push_constants_2, [0..mesh_2.index_count()]),
+                            ],
+                        )],
+                    ), (
+                        &uniform_constants_3,
+                        [(
+                            &mesh_3,
+                            [
+                                (&push_constants_3, [0..mesh_3.index_count()]),
+                            ],
+                        )],
+                    )],
+                );
+            }
+            cmd_sequence.submit(&instance);
+            frame.present();
+        }
+
+        let expected_image = image::load(
+            std::io::BufReader::new(std::fs::File::open("data/test_result.png").unwrap()),
+            image::ImageFormat::Png,
+        )
+        .unwrap();
+        assert_that!(
+            &expected_image,
+            is_variant!(image::DynamicImage::ImageRgba8)
+        );
+
+        if let image::DynamicImage::ImageRgba8(expected_image) = expected_image {
+            let result_image = canvas.color_texture().unwrap().to_image(&instance);
+
+            expect_that!(&result_image, eq(expected_image));
+        }
     }
 }
