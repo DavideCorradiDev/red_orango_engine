@@ -264,10 +264,7 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
 
         self.set_pipeline(&pipeline.pipeline);
         self.set_bind_group(0, &font.uniform_constants().bind_group, &[]);
-        self.set_index_buffer(
-            font.index_buffer().slice(..),
-            gfx::IndexFormat::Uint16,
-        );
+        self.set_index_buffer(font.index_buffer().slice(..), gfx::IndexFormat::Uint16);
         self.set_vertex_buffer(0, font.vertex_buffer().slice(..));
 
         let pc = (
@@ -297,6 +294,99 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
 
             cursor_pos.x = cursor_pos.x + i26dot6_to_fsize(position.x_advance);
             cursor_pos.y = cursor_pos.y + i26dot6_to_fsize(position.y_advance);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        super::{character_set, Face, Font, FontLibrary},
+        *,
+    };
+    use galvanic_assert::{matchers::*, *};
+    use gfx::Canvas;
+    use roe_math::{conversion::convert, geometry2 as geo};
+
+    #[test]
+    #[serial_test::serial]
+    fn creation() {
+        let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
+        let _pipeline = RenderPipeline::new(&instance, &RenderPipelineDescriptor::default());
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn draw_shape_2() {
+        let instance = gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap();
+        let mut canvas = gfx::CanvasTexture::new(
+            &instance,
+            &gfx::CanvasTextureDescriptor {
+                size: gfx::CanvasSize::new(300, 300),
+                sample_count: 1,
+                color_buffer_descriptor: Some(gfx::CanvasTextureColorBufferDescriptor {
+                    format: gfx::CanvasColorBufferFormat::Rgba8Unorm,
+                    usage: gfx::CanvasColorBufferUsage::COPY_SRC,
+                }),
+                depth_stencil_buffer_format: None,
+            },
+        );
+        let pipeline = RenderPipeline::new(
+            &instance,
+            &RenderPipelineDescriptor {
+                color_buffer_format: gfx::CanvasColorBufferFormat::Rgba8Unorm,
+                ..RenderPipelineDescriptor::default()
+            },
+        );
+
+        let font_lib = FontLibrary::new().unwrap();
+        let face = Face::from_file(&font_lib, "data/fonts/Roboto-Regular.ttf", 0).unwrap();
+        let font = Font::new(&instance, &face, 10., character_set::english().as_slice()).unwrap();
+
+        let projection_transform =
+            geo::OrthographicProjection::new(0., 300., 300., 0.).to_projective();
+
+        {
+            let frame = canvas.current_frame().unwrap().unwrap();
+            let mut cmd_sequence = gfx::CommandSequence::new(&instance);
+            {
+                let mut rpass = cmd_sequence.begin_render_pass(
+                    &frame,
+                    &pipeline.render_pass_requirements(),
+                    &gfx::RenderPassOperations::default(),
+                );
+                rpass.draw_text(
+                    &pipeline,
+                    &font,
+                    "Lorem ipsum dolor sit amet",
+                    &convert(projection_transform * geo::Translation::new(10., 60.)),
+                    &gfx::ColorF32::BLUE,
+                );
+                rpass.draw_text(
+                    &pipeline,
+                    &font,
+                    "Hello world!",
+                    &convert(projection_transform * geo::Translation::new(30., 150.)),
+                    &gfx::ColorF32::RED,
+                );
+            }
+            cmd_sequence.submit(&instance);
+            frame.present();
+        }
+        let expected_image = image::load(
+            std::io::BufReader::new(std::fs::File::open("data/test_result.png").unwrap()),
+            image::ImageFormat::Png,
+        )
+        .unwrap();
+        assert_that!(
+            &expected_image,
+            is_variant!(image::DynamicImage::ImageRgba8)
+        );
+
+        if let image::DynamicImage::ImageRgba8(expected_image) = expected_image {
+            let result_image = canvas.color_texture().unwrap().to_image(&instance);
+
+            expect_that!(&result_image, eq(expected_image));
         }
     }
 }

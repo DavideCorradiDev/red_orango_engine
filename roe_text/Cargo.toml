@@ -18,7 +18,9 @@ serde = {version = "1.0.*", features = ["derive"]}
 
 [dev-dependencies]
 galvanic-assert = "0.8"
+serial_test = "0.5.*"
 roe_app = {path = "../roe_app"}
+image = {version = "0.23.*"}
 
 [build-dependencies]
 roe_shader = {path = "../roe_shader"}

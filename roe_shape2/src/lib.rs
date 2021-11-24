@@ -258,6 +258,7 @@ mod tests {
         let _pipeline = RenderPipeline::new(&instance, &RenderPipelineDescriptor::default());
     }
 
+    // TODO: move data to data/image
     #[test]
     #[serial_test::serial]
     fn draw_shape_2() {
