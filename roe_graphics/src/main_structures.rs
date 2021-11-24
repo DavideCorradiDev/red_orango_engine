@@ -11,12 +11,12 @@ use raw_window_handle::HasRawWindowHandle;
 
 use super::{
     AdapterInfo, Backend, BindGroupDescriptor, BindGroupLayoutDescriptor, BufferAddress,
-    ImageCopyBuffer, BufferDescriptor, BufferInitDescriptor, BufferUsage, ColorF64, CommandBuffer,
-    CommandEncoderDescriptor, Extent3d, Features, Limits, Maintain, MapMode, Operations, Origin3d,
-    PipelineLayoutDescriptor, PowerPreference, RenderBundleEncoderDescriptor,
-    RenderPipelineDescriptor, SamplerDescriptor, ShaderModuleDescriptor, 
-    TextureAspect, ImageCopyTexture, ImageDataLayout, TextureDescriptor, TextureDimension,
-    TextureFormat, TextureUsage, SurfaceConfiguration, SurfaceTexture, SurfaceError
+    BufferDescriptor, BufferInitDescriptor, BufferUsage, ColorF64, CommandBuffer,
+    CommandEncoderDescriptor, Extent3d, Features, ImageCopyBuffer, ImageCopyTexture,
+    ImageDataLayout, Limits, Maintain, MapMode, Operations, Origin3d, PipelineLayoutDescriptor,
+    PowerPreference, RenderBundleEncoderDescriptor, RenderPipelineDescriptor, SamplerDescriptor,
+    ShaderModuleDescriptor, SurfaceConfiguration, SurfaceError, SurfaceTexture, TextureAspect,
+    TextureDescriptor, TextureDimension, TextureFormat, TextureUsage,
 };
 
 pub type SampleCount = u32;

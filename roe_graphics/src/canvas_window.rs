@@ -33,7 +33,7 @@ impl Default for CanvasWindowDescriptor {
 pub struct CanvasWindow {
     canvas_buffer: CanvasBuffer,
     window: Window,
-    color_buffer_format: CanvasColorBufferFormat
+    color_buffer_format: CanvasColorBufferFormat,
 }
 
 impl CanvasWindow {
@@ -81,7 +81,7 @@ impl CanvasWindow {
         Self {
             canvas_buffer,
             window,
-            color_buffer_format: desc.color_buffer_format
+            color_buffer_format: desc.color_buffer_format,
         }
     }
 

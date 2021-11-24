@@ -440,7 +440,9 @@ mod tests {
         );
         let texture = gfx::Texture::from_image(
             &instance,
-            &image::open("data/pictures/gioconda.jpg").unwrap().into_rgba8(),
+            &image::open("data/pictures/gioconda.jpg")
+                .unwrap()
+                .into_rgba8(),
             gfx::TextureUsage::TEXTURE_BINDING,
         )
         .create_view(&gfx::TextureViewDescriptor::default());
@@ -552,23 +554,16 @@ mod tests {
                 );
                 rpass.draw_sprite_array(
                     &pipeline,
-                    [(
-                        &uniform_constants_2,
-                        [(
-                            &mesh_2,
-                            [
-                                (&push_constants_2, [0..mesh_2.index_count()]),
-                            ],
-                        )],
-                    ), (
-                        &uniform_constants_3,
-                        [(
-                            &mesh_3,
-                            [
-                                (&push_constants_3, [0..mesh_3.index_count()]),
-                            ],
-                        )],
-                    )],
+                    [
+                        (
+                            &uniform_constants_2,
+                            [(&mesh_2, [(&push_constants_2, [0..mesh_2.index_count()])])],
+                        ),
+                        (
+                            &uniform_constants_3,
+                            [(&mesh_3, [(&push_constants_3, [0..mesh_3.index_count()])])],
+                        ),
+                    ],
                 );
             }
             cmd_sequence.submit(&instance);

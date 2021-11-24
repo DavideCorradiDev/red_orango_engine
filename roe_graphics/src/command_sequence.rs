@@ -3,8 +3,8 @@ use std::{default::Default, iter};
 use super::{
     CanvasColorBufferFormat, CanvasDepthStencilBufferFormat, CanvasFrame, ColorOperations,
     CommandEncoder, CommandEncoderDescriptor, DepthOperations, Instance, Operations, RenderPass,
-    RenderPassColorAttachment, RenderPassDepthStencilAttachment,
-    RenderPassDescriptor, SampleCount, StencilOperations,
+    RenderPassColorAttachment, RenderPassDepthStencilAttachment, RenderPassDescriptor, SampleCount,
+    StencilOperations,
 };
 
 #[derive(Debug, PartialEq, Clone)]
@@ -159,7 +159,7 @@ mod tests {
             },
         );
 
-       let frame = buffer.current_frame().unwrap().unwrap();
+        let frame = buffer.current_frame().unwrap().unwrap();
         {
             let _rpass = cmd_seq.begin_render_pass(
                 &frame,
