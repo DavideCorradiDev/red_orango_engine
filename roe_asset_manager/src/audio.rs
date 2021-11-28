@@ -1,7 +1,7 @@
 use super::{AssetLoadError, AssetLoader, AssetManager};
 
 use roe_audio as audio;
-use std::{path::Path, rc::Rc};
+use std::{path::{PathBuf, Path}, rc::Rc};
 
 enum AudioFormat {
     Wav,
@@ -54,6 +54,53 @@ impl AssetLoader<AudioBuffer> for AudioBufferLoader {
     }
 }
 
+pub type AudioBufferManager = AssetManager<AudioBuffer, AudioBufferLoader>;
+
+#[derive(Debug)]
+pub struct AudioStream {
+    stream_path: PathBuf
+}
+
+impl AudioStream {
+    pub fn create_decoder(&self) -> Result<Box<dyn audio::Decoder>, AssetLoadError>
+    {
+        let format = read_audio_format(&self.stream_path);
+        let input = std::io::BufReader::new(std::fs::File::open(&self.stream_path)?);
+        let decoder = match format {
+            AudioFormat::Wav => {
+                Box::new(audio::WavDecoder::new(input)?) as Box<dyn audio::Decoder>
+            }
+            AudioFormat::Ogg => {
+                Box::new(audio::OggDecoder::new(input)?) as Box<dyn audio::Decoder>
+            }
+            AudioFormat::Unknown => {
+                return Err(AssetLoadError::OtherError(String::from("Unrecognized audio format")));
+            }
+        };
+        Ok(decoder)
+    }
+}
+
+#[derive(Debug)]
+pub struct AudioStreamLoader {
+}
+
+impl AudioStreamLoader {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl AssetLoader<AudioStream> for AudioStreamLoader {
+    fn load<P: AsRef<Path>>(&self, path: &P) -> Result<AudioStream, AssetLoadError> {
+        Ok(AudioStream {
+            stream_path: path.as_ref().to_path_buf()
+        })
+    }
+}
+
+pub type AudioStreamManager = AssetManager<AudioStream, AudioStreamLoader>;
+
 impl From<audio::DecoderError> for AssetLoadError {
     fn from(e: audio::DecoderError) -> Self {
         Self::OtherError(format!("{}", e))
@@ -65,5 +112,3 @@ impl From<audio::Error> for AssetLoadError {
         Self::OtherError(format!("{}", e))
     }
 }
-
-pub type AudioBufferManager = AssetManager<AudioBuffer, AudioBufferLoader>;
