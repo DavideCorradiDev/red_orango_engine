@@ -10,4 +10,5 @@ members = [
   "roe_sprite",
   "roe_text",
   "roe_audio",
+  "roe_resource_manager",
 ]

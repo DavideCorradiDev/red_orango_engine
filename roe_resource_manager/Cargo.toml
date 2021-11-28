@@ -1,0 +1,8 @@
+[package]
+authors = ["Davide Corradi <davide.corradi.dev@gmail.com>"]
+edition = "2021"
+name = "roe_resource_manager"
+version = "0.1.0"
+
+[dependencies]
+roe_graphics = {path = "../roe_graphics"}
