@@ -6,3 +6,4 @@ version = "0.1.0"
 
 [dependencies]
 roe_graphics = {path = "../roe_graphics"}
+image = {version = "0.23.*"}
