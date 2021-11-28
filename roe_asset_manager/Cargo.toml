@@ -7,4 +7,5 @@ version = "0.1.0"
 [dependencies]
 roe_audio = {path = "../roe_audio"}
 roe_graphics = {path = "../roe_graphics"}
+roe_text = {path = "../roe_text"}
 image = {version = "0.23.*"}

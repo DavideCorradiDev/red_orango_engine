@@ -33,3 +33,5 @@ impl From<image::error::ImageError> for AssetLoadError {
 }
 
 pub type TextureManager = AssetManager<Texture, TextureLoader>;
+
+// TODO: tests.

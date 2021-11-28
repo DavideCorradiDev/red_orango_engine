@@ -9,3 +9,6 @@ pub use texture::*;
 
 mod audio;
 pub use audio::*;
+
+mod font;
+pub use font::*;
