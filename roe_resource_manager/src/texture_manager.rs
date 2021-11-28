@@ -26,16 +26,17 @@ impl TextureManager {
         self.assets.get(asset_id)
     }
 
-    pub fn insert(&mut self, instance: &gfx::Instance, texture_id: &str) -> Option<gfx::Texture> {
-        // TODO: remove unwrap.
+    pub fn insert(
+        &mut self,
+        instance: &gfx::Instance,
+        texture_id: &str,
+    ) -> Result<Option<gfx::Texture>, TextureManagerError> {
         let texture = gfx::Texture::from_image(
             &instance,
-            &image::open(self.get_asset_path(texture_id))
-                .unwrap()
-                .into_rgba8(),
+            &image::open(self.get_asset_path(texture_id))?.into_rgba8(),
             gfx::TextureUsage::TEXTURE_BINDING,
         );
-        self.assets.insert(texture_id.to_owned(), texture)
+        Ok(self.assets.insert(texture_id.to_owned(), texture))
     }
 
     pub fn get_or_insert(
@@ -44,7 +45,7 @@ impl TextureManager {
         texture_id: &str,
     ) -> Result<&gfx::Texture, TextureManagerError> {
         if let None = self.get(texture_id) {
-            self.insert(instance, texture_id);
+            self.insert(instance, texture_id)?;
         }
         Ok(self.get(texture_id).unwrap())
     }
@@ -59,4 +60,39 @@ impl TextureManager {
 }
 
 #[derive(Debug)]
-pub enum TextureManagerError {}
+pub enum TextureManagerError {
+    IoError(std::io::Error),
+    ImageError(image::error::ImageError),
+}
+
+impl std::fmt::Display for TextureManagerError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::IoError(e) => write!(f, "Input / Output error ({})", e),
+            Self::ImageError(e) => write!(f, "Image error ({})", e),
+        }
+    }
+}
+
+impl std::error::Error for TextureManagerError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::IoError(e) => Some(e),
+            _ => None,
+        }
+    }
+}
+
+impl From<std::io::Error> for TextureManagerError {
+    fn from(e: std::io::Error) -> Self {
+        Self::IoError(e)
+    }
+}
+
+impl From<image::error::ImageError> for TextureManagerError {
+    fn from(e: image::error::ImageError) -> Self {
+        Self::ImageError(e)
+    }
+}
+
+// TODO unit tests.
