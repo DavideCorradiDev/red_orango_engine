@@ -1,99 +1,35 @@
-use std::{collections::HashMap, path::PathBuf};
+use super::{AssetLoadError, AssetLoader, AssetManager};
 
 use roe_graphics as gfx;
+use std::{path::Path, rc::Rc};
+
+pub use gfx::Texture;
 
 #[derive(Debug)]
-pub struct TextureManager {
-    assets_path: PathBuf,
-    assets: HashMap<String, gfx::Texture>,
+pub struct TextureLoader {
+    instance: Rc<gfx::Instance>,
 }
 
-impl TextureManager {
-    pub fn new(assets_path: PathBuf) -> Self {
-        Self {
-            assets_path,
-            assets: HashMap::new(),
-        }
+impl TextureLoader {
+    pub fn new(instance: Rc<gfx::Instance>) -> Self {
+        Self { instance }
     }
+}
 
-    pub fn get_asset_path(&self, asset_id: &str) -> PathBuf {
-        let mut asset_path = self.assets_path.clone();
-        asset_path.push(asset_id);
-        asset_path
-    }
-
-    pub fn get(&self, asset_id: &str) -> Option<&gfx::Texture> {
-        self.assets.get(asset_id)
-    }
-
-    // TODO: store instance as member (inside Rc). Abstract away the loading logic so that the main code can be reused for audio buffers.
-    pub fn insert(
-        &mut self,
-        instance: &gfx::Instance,
-        texture_id: &str,
-    ) -> Result<Option<gfx::Texture>, TextureManagerError> {
-        let texture = gfx::Texture::from_image(
-            &instance,
-            &image::open(self.get_asset_path(texture_id))?.into_rgba8(),
+impl AssetLoader<Texture> for TextureLoader {
+    fn load<P: AsRef<Path>>(&self, path: P) -> Result<Texture, AssetLoadError> {
+        Ok(gfx::Texture::from_image(
+            &self.instance,
+            &image::open(path)?.into_rgba8(),
             gfx::TextureUsage::TEXTURE_BINDING,
-        );
-        Ok(self.assets.insert(texture_id.to_owned(), texture))
-    }
-
-    pub fn get_or_insert(
-        &mut self,
-        instance: &gfx::Instance,
-        texture_id: &str,
-    ) -> Result<&gfx::Texture, TextureManagerError> {
-        if let None = self.get(texture_id) {
-            self.insert(instance, texture_id)?;
-        }
-        Ok(self.get(texture_id).unwrap())
-    }
-
-    pub fn remove(&mut self, texture_id: &str) -> Option<gfx::Texture> {
-        self.assets.remove(texture_id)
-    }
-
-    pub fn clear(&mut self) {
-        self.assets.clear()
+        ))
     }
 }
 
-#[derive(Debug)]
-pub enum TextureManagerError {
-    IoError(std::io::Error),
-    ImageError(image::error::ImageError),
-}
-
-impl std::fmt::Display for TextureManagerError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::IoError(e) => write!(f, "Input / Output error ({})", e),
-            Self::ImageError(e) => write!(f, "Image error ({})", e),
-        }
-    }
-}
-
-impl std::error::Error for TextureManagerError {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::IoError(e) => Some(e),
-            _ => None,
-        }
-    }
-}
-
-impl From<std::io::Error> for TextureManagerError {
-    fn from(e: std::io::Error) -> Self {
-        Self::IoError(e)
-    }
-}
-
-impl From<image::error::ImageError> for TextureManagerError {
+impl From<image::error::ImageError> for AssetLoadError {
     fn from(e: image::error::ImageError) -> Self {
-        Self::ImageError(e)
+        Self::OtherError(format!("{}", e))
     }
 }
 
-// TODO unit tests.
+pub type TextureManager = AssetManager<Texture, TextureLoader>;
