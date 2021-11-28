@@ -36,8 +36,8 @@ impl AudioBufferLoader {
 }
 
 impl AssetLoader<AudioBuffer> for AudioBufferLoader {
-    fn load<P: AsRef<Path>>(&self, path: P) -> Result<AudioBuffer, AssetLoadError> {
-        let format = read_audio_format(&path);
+    fn load<P: AsRef<Path>>(&self, path: &P) -> Result<AudioBuffer, AssetLoadError> {
+        let format = read_audio_format(path);
         let input = std::io::BufReader::new(std::fs::File::open(path)?);
         let audio_buffer = match format {
             AudioFormat::Wav => {

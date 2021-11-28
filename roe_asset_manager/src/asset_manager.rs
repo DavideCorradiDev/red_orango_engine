@@ -28,7 +28,7 @@ impl<T, L: AssetLoader<T>> AssetManager<T, L> {
     }
 
     pub fn load(&mut self, asset_id: &str) -> Result<Option<T>, AssetLoadError> {
-        let asset = self.asset_loader.load(self.get_asset_path(asset_id))?;
+        let asset = self.asset_loader.load(&self.get_asset_path(asset_id))?;
         Ok(self.assets.insert(asset_id.to_owned(), asset))
     }
 

@@ -17,7 +17,7 @@ impl TextureLoader {
 }
 
 impl AssetLoader<Texture> for TextureLoader {
-    fn load<P: AsRef<Path>>(&self, path: P) -> Result<Texture, AssetLoadError> {
+    fn load<P: AsRef<Path>>(&self, path: &P) -> Result<Texture, AssetLoadError> {
         Ok(gfx::Texture::from_image(
             &self.instance,
             &image::open(path)?.into_rgba8(),
