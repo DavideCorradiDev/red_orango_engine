@@ -26,6 +26,7 @@ impl TextureManager {
         self.assets.get(asset_id)
     }
 
+    // TODO: store instance as member (inside Rc). Abstract away the loading logic so that the main code can be reused for audio buffers.
     pub fn insert(
         &mut self,
         instance: &gfx::Instance,
