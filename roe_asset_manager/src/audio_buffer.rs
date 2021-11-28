@@ -3,6 +3,25 @@ use super::{AssetLoadError, AssetLoader, AssetManager};
 use roe_audio as audio;
 use std::{path::Path, rc::Rc};
 
+enum AudioFormat {
+    Wav,
+    Ogg,
+    Unknown,
+}
+
+fn read_audio_format<P: AsRef<Path>>(path: &P) -> AudioFormat {
+    if let Some(extension) = path.as_ref().extension() {
+        let extension = extension.to_ascii_lowercase();
+        if extension == "wav" {
+            return AudioFormat::Wav;
+        }
+        if extension == "ogg" {
+            return AudioFormat::Ogg;
+        }
+    }
+    AudioFormat::Unknown
+}
+
 pub use audio::Buffer as AudioBuffer;
 
 #[derive(Debug)]
@@ -18,10 +37,19 @@ impl AudioBufferLoader {
 
 impl AssetLoader<AudioBuffer> for AudioBufferLoader {
     fn load<P: AsRef<Path>>(&self, path: P) -> Result<AudioBuffer, AssetLoadError> {
-        let audio_buffer = audio::Buffer::from_decoder(
-            &self.context,
-            &mut audio::WavDecoder::new(std::io::BufReader::new(std::fs::File::open(path)?))?,
-        )?;
+        let format = read_audio_format(&path);
+        let input = std::io::BufReader::new(std::fs::File::open(path)?);
+        let audio_buffer = match format {
+            AudioFormat::Wav => {
+                audio::Buffer::from_decoder(&self.context, &mut audio::WavDecoder::new(input)?)?
+            }
+            AudioFormat::Ogg => {
+                audio::Buffer::from_decoder(&self.context, &mut audio::OggDecoder::new(input)?)?
+            }
+            AudioFormat::Unknown => {
+                return Err(AssetLoadError::OtherError(String::from("Unrecognized audio format")));
+            }
+        };
         Ok(audio_buffer)
     }
 }
