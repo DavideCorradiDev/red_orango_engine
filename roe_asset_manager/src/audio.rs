@@ -1,7 +1,10 @@
 use super::{AssetLoadError, AssetLoader, AssetManager};
 
 use roe_audio as audio;
-use std::{path::{PathBuf, Path}, rc::Rc};
+use std::{
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
 enum AudioFormat {
     Wav,
@@ -47,7 +50,9 @@ impl AssetLoader<AudioBuffer> for AudioBufferLoader {
                 audio::Buffer::from_decoder(&self.context, &mut audio::OggDecoder::new(input)?)?
             }
             AudioFormat::Unknown => {
-                return Err(AssetLoadError::OtherError(String::from("Unrecognized audio format")));
+                return Err(AssetLoadError::OtherError(String::from(
+                    "Unrecognized audio format",
+                )));
             }
         };
         Ok(audio_buffer)
@@ -58,23 +63,20 @@ pub type AudioBufferManager = AssetManager<AudioBuffer, AudioBufferLoader>;
 
 #[derive(Debug)]
 pub struct AudioStream {
-    stream_path: PathBuf
+    stream_path: PathBuf,
 }
 
 impl AudioStream {
-    pub fn create_decoder(&self) -> Result<Box<dyn audio::Decoder>, AssetLoadError>
-    {
+    pub fn create_decoder(&self) -> Result<Box<dyn audio::Decoder>, AssetLoadError> {
         let format = read_audio_format(&self.stream_path);
         let input = std::io::BufReader::new(std::fs::File::open(&self.stream_path)?);
         let decoder = match format {
-            AudioFormat::Wav => {
-                Box::new(audio::WavDecoder::new(input)?) as Box<dyn audio::Decoder>
-            }
-            AudioFormat::Ogg => {
-                Box::new(audio::OggDecoder::new(input)?) as Box<dyn audio::Decoder>
-            }
+            AudioFormat::Wav => Box::new(audio::WavDecoder::new(input)?) as Box<dyn audio::Decoder>,
+            AudioFormat::Ogg => Box::new(audio::OggDecoder::new(input)?) as Box<dyn audio::Decoder>,
             AudioFormat::Unknown => {
-                return Err(AssetLoadError::OtherError(String::from("Unrecognized audio format")));
+                return Err(AssetLoadError::OtherError(String::from(
+                    "Unrecognized audio format",
+                )));
             }
         };
         Ok(decoder)
@@ -82,8 +84,7 @@ impl AudioStream {
 }
 
 #[derive(Debug)]
-pub struct AudioStreamLoader {
-}
+pub struct AudioStreamLoader {}
 
 impl AudioStreamLoader {
     pub fn new() -> Self {
@@ -94,7 +95,7 @@ impl AudioStreamLoader {
 impl AssetLoader<AudioStream> for AudioStreamLoader {
     fn load<P: AsRef<Path>>(&self, path: &P) -> Result<AudioStream, AssetLoadError> {
         Ok(AudioStream {
-            stream_path: path.as_ref().to_path_buf()
+            stream_path: path.as_ref().to_path_buf(),
         })
     }
 }

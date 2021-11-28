@@ -1,7 +1,6 @@
-use std::{path::Path};
+use std::path::Path;
 
-pub trait AssetLoader<T>
-{
+pub trait AssetLoader<T> {
     fn load<P: AsRef<Path>>(&self, path: &P) -> Result<T, AssetLoadError>;
 }
 
