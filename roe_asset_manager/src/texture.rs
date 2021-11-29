@@ -1,8 +1,6 @@
 use roe_graphics as gfx;
 use std::{collections::HashMap, path::PathBuf, rc::Rc};
 
-pub use gfx::Texture;
-
 #[derive(Debug)]
 pub struct TextureCache {
     instance: Rc<gfx::Instance>,
