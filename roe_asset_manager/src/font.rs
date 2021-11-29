@@ -20,7 +20,7 @@ impl FontKey {
 }
 
 #[derive(Debug)]
-pub struct FontManager {
+pub struct FontCache {
     instance: Rc<gfx::Instance>,
     lib: Rc<txt::FontLibrary>,
     path: PathBuf,
@@ -28,7 +28,7 @@ pub struct FontManager {
     fonts: HashMap<FontKey, txt::Font>,
 }
 
-impl FontManager {
+impl FontCache {
     pub fn new(
         instance: Rc<gfx::Instance>,
         lib: Rc<txt::FontLibrary>,
@@ -54,7 +54,7 @@ impl FontManager {
         &mut self,
         file_id: &str,
         face_index: txt::FaceIndex,
-    ) -> Result<txt::Face, FontManagerError> {
+    ) -> Result<txt::Face, FontCacheError> {
         Ok(txt::Face::from_file(
             &self.lib,
             self.get_face_path(file_id),
@@ -77,7 +77,7 @@ impl FontManager {
         file_id: &str,
         face_index: txt::FaceIndex,
         font_size: txt::FontSize,
-    ) -> Result<Option<txt::Font>, FontManagerError> {
+    ) -> Result<Option<txt::Font>, FontCacheError> {
         let face = self.load_face(file_id, face_index)?;
         let font = txt::Font::new(&self.instance, &face, font_size, &self.character_set)?;
         Ok(self
@@ -90,7 +90,7 @@ impl FontManager {
         file_id: &str,
         face_index: txt::FaceIndex,
         font_size: txt::FontSize,
-    ) -> Result<&txt::Font, FontManagerError> {
+    ) -> Result<&txt::Font, FontCacheError> {
         if let None = self.get(file_id, face_index, font_size) {
             self.load(file_id, face_index, font_size)?;
         }
@@ -113,12 +113,12 @@ impl FontManager {
 }
 
 #[derive(Debug)]
-pub enum FontManagerError {
+pub enum FontCacheError {
     IoError(std::io::Error),
     FontError(txt::FontError),
 }
 
-impl std::fmt::Display for FontManagerError {
+impl std::fmt::Display for FontCacheError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::IoError(e) => write!(f, "Input / Output error ({})", e),
@@ -127,22 +127,22 @@ impl std::fmt::Display for FontManagerError {
     }
 }
 
-impl std::error::Error for FontManagerError {
+impl std::error::Error for FontCacheError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::IoError(e) => Some(e),
-            Self::FontError(_) => None,
+            Self::FontError(e) => Some(e),
         }
     }
 }
 
-impl From<std::io::Error> for FontManagerError {
+impl From<std::io::Error> for FontCacheError {
     fn from(e: std::io::Error) -> Self {
         Self::IoError(e)
     }
 }
 
-impl From<txt::FontError> for FontManagerError {
+impl From<txt::FontError> for FontCacheError {
     fn from(e: txt::FontError) -> Self {
         Self::FontError(e)
     }
