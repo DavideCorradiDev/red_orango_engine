@@ -1,5 +1,10 @@
 use roe_audio as audio;
-use std::{collections::HashMap, path::{Path, PathBuf}, rc::Rc};
+use std::{
+    borrow::BorrowMut,
+    collections::HashMap,
+    path::{Path, PathBuf},
+    rc::Rc,
+};
 
 enum AudioFormat {
     Wav,
@@ -7,7 +12,7 @@ enum AudioFormat {
     Unknown,
 }
 
-fn read_audio_format<P: AsRef<Path>>(path: &P) -> AudioFormat {
+fn read_audio_format<P: AsRef<Path>>(path: P) -> AudioFormat {
     if let Some(extension) = path.as_ref().extension() {
         let extension = extension.to_ascii_lowercase();
         if extension == "wav" {
@@ -18,6 +23,18 @@ fn read_audio_format<P: AsRef<Path>>(path: &P) -> AudioFormat {
         }
     }
     AudioFormat::Unknown
+}
+
+// TODO: return different error type
+fn load_audio<P: AsRef<Path>>(path: P) -> Result<Box<dyn audio::Decoder>, AudioBufferCacheError> {
+    let format = read_audio_format(&path);
+    let input = std::io::BufReader::new(std::fs::File::open(&path)?);
+    let decoder: Box<dyn audio::Decoder> = match format {
+        AudioFormat::Wav => Box::new(audio::WavDecoder::new(input)?),
+        AudioFormat::Ogg => Box::new(audio::OggDecoder::new(input)?),
+        AudioFormat::Unknown => return Err(AudioBufferCacheError::UnrecognizedAudioExtension),
+    };
+    Ok(decoder)
 }
 
 #[derive(Debug)]
@@ -47,21 +64,11 @@ impl AudioBufferCache {
     }
 
     pub fn load(&mut self, file_id: &str) -> Result<Option<audio::Buffer>, AudioBufferCacheError> {
-        let path = self.get_path(file_id);
-       let format = read_audio_format(&path);
-       let input = std::io::BufReader::new(std::fs::File::open(&path)?);
-       let audio_buffer = match format {
-           AudioFormat::Wav => {
-               audio::Buffer::from_decoder(&self.context, &mut audio::WavDecoder::new(input)?)?
-           }
-           AudioFormat::Ogg => {
-               audio::Buffer::from_decoder(&self.context, &mut audio::OggDecoder::new(input)?)?
-           }
-           AudioFormat::Unknown => {
-               return Err(AudioBufferCacheError::UnrecognizedAudioExtension)
-           }
-       };
-        Ok(self.audio_buffers.insert(String::from(file_id), audio_buffer))
+        let decoder = load_audio(self.get_path(file_id))?;
+        let audio_buffer = audio::Buffer::from_decoder(&self.context, decoder.borrow_mut())?;
+        Ok(self
+            .audio_buffers
+            .insert(String::from(file_id), audio_buffer))
     }
 
     pub fn get_or_load(&mut self, file_id: &str) -> Result<&audio::Buffer, AudioBufferCacheError> {
