@@ -45,7 +45,7 @@ impl TextureCache {
     }
 
     pub fn remove(&mut self, file_id: &str) -> Option<gfx::TextureView> {
-        self.textures.remove(&String::from(file_id))
+        self.textures.remove(file_id)
     }
 
     pub fn clear(&mut self) {
