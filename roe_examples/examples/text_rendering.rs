@@ -17,22 +17,23 @@ use roe_graphics::{
 
 use roe_text::Renderer as TextRenderer;
 
+use roe_asset_manager::FontCache;
+
+use std::{path::PathBuf, rc::Rc};
+
 use roe_examples::*;
 
 #[derive(Debug)]
 struct ApplicationImpl {
     window: CanvasWindow,
-    instance: Instance,
+    instance: Rc<Instance>,
     projection_transform: Projective<f32>,
     pipeline: roe_text::RenderPipeline,
-    font_lib: roe_text::FontLibrary,
-    face: roe_text::Face,
-    font: roe_text::Font,
+    font_cache: FontCache,
 }
 
 impl ApplicationImpl {
     const SAMPLE_COUNT: SampleCount = 4;
-    const FONT_PATH: &'static str = "roe_text/data/fonts/Roboto-Regular.ttf";
 }
 
 impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
@@ -60,7 +61,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                     ..CanvasWindowDescriptor::default()
                 },
             );
-            (window, instance)
+            (window, Rc::new(instance))
         };
 
         let window_size = window.inner_size();
@@ -81,23 +82,20 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             },
         );
 
-        let font_lib = roe_text::FontLibrary::new()?;
-        let face = roe_text::Face::from_file(&font_lib, Self::FONT_PATH, 0)?;
-        let font = roe_text::Font::new(
-            &instance,
-            &face,
-            10.,
-            roe_text::character_set::english().as_slice(),
-        )?;
+        let mut font_cache = FontCache::new(
+            Rc::clone(&instance),
+            Rc::new(roe_text::FontLibrary::new()?),
+            PathBuf::from("roe_examples/data/fonts"),
+            roe_text::character_set::english(),
+        );
+        font_cache.load("Roboto-Regular.ttf", 0, 11.)?;
 
         Ok(Self {
             window,
             instance,
             projection_transform,
             pipeline,
-            font_lib,
-            face,
-            font,
+            font_cache,
         })
     }
 
@@ -129,20 +127,24 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                     &self.pipeline.render_pass_requirements(),
                     &RenderPassOperations::default(),
                 );
-                rpass.draw_text(
-                    &self.pipeline,
-                    &self.font,
-                    "Lorem ipsum dolor sit amet",
-                    &convert(self.projection_transform * Translation::new(100., 100.)),
-                    &ColorF32::BLUE,
-                );
-                rpass.draw_text(
-                    &self.pipeline,
-                    &self.font,
-                    "Hello world!",
-                    &convert(self.projection_transform * Translation::new(300., 300.)),
-                    &ColorF32::RED,
-                );
+                {
+                    rpass.draw_text(
+                        &self.pipeline,
+                        self.font_cache.get("Roboto-Regular.ttf", 0, 11.).unwrap(),
+                        "Lorem ipsum dolor sit amet",
+                        &convert(self.projection_transform * Translation::new(100., 100.)),
+                        &ColorF32::BLUE,
+                    );
+                }
+                {
+                    rpass.draw_text(
+                        &self.pipeline,
+                        self.font_cache.get("Roboto-Regular.ttf", 0, 11.).unwrap(),
+                        "Hello world!",
+                        &convert(self.projection_transform * Translation::new(300., 300.)),
+                        &ColorF32::RED,
+                    );
+                }
             }
 
             cmd_sequence.submit(&self.instance);
