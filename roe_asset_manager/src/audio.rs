@@ -128,7 +128,7 @@ impl AudioDecoderCache {
         self.audio_decoders.remove(file_id)
     }
 
-    pub fn load_and_remove(
+    pub fn remove_or_load(
         &mut self,
         file_id: &str,
     ) -> Result<Box<dyn audio::Decoder>, AudioCacheError> {

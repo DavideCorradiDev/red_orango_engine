@@ -6,13 +6,17 @@ use roe_app::{
 
 use roe_audio::Source;
 
+// TODO: rename to roe_assets.
+// TODO: make caches return Rc rather than a reference?
+use roe_asset_manager::{AudioBufferCache, AudioDecoderCache};
+
+use std::{path::PathBuf, rc::Rc};
+
 use roe_examples::*;
 
 #[derive(Debug)]
 struct ApplicationImpl {
     window: Window,
-    audio_device: roe_audio::Device,
-    audio_context: roe_audio::Context,
     static_source: roe_audio::StaticSource,
     streaming_source: roe_audio::StreamingSource,
 }
@@ -30,28 +34,27 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
             }))
             .build(event_loop)?;
         let audio_device = roe_audio::Device::default()?;
-        let audio_context = roe_audio::Context::default(&audio_device)?;
+        let audio_context = Rc::new(roe_audio::Context::default(&audio_device)?);
 
-        let audio_buffer = roe_audio::Buffer::from_decoder(
-            &audio_context,
-            &mut roe_audio::WavDecoder::new(std::io::BufReader::new(std::fs::File::open(
-                "roe_examples/data/audio/stereo-16-44100.wav",
-            )?))?,
-        )?;
+        let mut buffer_cache = AudioBufferCache::new(
+            Rc::clone(&audio_context),
+            PathBuf::from("roe_examples/data/audio"),
+        );
+
+        let mut decoder_cache = AudioDecoderCache::new(PathBuf::from("roe_examples/data/audio"));
+
+        let audio_buffer = buffer_cache.get_or_load("stereo-16-44100.wav")?;
         let static_source = roe_audio::StaticSource::with_buffer(&audio_context, &audio_buffer)?;
 
+        let audio_decoder = decoder_cache.remove_or_load("bach.ogg")?;
         let streaming_source = roe_audio::StreamingSource::with_decoder(
             &audio_context,
-            Box::new(roe_audio::OggDecoder::new(std::io::BufReader::new(
-                std::fs::File::open("roe_examples/data/audio/bach.ogg")?,
-            ))?),
+            audio_decoder,
             &roe_audio::StreamingSourceDescriptor::default(),
         )?;
 
         Ok(Self {
             window,
-            audio_device,
-            audio_context,
             static_source,
             streaming_source,
         })
