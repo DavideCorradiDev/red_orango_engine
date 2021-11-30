@@ -1,7 +1,6 @@
 use roe_audio as audio;
 use std::{
     borrow::BorrowMut,
-    ops::DerefMut,
     collections::HashMap,
     path::{Path, PathBuf},
     rc::Rc,
@@ -66,7 +65,10 @@ impl AudioBufferCache {
 
     pub fn load(&mut self, file_id: &str) -> Result<Option<audio::Buffer>, AudioBufferCacheError> {
         let mut decoder = load_audio(self.get_path(file_id))?;
-        let audio_buffer = audio::Buffer::from_decoder(&self.context, &mut decoder)?;
+        let audio_buffer = audio::Buffer::from_decoder(
+            &self.context,
+            decoder.borrow_mut() as &mut dyn audio::Decoder,
+        )?;
         Ok(self
             .audio_buffers
             .insert(String::from(file_id), audio_buffer))
