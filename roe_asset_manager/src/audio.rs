@@ -25,7 +25,6 @@ fn read_audio_format<P: AsRef<Path>>(path: P) -> AudioFormat {
     AudioFormat::Unknown
 }
 
-// TODO: return different error type
 fn load_decoder<P: AsRef<Path>>(path: P) -> Result<Box<dyn audio::Decoder>, audio::DecoderError> {
     let format = read_audio_format(&path);
     let input = std::io::BufReader::new(std::fs::File::open(&path)?);

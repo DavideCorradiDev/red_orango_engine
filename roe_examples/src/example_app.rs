@@ -16,35 +16,27 @@ pub enum ApplicationError {
     InstanceCreationFailed(roe_graphics::InstanceCreationError),
     RenderFrameCreationFailed(roe_graphics::SurfaceError),
     FontCreationFailed(roe_text::FontError),
-    Error(roe_audio::Error),
+    AudioError(roe_audio::Error),
     IoError(std::io::Error),
+    TextureLoadError(roe_asset_manager::TextureCacheError),
+    AudioLoadError(roe_asset_manager::AudioCacheError),
+    FontLoadError(roe_asset_manager::FontCacheError),
     CustomEventSendingError,
 }
 
 impl std::fmt::Display for ApplicationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ApplicationError::WindowCreationFailed(e) => {
-                write!(f, "Window creation failed ({})", e)
-            }
-            ApplicationError::InstanceCreationFailed(e) => {
-                write!(f, "Instance creation failed ({})", e)
-            }
-            ApplicationError::RenderFrameCreationFailed(e) => {
-                write!(f, "Render frame creation failed ({})", e)
-            }
-            ApplicationError::FontCreationFailed(e) => {
-                write!(f, "Font creation failed ({})", e)
-            }
-            ApplicationError::Error(e) => {
-                write!(f, "Audio error ({})", e)
-            }
-            ApplicationError::IoError(e) => {
-                write!(f, "I/O error ({})", e)
-            }
-            ApplicationError::CustomEventSendingError => {
-                write!(f, "Failed to send custom event")
-            }
+            Self::WindowCreationFailed(e) => write!(f, "Window creation failed ({})", e),
+            Self::InstanceCreationFailed(e) => write!(f, "Instance creation failed ({})", e),
+            Self::RenderFrameCreationFailed(e) => write!(f, "Render frame creation failed ({})", e),
+            Self::FontCreationFailed(e) => write!(f, "Font creation failed ({})", e),
+            Self::AudioError(e) => write!(f, "Audio error ({})", e),
+            Self::IoError(e) => write!(f, "I/O error ({})", e),
+            Self::TextureLoadError(e) => write!(f, "Texture load error ({})", e),
+            Self::AudioLoadError(e) => write!(f, "Audio load error ({})", e),
+            Self::FontLoadError(e) => write!(f, "Font load error ({})", e),
+            Self::CustomEventSendingError => write!(f, "Failed to send custom event"),
         }
     }
 }
@@ -52,13 +44,16 @@ impl std::fmt::Display for ApplicationError {
 impl std::error::Error for ApplicationError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            ApplicationError::WindowCreationFailed(e) => Some(e),
-            ApplicationError::InstanceCreationFailed(e) => Some(e),
-            ApplicationError::RenderFrameCreationFailed(e) => Some(e),
-            ApplicationError::FontCreationFailed(e) => Some(e),
-            ApplicationError::Error(e) => Some(e),
-            ApplicationError::IoError(e) => Some(e),
-            ApplicationError::CustomEventSendingError => None,
+            Self::WindowCreationFailed(e) => Some(e),
+            Self::InstanceCreationFailed(e) => Some(e),
+            Self::RenderFrameCreationFailed(e) => Some(e),
+            Self::FontCreationFailed(e) => Some(e),
+            Self::AudioError(e) => Some(e),
+            Self::IoError(e) => Some(e),
+            Self::TextureLoadError(e) => Some(e),
+            Self::AudioLoadError(e) => Some(e),
+            Self::FontLoadError(e) => Some(e),
+            Self::CustomEventSendingError => None,
         }
     }
 }
@@ -89,7 +84,7 @@ impl From<roe_text::FontError> for ApplicationError {
 
 impl From<roe_audio::Error> for ApplicationError {
     fn from(e: roe_audio::Error) -> Self {
-        ApplicationError::Error(e)
+        ApplicationError::AudioError(e)
     }
 }
 
@@ -102,6 +97,24 @@ impl From<roe_audio::DecoderError> for ApplicationError {
 impl From<std::io::Error> for ApplicationError {
     fn from(e: std::io::Error) -> Self {
         ApplicationError::IoError(e)
+    }
+}
+
+impl From<roe_asset_manager::TextureCacheError> for ApplicationError {
+    fn from(e: roe_asset_manager::TextureCacheError) -> Self {
+        ApplicationError::TextureLoadError(e)
+    }
+}
+
+impl From<roe_asset_manager::AudioCacheError> for ApplicationError {
+    fn from(e: roe_asset_manager::AudioCacheError) -> Self {
+        ApplicationError::AudioLoadError(e)
+    }
+}
+
+impl From<roe_asset_manager::FontCacheError> for ApplicationError {
+    fn from(e: roe_asset_manager::FontCacheError) -> Self {
+        ApplicationError::FontLoadError(e)
     }
 }
 

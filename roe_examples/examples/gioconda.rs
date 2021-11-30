@@ -13,12 +13,16 @@ use roe_math::{
 use roe_graphics::{
     AddressMode, Canvas, CanvasWindow, CanvasWindowDescriptor, ColorF32, CommandSequence,
     FilterMode, Instance, InstanceDescriptor, RenderPassOperations, SampleCount, Sampler,
-    SamplerDescriptor, Texture, TextureUsage, TextureViewDescriptor,
+    SamplerDescriptor,
 };
 
 use roe_sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer};
 
+use roe_asset_manager::TextureCache;
+
 use roe_examples::*;
+
+use std::{path::PathBuf, rc::Rc};
 
 #[derive(Debug)]
 struct Sprite {
@@ -29,24 +33,24 @@ struct Sprite {
 #[derive(Debug)]
 struct ApplicationImpl {
     window: CanvasWindow,
-    instance: Instance,
+    instance: Rc<Instance>,
     pipeline: roe_sprite::RenderPipeline,
     projection_transform: Projective<f32>,
     sprites: Vec<Sprite>,
     color: ChangingColor,
+    texture_cache: TextureCache,
 }
 
 impl ApplicationImpl {
     const SAMPLE_COUNT: SampleCount = 4;
 
-    fn create_sprites(instance: &Instance) -> Vec<Sprite> {
-        let image = image::open("roe_examples/data/pictures/gioconda.jpg")
-            .expect("Failed to load texture image")
-            .into_rgba8();
-        let sprite_texture = Texture::from_image(instance, &image, TextureUsage::TEXTURE_BINDING)
-            .create_view(&TextureViewDescriptor::default());
+    fn create_sprites(
+        instance: &Instance,
+        texture_cache: &mut TextureCache,
+    ) -> Result<Vec<Sprite>, ApplicationError> {
+        let sprite_texture = texture_cache.get_or_load("gioconda.jpg")?;
 
-        vec![
+        Ok(vec![
             Sprite {
                 uniform_constants: roe_sprite::UniformConstants::new(
                     instance,
@@ -177,7 +181,7 @@ impl ApplicationImpl {
                     &roe_sprite::Vertex::new([400., 400.], [-0.5, -0.5]),
                 ),
             },
-        ]
+        ])
     }
 }
 
@@ -206,7 +210,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                     ..CanvasWindowDescriptor::default()
                 },
             );
-            (window, instance)
+            (window, Rc::new(instance))
         };
 
         let pipeline = roe_sprite::RenderPipeline::new(
@@ -227,7 +231,12 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         )
         .to_projective();
 
-        let sprites = Self::create_sprites(&instance);
+        let mut texture_cache = TextureCache::new(
+            Rc::clone(&instance),
+            PathBuf::from("roe_examples/data/pictures"),
+        );
+
+        let sprites = Self::create_sprites(&instance, &mut texture_cache)?;
 
         let color = ChangingColor::new(ColorF32::WHITE, ColorF32::WHITE);
 
@@ -238,6 +247,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             projection_transform,
             sprites,
             color,
+            texture_cache,
         })
     }
 
@@ -275,7 +285,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                     &RenderPassOperations::default(),
                 );
 
-                // Single draw
+                // Single draw calls
                 for sprite in &self.sprites {
                     rpass.draw_sprite(
                         &self.pipeline,
@@ -285,20 +295,6 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                         0..sprite.mesh.index_count(),
                     );
                 }
-
-                // Multiple draw using std::Vec
-                // for sprite in &self.sprites {
-                //     rpass.draw_sprite_array(
-                //         &self.pipeline,
-                //         vec![(
-                //             &sprite.uniform_constants,
-                //             vec![(
-                //                 &sprite.mesh,
-                //                 vec![(&push_constants, vec![0..sprite.mesh.index_count()])],
-                //             )],
-                //         )],
-                //     );
-                // }
             }
             cmd_sequence.submit(&self.instance);
             frame.present();

@@ -103,6 +103,7 @@ impl StreamingSource {
         Ok(source)
     }
 
+    // TODO: return previous decoder.
     pub fn set_decoder(&mut self, mut decoder: Box<dyn Decoder>) -> Result<(), Error> {
         self.stop();
         decoder.sample_seek(std::io::SeekFrom::Start(0))?;
