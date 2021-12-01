@@ -6,7 +6,6 @@ use roe_app::{
 
 use roe_audio::Source;
 
-// TODO: rename to roe_assets.
 use roe_assets::{AudioBufferCache, AudioDecoderCache};
 
 use std::{path::PathBuf, rc::Rc};
