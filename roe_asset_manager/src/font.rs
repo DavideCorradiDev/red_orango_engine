@@ -25,7 +25,7 @@ pub struct FontCache {
     lib: Rc<txt::FontLibrary>,
     path: PathBuf,
     character_set: Vec<char>,
-    fonts: HashMap<FontKey, Rc<txt::Font>>,
+    fonts: HashMap<FontKey, txt::Font>,
 }
 
 impl FontCache {
@@ -67,14 +67,9 @@ impl FontCache {
         file_id: &str,
         face_index: txt::FaceIndex,
         font_size: txt::FontSize,
-    ) -> Option<Rc<txt::Font>> {
-        match self
-            .fonts
+    ) -> Option<&txt::Font> {
+        self.fonts
             .get(&FontKey::new(file_id, face_index, font_size))
-        {
-            Some(f) => Some(Rc::clone(f)),
-            None => None,
-        }
     }
 
     pub fn load(
@@ -82,12 +77,12 @@ impl FontCache {
         file_id: &str,
         face_index: txt::FaceIndex,
         font_size: txt::FontSize,
-    ) -> Result<Option<Rc<txt::Font>>, FontCacheError> {
+    ) -> Result<Option<txt::Font>, FontCacheError> {
         let face = self.load_face(file_id, face_index)?;
         let font = txt::Font::new(&self.instance, &face, font_size, &self.character_set)?;
         Ok(self
             .fonts
-            .insert(FontKey::new(file_id, face_index, font_size), Rc::new(font)))
+            .insert(FontKey::new(file_id, face_index, font_size), font))
     }
 
     pub fn get_or_load(
@@ -95,7 +90,7 @@ impl FontCache {
         file_id: &str,
         face_index: txt::FaceIndex,
         font_size: txt::FontSize,
-    ) -> Result<Rc<txt::Font>, FontCacheError> {
+    ) -> Result<&txt::Font, FontCacheError> {
         if let None = self.get(file_id, face_index, font_size) {
             self.load(file_id, face_index, font_size)?;
         }
@@ -107,7 +102,7 @@ impl FontCache {
         file_id: &str,
         face_index: txt::FaceIndex,
         font_size: txt::FontSize,
-    ) -> Option<Rc<txt::Font>> {
+    ) -> Option<txt::Font> {
         self.fonts
             .remove(&FontKey::new(file_id, face_index, font_size))
     }

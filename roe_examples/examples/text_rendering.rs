@@ -127,21 +127,24 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                     &self.pipeline.render_pass_requirements(),
                     &RenderPassOperations::default(),
                 );
-                let font = self.font_cache.get("Roboto-Regular.ttf", 0, 11.).unwrap();
-                rpass.draw_text(
-                    &self.pipeline,
-                    &font,
-                    "Lorem ipsum dolor sit amet",
-                    &convert(self.projection_transform * Translation::new(100., 100.)),
-                    &ColorF32::BLUE,
-                );
-                rpass.draw_text(
-                    &self.pipeline,
-                    &font,
-                    "Hello world!",
-                    &convert(self.projection_transform * Translation::new(300., 300.)),
-                    &ColorF32::RED,
-                );
+                {
+                    rpass.draw_text(
+                        &self.pipeline,
+                        self.font_cache.get("Roboto-Regular.ttf", 0, 11.).unwrap(),
+                        "Lorem ipsum dolor sit amet",
+                        &convert(self.projection_transform * Translation::new(100., 100.)),
+                        &ColorF32::BLUE,
+                    );
+                }
+                {
+                    rpass.draw_text(
+                        &self.pipeline,
+                        self.font_cache.get("Roboto-Regular.ttf", 0, 11.).unwrap(),
+                        "Hello world!",
+                        &convert(self.projection_transform * Translation::new(300., 300.)),
+                        &ColorF32::RED,
+                    );
+                }
             }
 
             cmd_sequence.submit(&self.instance);

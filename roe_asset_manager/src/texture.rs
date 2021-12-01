@@ -5,7 +5,7 @@ use std::{collections::HashMap, path::PathBuf, rc::Rc};
 pub struct TextureCache {
     instance: Rc<gfx::Instance>,
     path: PathBuf,
-    textures: HashMap<String, Rc<gfx::TextureView>>,
+    textures: HashMap<String, gfx::TextureView>,
 }
 
 impl TextureCache {
@@ -23,31 +23,28 @@ impl TextureCache {
         asset_path
     }
 
-    pub fn get(&self, file_id: &str) -> Option<Rc<gfx::TextureView>> {
-        match self.textures.get(file_id) {
-            Some(t) => Some(Rc::clone(t)),
-            None => None
-        }
+    pub fn get(&self, file_id: &str) -> Option<&gfx::TextureView> {
+        self.textures.get(file_id)
     }
 
-    pub fn load(&mut self, file_id: &str) -> Result<Option<Rc<gfx::TextureView>>, TextureCacheError> {
+    pub fn load(&mut self, file_id: &str) -> Result<Option<gfx::TextureView>, TextureCacheError> {
         let texture = gfx::Texture::from_image(
             &self.instance,
             &image::open(self.get_path(file_id))?.into_rgba8(),
             gfx::TextureUsage::TEXTURE_BINDING,
         );
         let texture_view = texture.create_view(&gfx::TextureViewDescriptor::default());
-        Ok(self.textures.insert(String::from(file_id), Rc::new(texture_view)))
+        Ok(self.textures.insert(String::from(file_id), texture_view))
     }
 
-    pub fn get_or_load(&mut self, file_id: &str) -> Result<Rc<gfx::TextureView>, TextureCacheError> {
+    pub fn get_or_load(&mut self, file_id: &str) -> Result<&gfx::TextureView, TextureCacheError> {
         if let None = self.get(file_id) {
             self.load(file_id)?;
         }
         Ok(self.get(file_id).unwrap())
     }
 
-    pub fn remove(&mut self, file_id: &str) -> Option<Rc<gfx::TextureView>> {
+    pub fn remove(&mut self, file_id: &str) -> Option<gfx::TextureView> {
         self.textures.remove(file_id)
     }
 
