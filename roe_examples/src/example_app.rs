@@ -18,9 +18,9 @@ pub enum ApplicationError {
     FontCreationFailed(roe_text::FontError),
     AudioError(roe_audio::Error),
     IoError(std::io::Error),
-    TextureLoadError(roe_asset_manager::TextureCacheError),
-    AudioLoadError(roe_asset_manager::AudioCacheError),
-    FontLoadError(roe_asset_manager::FontCacheError),
+    TextureLoadError(roe_assets::TextureCacheError),
+    AudioLoadError(roe_assets::AudioCacheError),
+    FontLoadError(roe_assets::FontCacheError),
     CustomEventSendingError,
 }
 
@@ -100,20 +100,20 @@ impl From<std::io::Error> for ApplicationError {
     }
 }
 
-impl From<roe_asset_manager::TextureCacheError> for ApplicationError {
-    fn from(e: roe_asset_manager::TextureCacheError) -> Self {
+impl From<roe_assets::TextureCacheError> for ApplicationError {
+    fn from(e: roe_assets::TextureCacheError) -> Self {
         ApplicationError::TextureLoadError(e)
     }
 }
 
-impl From<roe_asset_manager::AudioCacheError> for ApplicationError {
-    fn from(e: roe_asset_manager::AudioCacheError) -> Self {
+impl From<roe_assets::AudioCacheError> for ApplicationError {
+    fn from(e: roe_assets::AudioCacheError) -> Self {
         ApplicationError::AudioLoadError(e)
     }
 }
 
-impl From<roe_asset_manager::FontCacheError> for ApplicationError {
-    fn from(e: roe_asset_manager::FontCacheError) -> Self {
+impl From<roe_assets::FontCacheError> for ApplicationError {
+    fn from(e: roe_assets::FontCacheError) -> Self {
         ApplicationError::FontLoadError(e)
     }
 }

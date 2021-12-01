@@ -7,8 +7,7 @@ use roe_app::{
 use roe_audio::Source;
 
 // TODO: rename to roe_assets.
-// TODO: make caches return Rc rather than a reference?
-use roe_asset_manager::{AudioBufferCache, AudioDecoderCache};
+use roe_assets::{AudioBufferCache, AudioDecoderCache};
 
 use std::{path::PathBuf, rc::Rc};
 

@@ -18,7 +18,7 @@ use roe_graphics::{
 
 use roe_sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer};
 
-use roe_asset_manager::TextureCache;
+use roe_assets::TextureCache;
 
 use roe_examples::*;
 

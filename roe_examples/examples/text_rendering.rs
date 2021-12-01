@@ -17,7 +17,7 @@ use roe_graphics::{
 
 use roe_text::Renderer as TextRenderer;
 
-use roe_asset_manager::FontCache;
+use roe_assets::FontCache;
 
 use std::{path::PathBuf, rc::Rc};
 
