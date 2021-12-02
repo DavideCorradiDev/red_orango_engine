@@ -190,77 +190,76 @@ mod tests {
     use super::*;
     use galvanic_assert::*;
 
+    fn create_cache() -> AudioBufferCache {
+        let device = audio::Device::default().unwrap();
+        let context = Rc::new(audio::Context::default(&device).unwrap());
+        AudioBufferCache::new(context, PathBuf::from("data/audio"))
+    }
+
     #[test]
     #[serial_test::serial]
     fn creation() {
-        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
-        let _ = TextureCache::new(instance, PathBuf::from("data/pictures"));
+        let _ = create_cache();
     }
 
     #[test]
     #[serial_test::serial]
     fn get_failure() {
-        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
-        let texture_cache = TextureCache::new(instance, PathBuf::from("data/pictures"));
-        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(None));
-        expect_that!(&texture_cache.get("triangles.png"), is_variant!(None));
+        let cache = create_cache();
+        expect_that!(&cache.get("stereo-8-44100.wav"), is_variant!(None));
+        expect_that!(&cache.get("stereo-16-44100.ogg"), is_variant!(None));
     }
 
     #[test]
     #[serial_test::serial]
     fn get_success() {
-        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
-        let mut texture_cache = TextureCache::new(instance, PathBuf::from("data/pictures"));
-        texture_cache.load("gioconda.jpg").unwrap();
-        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(Some));
-        expect_that!(&texture_cache.get("triangles.png"), is_variant!(None));
+        let mut cache = create_cache();
+        cache.load("stereo-8-44100.wav").unwrap();
+        expect_that!(&cache.get("stereo-8-44100.wav"), is_variant!(Some));
+        expect_that!(&cache.get("stereo-16-44100.ogg"), is_variant!(None));
     }
 
     #[test]
     #[serial_test::serial]
     fn load() {
-        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
-        let mut texture_cache = TextureCache::new(instance, PathBuf::from("data/pictures"));
-        expect_that!(&texture_cache.load("gioconda.jpg").unwrap(), is_variant!(None));
-        expect_that!(&texture_cache.load("gioconda.jpg").unwrap(), is_variant!(Some));
-        expect_that!(&texture_cache.load("triangles.png").unwrap(), is_variant!(None));
+        let mut cache = create_cache();
+        expect_that!(&cache.load("stereo-8-44100.wav").unwrap(), is_variant!(None));
+        expect_that!(&cache.load("stereo-8-44100.wav").unwrap(), is_variant!(Some));
+        expect_that!(&cache.load("stereo-16-44100.ogg").unwrap(), is_variant!(None));
     }
 
     #[test]
     #[serial_test::serial]
     fn get_or_load() {
-        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
-        let mut texture_cache = TextureCache::new(instance, PathBuf::from("data/pictures"));
-        texture_cache.load("gioconda.jpg").unwrap();
-        texture_cache.get_or_load("gioconda.jpg").unwrap();
-        texture_cache.get_or_load("triangles.png").unwrap();
+        let mut cache = create_cache();
+        cache.load("stereo-8-44100.wav").unwrap();
+        cache.get_or_load("stereo-8-44100.wav").unwrap();
+        cache.get_or_load("stereo-16-44100.ogg").unwrap();
     }
 
     #[test]
     #[serial_test::serial]
     fn remove() {
-        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
-        let mut texture_cache = TextureCache::new(instance, PathBuf::from("data/pictures"));
-        texture_cache.load("gioconda.jpg").unwrap();
-        texture_cache.load("triangles.png").unwrap();
-        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(Some));
-        expect_that!(&texture_cache.get("triangles.png"), is_variant!(Some));
-        texture_cache.remove("gioconda.jpg");
-        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(None));
-        expect_that!(&texture_cache.get("triangles.png"), is_variant!(Some));
+        let mut cache = create_cache();
+        cache.load("stereo-8-44100.wav").unwrap();
+        cache.load("stereo-16-44100.ogg").unwrap();
+        expect_that!(&cache.get("stereo-8-44100.wav"), is_variant!(Some));
+        expect_that!(&cache.get("stereo-16-44100.ogg"), is_variant!(Some));
+        cache.remove("stereo-8-44100.wav");
+        expect_that!(&cache.get("stereo-8-44100.wav"), is_variant!(None));
+        expect_that!(&cache.get("stereo-16-44100.ogg"), is_variant!(Some));
     }
 
     #[test]
     #[serial_test::serial]
     fn clear() {
-        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
-        let mut texture_cache = TextureCache::new(instance, PathBuf::from("data/pictures"));
-        texture_cache.load("gioconda.jpg").unwrap();
-        texture_cache.load("triangles.png").unwrap();
-        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(Some));
-        expect_that!(&texture_cache.get("triangles.png"), is_variant!(Some));
-        texture_cache.clear();
-        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(None));
-        expect_that!(&texture_cache.get("triangles.png"), is_variant!(None));
+        let mut cache = create_cache();
+        cache.load("stereo-8-44100.wav").unwrap();
+        cache.load("stereo-16-44100.ogg").unwrap();
+        expect_that!(&cache.get("stereo-8-44100.wav"), is_variant!(Some));
+        expect_that!(&cache.get("stereo-16-44100.ogg"), is_variant!(Some));
+        cache.clear();
+        expect_that!(&cache.get("stereo-8-44100.wav"), is_variant!(None));
+        expect_that!(&cache.get("stereo-16-44100.ogg"), is_variant!(None));
     }
 }

@@ -94,7 +94,7 @@ mod tests {
     use super::*;
     use galvanic_assert::*;
 
-    fn create_texture_cache() -> TextureCache {
+    fn create_cache() -> TextureCache {
         let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
         TextureCache::new(instance, PathBuf::from("data/pictures"))
     }
@@ -102,76 +102,67 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn creation() {
-        let _ = create_texture_cache();
+        let _ = create_cache();
     }
 
     #[test]
     #[serial_test::serial]
     fn get_failure() {
-        let texture_cache = create_texture_cache();
-        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(None));
-        expect_that!(&texture_cache.get("triangles.png"), is_variant!(None));
+        let cache = create_cache();
+        expect_that!(&cache.get("gioconda.jpg"), is_variant!(None));
+        expect_that!(&cache.get("triangles.png"), is_variant!(None));
     }
 
     #[test]
     #[serial_test::serial]
     fn get_success() {
-        let mut texture_cache = create_texture_cache();
-        texture_cache.load("gioconda.jpg").unwrap();
-        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(Some));
-        expect_that!(&texture_cache.get("triangles.png"), is_variant!(None));
+        let mut cache = create_cache();
+        cache.load("gioconda.jpg").unwrap();
+        expect_that!(&cache.get("gioconda.jpg"), is_variant!(Some));
+        expect_that!(&cache.get("triangles.png"), is_variant!(None));
     }
 
     #[test]
     #[serial_test::serial]
     fn load() {
-        let mut texture_cache = create_texture_cache();
-        expect_that!(
-            &texture_cache.load("gioconda.jpg").unwrap(),
-            is_variant!(None)
-        );
-        expect_that!(
-            &texture_cache.load("gioconda.jpg").unwrap(),
-            is_variant!(Some)
-        );
-        expect_that!(
-            &texture_cache.load("triangles.png").unwrap(),
-            is_variant!(None)
-        );
+        let mut cache = create_cache();
+        expect_that!(&cache.load("gioconda.jpg").unwrap(), is_variant!(None));
+        expect_that!(&cache.load("gioconda.jpg").unwrap(), is_variant!(Some));
+        expect_that!(&cache.load("triangles.png").unwrap(), is_variant!(None));
     }
 
     #[test]
     #[serial_test::serial]
     fn get_or_load() {
-        let mut texture_cache = create_texture_cache();
-        texture_cache.load("gioconda.jpg").unwrap();
-        texture_cache.get_or_load("gioconda.jpg").unwrap();
-        texture_cache.get_or_load("triangles.png").unwrap();
+        let mut cache = create_cache();
+        cache.load("gioconda.jpg").unwrap();
+        cache.get_or_load("gioconda.jpg").unwrap();
+        cache.get_or_load("triangles.png").unwrap();
     }
 
     #[test]
     #[serial_test::serial]
     fn remove() {
-        let mut texture_cache = create_texture_cache();
-        texture_cache.load("gioconda.jpg").unwrap();
-        texture_cache.load("triangles.png").unwrap();
-        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(Some));
-        expect_that!(&texture_cache.get("triangles.png"), is_variant!(Some));
-        texture_cache.remove("gioconda.jpg");
-        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(None));
-        expect_that!(&texture_cache.get("triangles.png"), is_variant!(Some));
+        let mut cache = create_cache();
+        cache.load("gioconda.jpg").unwrap();
+        cache.load("triangles.png").unwrap();
+        expect_that!(&cache.get("gioconda.jpg"), is_variant!(Some));
+        expect_that!(&cache.get("triangles.png"), is_variant!(Some));
+        cache.remove("gioconda.jpg");
+        expect_that!(&cache.get("gioconda.jpg"), is_variant!(None));
+        expect_that!(&cache.get("triangles.png"), is_variant!(Some));
     }
 
     #[test]
     #[serial_test::serial]
     fn clear() {
-        let mut texture_cache = create_texture_cache();
-        texture_cache.load("gioconda.jpg").unwrap();
-        texture_cache.load("triangles.png").unwrap();
-        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(Some));
-        expect_that!(&texture_cache.get("triangles.png"), is_variant!(Some));
-        texture_cache.clear();
-        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(None));
-        expect_that!(&texture_cache.get("triangles.png"), is_variant!(None));
+        let mut cache = create_cache();
+        cache.load("gioconda.jpg").unwrap();
+        cache.load("triangles.png").unwrap();
+        expect_that!(&cache.get("gioconda.jpg"), is_variant!(Some));
+        expect_that!(&cache.get("triangles.png"), is_variant!(Some));
+        cache.clear();
+        expect_that!(&cache.get("gioconda.jpg"), is_variant!(None));
+        expect_that!(&cache.get("triangles.png"), is_variant!(None));
     }
 }
