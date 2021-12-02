@@ -185,4 +185,82 @@ impl From<audio::DecoderError> for AudioCacheError {
     }
 }
 
-// TODO: tests.
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use galvanic_assert::*;
+
+    #[test]
+    #[serial_test::serial]
+    fn creation() {
+        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
+        let _ = TextureCache::new(instance, PathBuf::from("data/pictures"));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn get_failure() {
+        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
+        let texture_cache = TextureCache::new(instance, PathBuf::from("data/pictures"));
+        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(None));
+        expect_that!(&texture_cache.get("triangles.png"), is_variant!(None));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn get_success() {
+        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
+        let mut texture_cache = TextureCache::new(instance, PathBuf::from("data/pictures"));
+        texture_cache.load("gioconda.jpg").unwrap();
+        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(Some));
+        expect_that!(&texture_cache.get("triangles.png"), is_variant!(None));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn load() {
+        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
+        let mut texture_cache = TextureCache::new(instance, PathBuf::from("data/pictures"));
+        expect_that!(&texture_cache.load("gioconda.jpg").unwrap(), is_variant!(None));
+        expect_that!(&texture_cache.load("gioconda.jpg").unwrap(), is_variant!(Some));
+        expect_that!(&texture_cache.load("triangles.png").unwrap(), is_variant!(None));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn get_or_load() {
+        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
+        let mut texture_cache = TextureCache::new(instance, PathBuf::from("data/pictures"));
+        texture_cache.load("gioconda.jpg").unwrap();
+        texture_cache.get_or_load("gioconda.jpg").unwrap();
+        texture_cache.get_or_load("triangles.png").unwrap();
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn remove() {
+        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
+        let mut texture_cache = TextureCache::new(instance, PathBuf::from("data/pictures"));
+        texture_cache.load("gioconda.jpg").unwrap();
+        texture_cache.load("triangles.png").unwrap();
+        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(Some));
+        expect_that!(&texture_cache.get("triangles.png"), is_variant!(Some));
+        texture_cache.remove("gioconda.jpg");
+        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(None));
+        expect_that!(&texture_cache.get("triangles.png"), is_variant!(Some));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn clear() {
+        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
+        let mut texture_cache = TextureCache::new(instance, PathBuf::from("data/pictures"));
+        texture_cache.load("gioconda.jpg").unwrap();
+        texture_cache.load("triangles.png").unwrap();
+        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(Some));
+        expect_that!(&texture_cache.get("triangles.png"), is_variant!(Some));
+        texture_cache.clear();
+        expect_that!(&texture_cache.get("gioconda.jpg"), is_variant!(None));
+        expect_that!(&texture_cache.get("triangles.png"), is_variant!(None));
+    }
+}
