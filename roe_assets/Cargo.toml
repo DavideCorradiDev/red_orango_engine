@@ -9,3 +9,7 @@ roe_audio = {path = "../roe_audio"}
 roe_graphics = {path = "../roe_graphics"}
 roe_text = {path = "../roe_text"}
 image = {version = "0.23.*"}
+
+[dev-dependencies]
+galvanic-assert = "0.8.*"
+serial_test = "0.5.*"
