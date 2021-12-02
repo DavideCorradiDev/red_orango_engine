@@ -148,7 +148,8 @@ mod tests {
         cache.load("triangles.png").unwrap();
         expect_that!(&cache.get("gioconda.jpg"), is_variant!(Some));
         expect_that!(&cache.get("triangles.png"), is_variant!(Some));
-        cache.remove("gioconda.jpg");
+        expect_that!(&cache.remove("gioconda.jpg"), is_variant!(Some));
+        expect_that!(&cache.remove("gioconda.jpg"), is_variant!(None));
         expect_that!(&cache.get("gioconda.jpg"), is_variant!(None));
         expect_that!(&cache.get("triangles.png"), is_variant!(Some));
     }
