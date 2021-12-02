@@ -287,12 +287,12 @@ mod tests {
         fn create_with_data(
             context: &Context,
             format: Format,
-            sample_count: usize,
+            sample_length: usize,
             sample_rate: u32,
         ) -> StaticSource {
             let buf = Buffer::new(
                 context,
-                vec![0; sample_count * format.total_bytes_per_sample() as usize].as_ref(),
+                vec![0; sample_length * format.total_bytes_per_sample() as usize].as_ref(),
                 format,
                 sample_rate,
             )
@@ -308,12 +308,12 @@ mod tests {
             context: &Context,
             source: &mut StaticSource,
             format: Format,
-            sample_count: usize,
+            sample_length: usize,
             sample_rate: u32,
         ) {
             let buf = Buffer::new(
                 context,
-                vec![0; sample_count * format.total_bytes_per_sample() as usize].as_ref(),
+                vec![0; sample_length * format.total_bytes_per_sample() as usize].as_ref(),
                 format,
                 sample_rate,
             )

@@ -103,12 +103,16 @@ impl StreamingSource {
         Ok(source)
     }
 
-    pub fn set_decoder(&mut self, mut decoder: Box<dyn Decoder>) -> Result<(), Error> {
+    pub fn set_decoder(
+        &mut self,
+        mut decoder: Box<dyn Decoder>,
+    ) -> Result<Option<Box<dyn Decoder>>, Error> {
         self.stop();
         decoder.sample_seek(std::io::SeekFrom::Start(0))?;
-        self.decoder = Some(decoder);
+        let mut decoder = Some(decoder);
+        std::mem::swap(&mut self.decoder, &mut decoder);
         self.processed_sample_count = 0;
-        Ok(())
+        Ok(decoder)
     }
 
     pub fn clear_decoder(&mut self) {
@@ -545,15 +549,15 @@ mod tests {
         fn create_with_data(
             context: &Context,
             format: Format,
-            sample_count: usize,
+            sample_length: usize,
             sample_rate: u32,
         ) -> StreamingSource {
             StreamingSource::with_decoder(
                 context,
-                Box::new(DummyDecoder::new(format, sample_count, sample_rate)),
+                Box::new(DummyDecoder::new(format, sample_length, sample_rate)),
                 &StreamingSourceDescriptor {
                     buffer_count: 3,
-                    buffer_sample_length: sample_count as u64 / 4,
+                    buffer_sample_length: sample_length as u64 / 4,
                 },
             )
             .unwrap()
@@ -567,13 +571,13 @@ mod tests {
             _context: &Context,
             source: &mut StreamingSource,
             format: Format,
-            sample_count: usize,
+            sample_length: usize,
             sample_rate: u32,
         ) {
             source
                 .set_decoder(Box::new(DummyDecoder::new(
                     format,
-                    sample_count,
+                    sample_length,
                     sample_rate,
                 )))
                 .unwrap();
@@ -594,6 +598,21 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(50));
         expect_that!(&source.playing(), eq(false));
         expect_that!(&source.sample_offset(), eq(0));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn set_decoder_return() {
+        let device = Device::default().unwrap();
+        let context = Context::default(&device).unwrap();
+        let mut source = TestFixture::create_with_data(&context, Format::Stereo16, 256, 6000);
+        let new_decoder = Box::new(DummyDecoder::new(Format::Mono8, 64, 100));
+        let old_decoder = source.set_decoder(new_decoder).unwrap();
+        assert_that!(&old_decoder, is_variant!(Option::Some));
+        let old_decoder = old_decoder.unwrap();
+        assert_that!(&old_decoder.format(), eq(Format::Stereo16));
+        assert_that!(&old_decoder.sample_length(), eq(256));
+        assert_that!(&old_decoder.sample_rate(), eq(6000));
     }
 
     generate_source_tests!(TestFixture);
