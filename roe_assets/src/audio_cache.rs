@@ -223,9 +223,18 @@ mod tests {
     #[serial_test::serial]
     fn load() {
         let mut cache = create_cache();
-        expect_that!(&cache.load("stereo-8-44100.wav").unwrap(), is_variant!(None));
-        expect_that!(&cache.load("stereo-8-44100.wav").unwrap(), is_variant!(Some));
-        expect_that!(&cache.load("stereo-16-44100.ogg").unwrap(), is_variant!(None));
+        expect_that!(
+            &cache.load("stereo-8-44100.wav").unwrap(),
+            is_variant!(None)
+        );
+        expect_that!(
+            &cache.load("stereo-8-44100.wav").unwrap(),
+            is_variant!(Some)
+        );
+        expect_that!(
+            &cache.load("stereo-16-44100.ogg").unwrap(),
+            is_variant!(None)
+        );
     }
 
     #[test]
@@ -278,9 +287,18 @@ mod tests {
     #[serial_test::serial]
     fn decoder_cache_load() {
         let mut cache = create_decoder_cache();
-        expect_that!(&cache.load("stereo-8-44100.wav").unwrap(), is_variant!(None));
-        expect_that!(&cache.load("stereo-8-44100.wav").unwrap(), is_variant!(Some));
-        expect_that!(&cache.load("stereo-16-44100.ogg").unwrap(), is_variant!(None));
+        expect_that!(
+            &cache.load("stereo-8-44100.wav").unwrap(),
+            is_variant!(None)
+        );
+        expect_that!(
+            &cache.load("stereo-8-44100.wav").unwrap(),
+            is_variant!(Some)
+        );
+        expect_that!(
+            &cache.load("stereo-16-44100.ogg").unwrap(),
+            is_variant!(None)
+        );
     }
 
     #[test]

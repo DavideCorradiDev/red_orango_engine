@@ -223,8 +223,14 @@ mod tests {
         cache.load("Roboto-Regular.ttf", 0, 15.).unwrap();
         expect_that!(&cache.get("Roboto-Regular.ttf", 0, 10.), is_variant!(Some));
         expect_that!(&cache.get("Roboto-Regular.ttf", 0, 15.), is_variant!(Some));
-        expect_that!(&cache.remove("Roboto-Regular.ttf", 0, 10.), is_variant!(Some));
-        expect_that!(&cache.remove("Roboto-Regular.ttf", 0, 10.), is_variant!(None));
+        expect_that!(
+            &cache.remove("Roboto-Regular.ttf", 0, 10.),
+            is_variant!(Some)
+        );
+        expect_that!(
+            &cache.remove("Roboto-Regular.ttf", 0, 10.),
+            is_variant!(None)
+        );
         expect_that!(&cache.get("Roboto-Regular.ttf", 0, 10.), is_variant!(None));
         expect_that!(&cache.get("Roboto-Regular.ttf", 0, 15.), is_variant!(Some));
     }
