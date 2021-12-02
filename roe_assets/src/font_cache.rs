@@ -149,3 +149,95 @@ impl From<txt::FontError> for FontCacheError {
 }
 
 // TODO: tests.
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use galvanic_assert::*;
+
+    fn create_font_cache() -> FontCache {
+        let instance = Rc::new(gfx::Instance::new(&gfx::InstanceDescriptor::default()).unwrap());
+        let lib = Rc::new(txt::FontLibrary::new().unwrap());
+        FontCache::new(
+            instance,
+            lib,
+            PathBuf::from("data/fonts"),
+            txt::character_set::english(),
+        )
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn creation() {
+        let _ = create_font_cache();
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn get_failure() {
+        let font_cache = create_font_cache();
+        expect_that!(&font_cache.get("Roboto-Regular.ttf", 0, 10.), is_variant!(None));
+        expect_that!(&font_cache.get("Roboto-Regular.ttf", 0, 15.), is_variant!(None));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn get_success() {
+        let mut font_cache = create_font_cache();
+        font_cache.load("Roboto-Regular.ttf", 0, 10.).unwrap();
+        expect_that!(&font_cache.get("Roboto-Regular.ttf", 0, 10.), is_variant!(Some));
+        expect_that!(&font_cache.get("Roboto-Regular.ttf", 0, 15.), is_variant!(None));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn load() {
+        let mut font_cache = create_font_cache();
+        expect_that!(
+            &font_cache.load("Roboto-Regular.ttf", 0, 10.).unwrap(),
+            is_variant!(None)
+        );
+        expect_that!(
+            &font_cache.load("Roboto-Regular.ttf", 0, 10.).unwrap(),
+            is_variant!(Some)
+        );
+        expect_that!(
+            &font_cache.load("Roboto-Regular.ttf", 0, 15.).unwrap(),
+            is_variant!(None)
+        );
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn get_or_load() {
+        let mut font_cache = create_font_cache();
+        font_cache.load("Roboto-Regular.ttf", 0, 10.).unwrap();
+        font_cache.get_or_load("Roboto-Regular.ttf", 0, 10.).unwrap();
+        font_cache.get_or_load("Roboto-Regular.ttf", 0, 15.).unwrap();
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn remove() {
+        let mut font_cache = create_font_cache();
+        font_cache.load("Roboto-Regular.ttf", 0, 10.).unwrap();
+        font_cache.load("Roboto-Regular.ttf", 0, 15.).unwrap();
+        expect_that!(&font_cache.get("Roboto-Regular.ttf", 0, 10.), is_variant!(Some));
+        expect_that!(&font_cache.get("Roboto-Regular.ttf", 0, 15.), is_variant!(Some));
+        font_cache.remove("Roboto-Regular.ttf", 0, 10.);
+        expect_that!(&font_cache.get("Roboto-Regular.ttf", 0, 10.), is_variant!(None));
+        expect_that!(&font_cache.get("Roboto-Regular.ttf", 0, 15.), is_variant!(Some));
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn clear() {
+        let mut font_cache = create_font_cache();
+        font_cache.load("Roboto-Regular.ttf", 0, 10.).unwrap();
+        font_cache.load("Roboto-Regular.ttf", 0, 15.).unwrap();
+        expect_that!(&font_cache.get("Roboto-Regular.ttf", 0, 10.), is_variant!(Some));
+        expect_that!(&font_cache.get("Roboto-Regular.ttf", 0, 15.), is_variant!(Some));
+        font_cache.clear();
+        expect_that!(&font_cache.get("Roboto-Regular.ttf", 0, 10.), is_variant!(None));
+        expect_that!(&font_cache.get("Roboto-Regular.ttf", 0, 15.), is_variant!(None));
+    }
+}
