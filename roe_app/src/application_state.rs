@@ -303,4 +303,8 @@ where
     fn on_variable_update(&mut self, _dt: std::time::Duration) -> Result<(), ErrorType> {
         Ok(())
     }
+
+    fn handle_error(&mut self, _error: &ErrorType) -> bool {
+        false
+    }
 }

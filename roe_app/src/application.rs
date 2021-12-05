@@ -68,6 +68,10 @@ where
         os::EventLoop::<CustomEvent>::with_user_event()
     }
 
+    fn default_error_handler<E: std::fmt::Display>(error: E) {
+        eprintln!("The application shut down due to an error ({})", error);
+    }
+
     pub fn run(mut self) {
         let event_loop = Self::create_event_loop();
         self.state_stack.push(
@@ -84,8 +88,17 @@ where
             move |event, _, control_flow| match self.handle_event(event) {
                 Ok(flow) => *control_flow = flow,
                 Err(e) => {
-                    // TODO: fix this.
-                    ApplicationInitializerType::handle_error(e);
+                    match self.state_stack.last_mut() {
+                        Some(state) => {
+                            let state = state.deref_mut();
+                            if !state.handle_error(&e) {
+                                Self::default_error_handler(e);
+                            }
+                        }
+                        None => {
+                            Self::default_error_handler(e);
+                        }
+                    }
                     *control_flow = os::ControlFlow::Exit;
                 }
             },
