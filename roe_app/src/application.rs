@@ -1,30 +1,26 @@
-use super::{ApplicationInitializer, ApplicationState, ApplicationStateFlow};
+use super::{ApplicationState, ApplicationStateFlow};
 
 use roe_os as os;
 
 use std::{collections::BTreeMap, ops::DerefMut};
 
-pub struct Application<ApplicationInitializerType, ErrorType, CustomEvent>
+pub struct Application<ErrorType, CustomEventType>
 where
-    ApplicationInitializerType: ApplicationInitializer<ErrorType, CustomEvent> + 'static,
     ErrorType: std::fmt::Display + std::error::Error + 'static,
-    CustomEvent: 'static,
+    CustomEventType: 'static,
 {
     keyboard_state: KeyboardState,
     fixed_update_period: std::time::Duration,
     variable_update_min_period: std::time::Duration,
     last_fixed_update_time: std::time::Instant,
     last_variable_update_time: std::time::Instant,
-    state_stack: Vec<Box<dyn ApplicationState<ErrorType, CustomEvent>>>,
-    p2: std::marker::PhantomData<ApplicationInitializerType>,
+    state_stack: Vec<Box<dyn ApplicationState<ErrorType, CustomEventType>>>,
 }
 
-impl<ApplicationInitializerType, ErrorType, CustomEvent>
-    Application<ApplicationInitializerType, ErrorType, CustomEvent>
+impl<ErrorType, CustomEventType> Application<ErrorType, CustomEventType>
 where
-    ApplicationInitializerType: ApplicationInitializer<ErrorType, CustomEvent> + 'static,
     ErrorType: std::fmt::Display + std::error::Error + 'static,
-    CustomEvent: 'static,
+    CustomEventType: 'static,
 {
     pub fn new(
         fixed_update_frequency_hz: u64,
@@ -53,29 +49,36 @@ where
             last_fixed_update_time: current_time,
             last_variable_update_time: current_time,
             state_stack: Vec::new(),
-            p2: std::marker::PhantomData,
         }
     }
 
     #[cfg(test)]
-    fn create_event_loop() -> os::EventLoop<CustomEvent> {
+    fn create_event_loop() -> os::EventLoop<CustomEventType> {
         use os::EventLoopAnyThread;
-        os::EventLoop::<CustomEvent>::new_any_thread()
+        os::EventLoop::<CustomEventType>::new_any_thread()
     }
 
     #[cfg(not(test))]
-    fn create_event_loop() -> os::EventLoop<CustomEvent> {
-        os::EventLoop::<CustomEvent>::with_user_event()
+    fn create_event_loop() -> os::EventLoop<CustomEventType> {
+        os::EventLoop::<CustomEventType>::with_user_event()
     }
 
     fn default_error_handler<E: std::fmt::Display>(error: E) {
         eprintln!("The application shut down due to an error ({})", error);
     }
 
-    pub fn run(mut self) {
+    pub fn run(
+        mut self,
+        initialization_fn: fn(
+            &os::EventLoop<CustomEventType>,
+        ) -> Result<
+            Box<dyn ApplicationState<ErrorType, CustomEventType>>,
+            ErrorType,
+        >,
+    ) {
         let event_loop = Self::create_event_loop();
         self.state_stack.push(
-            ApplicationInitializerType::create_initial_state(&event_loop)
+            initialization_fn(&event_loop)
                 .expect("Failed to initialize the application initial state"),
         );
 
@@ -105,13 +108,12 @@ where
         );
     }
 
-    // TODO: rename CustomEvent to CustomEventType.
     fn handle_event(
         &mut self,
-        event: os::Event<CustomEvent>,
+        event: os::Event<CustomEventType>,
     ) -> Result<os::ControlFlow, ErrorType> {
-        // TODO: handle states appropriately.
-        let mut application_state_flow = ApplicationStateFlow::<ErrorType, CustomEvent>::Continue;
+        let mut application_state_flow =
+            ApplicationStateFlow::<ErrorType, CustomEventType>::Continue;
 
         match self.state_stack.last_mut() {
             Some(state) => {
@@ -169,13 +171,13 @@ where
                         os::WindowEvent::CloseRequested => {
                             state.on_close_requested(window_id)?;
                             application_state_flow =
-                                ApplicationStateFlow::<ErrorType, CustomEvent>::Exit;
+                                ApplicationStateFlow::<ErrorType, CustomEventType>::Exit;
                         }
 
                         os::WindowEvent::Destroyed => {
                             state.on_destroyed(window_id)?;
                             application_state_flow =
-                                ApplicationStateFlow::<ErrorType, CustomEvent>::Exit;
+                                ApplicationStateFlow::<ErrorType, CustomEventType>::Exit;
                         }
 
                         os::WindowEvent::Focused(focused) => {
