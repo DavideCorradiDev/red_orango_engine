@@ -1,13 +1,13 @@
-use super::{ControlFlow, EventHandler};
+use super::{ControlFlow, ApplicationImpl};
 
 use roe_os as os;
 
 use std::collections::BTreeMap;
 
 #[derive(Clone)]
-pub struct Application<EventHandlerType, Error, CustomEvent>
+pub struct Application<ApplicationImplType, Error, CustomEvent>
 where
-    EventHandlerType: EventHandler<Error, CustomEvent> + 'static,
+    ApplicationImplType: ApplicationImpl<Error, CustomEvent> + 'static,
     Error: std::fmt::Display + std::error::Error + 'static,
     CustomEvent: 'static,
 {
@@ -18,12 +18,12 @@ where
     last_variable_update_time: std::time::Instant,
     p0: std::marker::PhantomData<Error>,
     p1: std::marker::PhantomData<CustomEvent>,
-    p2: std::marker::PhantomData<EventHandlerType>,
+    p2: std::marker::PhantomData<ApplicationImplType>,
 }
 
-impl<EventHandlerType, Error, CustomEvent> Application<EventHandlerType, Error, CustomEvent>
+impl<ApplicationImplType, Error, CustomEvent> Application<ApplicationImplType, Error, CustomEvent>
 where
-    EventHandlerType: EventHandler<Error, CustomEvent> + 'static,
+    ApplicationImplType: ApplicationImpl<Error, CustomEvent> + 'static,
     Error: std::fmt::Display + std::error::Error + 'static,
     CustomEvent: 'static,
 {
@@ -60,19 +60,19 @@ where
     }
 
     #[cfg(test)]
-    fn create_event_loop() -> os::EventLoop<EventHandlerType::CustomEvent> {
+    fn create_event_loop() -> os::EventLoop<CustomEvent> {
         use os::EventLoopAnyThread;
-        os::EventLoop::<EventHandlerType::CustomEvent>::new_any_thread()
+        os::EventLoop::<CustomEvent>::new_any_thread()
     }
 
     #[cfg(not(test))]
-    fn create_event_loop() -> os::EventLoop<EventHandlerType::CustomEvent> {
-        os::EventLoop::<EventHandlerType::CustomEvent>::with_user_event()
+    fn create_event_loop() -> os::EventLoop<CustomEvent> {
+        os::EventLoop::<CustomEvent>::with_user_event()
     }
 
     pub fn run(mut self) {
         let event_loop = Self::create_event_loop();
-        let mut event_handler = EventHandlerType::new(&event_loop)
+        let mut event_handler = ApplicationImplType::new(&event_loop)
             .expect("Failed to initialize the application event handler");
 
         let current_time = std::time::Instant::now();
@@ -95,9 +95,9 @@ where
 
     fn handle_event(
         &mut self,
-        eh: &mut EventHandlerType,
-        event: os::Event<EventHandlerType::CustomEvent>,
-    ) -> Result<ControlFlow, EventHandlerType::Error> {
+        eh: &mut ApplicationImplType,
+        event: os::Event<CustomEvent>,
+    ) -> Result<ControlFlow, Error> {
         match event {
             os::Event::NewEvents(start_cause) => eh.on_new_events(start_cause),
 
@@ -280,8 +280,8 @@ where
 
     fn update(
         &mut self,
-        eh: &mut EventHandlerType,
-    ) -> Result<ControlFlow, EventHandlerType::Error> {
+        eh: &mut ApplicationImplType,
+    ) -> Result<ControlFlow, Error> {
         let current_time = std::time::Instant::now();
 
         while current_time - self.last_fixed_update_time >= self.fixed_update_period {
@@ -350,6 +350,7 @@ impl KeyboardState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use super::super::EventHandler;
 
     #[derive(Debug, PartialEq, Clone)]
     enum MyError {}
@@ -370,15 +371,14 @@ mod tests {
     struct MyEventHandler {}
 
     impl EventHandler<MyError, ()> for MyEventHandler {
-        type Error = MyError;
-        type CustomEvent = ();
-
-        fn new(_: &os::EventLoop<()>) -> Result<Self, Self::Error> {
-            Ok(Self {})
-        }
-
-        fn on_fixed_update(&mut self, _: std::time::Duration) -> Result<ControlFlow, Self::Error> {
+        fn on_fixed_update(&mut self, _: std::time::Duration) -> Result<ControlFlow, MyError> {
             Ok(ControlFlow::Exit)
+        }
+    }
+
+    impl ApplicationImpl<MyError, ()> for MyEventHandler {
+        fn new(_: &os::EventLoop<()>) -> Result<Self, MyError> {
+            Ok(Self {})
         }
     }
 
