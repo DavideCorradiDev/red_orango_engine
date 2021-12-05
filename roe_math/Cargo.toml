@@ -1,6 +1,6 @@
 [package]
 name = "roe_math"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Davide Corradi <davide.corradi.dev@gmail.com>"]
 edition = "2021"
 
