@@ -447,7 +447,6 @@ impl KeyboardState {
 
 #[cfg(test)]
 mod tests {
-    use super::super::EventHandler;
     use super::*;
 
     #[derive(Debug, PartialEq, Clone)]
@@ -466,27 +465,24 @@ mod tests {
     }
 
     #[derive(Debug)]
-    struct MyEventHandler {}
+    struct MyAppState {}
 
-    impl EventHandler<MyError, ()> for MyEventHandler {
-        fn on_fixed_update(&mut self, _: std::time::Duration) -> Result<ControlFlow, MyError> {
+    impl ApplicationState<MyError, ()> for MyAppState {
+        fn on_fixed_update(
+            &mut self,
+            _: std::time::Duration,
+        ) -> Result<ControlFlow<MyError, ()>, MyError> {
             Ok(ControlFlow::Exit)
-        }
-    }
-
-    impl ApplicationInitializer<MyError, ()> for MyEventHandler {
-        fn new(_: &os::EventLoop<()>) -> Result<Self, MyError> {
-            Ok(Self {})
         }
     }
 
     #[test]
     fn application_creation() {
-        let _app = Application::<MyEventHandler, _, _>::new(10, Some(10));
+        let _app = Application::<MyError, ()>::new(10, Some(10));
     }
 
     #[test]
     fn run() {
-        Application::<MyEventHandler, _, _>::new(10, Some(10)).run();
+        Application::<_, _>::new(10, Some(10)).run(|_event_queue| Ok(Box::new(MyAppState {})));
     }
 }
