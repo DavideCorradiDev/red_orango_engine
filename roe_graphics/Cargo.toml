@@ -13,7 +13,7 @@ image = {version = "0.23.*"}
 num = {version = "0.4.*"}
 num-traits = {version = "0.2.*"}
 raw-window-handle = {version = "0.3.*"}
-roe_app = {path = "../roe_app"}
+roe_os = {path = "../roe_os"}
 roe_math = {path = "../roe_math", features = [
   "serde-serialize",
 ]}
