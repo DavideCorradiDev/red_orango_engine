@@ -93,9 +93,12 @@ where
     }
 
     // TODO: rename CustomEvent to CustomEventType.
-    fn handle_event(&mut self, event: os::Event<CustomEvent>) -> Result<os::ControlFlow, ErrorType> {
+    fn handle_event(
+        &mut self,
+        event: os::Event<CustomEvent>,
+    ) -> Result<os::ControlFlow, ErrorType> {
         // TODO: handle states appropriately.
-        let mut application_state_flow = ApplicationStateFlow::<ErrorType, CustomEvent>::DontChange;
+        let mut application_state_flow = ApplicationStateFlow::<ErrorType, CustomEvent>::Continue;
 
         match self.state_stack.last_mut() {
             Some(state) => {
@@ -373,34 +376,26 @@ where
 
         match application_state_flow {
             ApplicationStateFlow::Exit => Ok(os::ControlFlow::Exit),
-            _ => Ok(os::ControlFlow::Poll),
+            ApplicationStateFlow::Continue => Ok(os::ControlFlow::Poll),
+            ApplicationStateFlow::Pop => {
+                self.state_stack.pop();
+                if self.state_stack.is_empty() {
+                    Ok(os::ControlFlow::Exit)
+                } else {
+                    Ok(os::ControlFlow::Poll)
+                }
+            }
+            ApplicationStateFlow::Push(new_state) => {
+                self.state_stack.push(new_state);
+                Ok(os::ControlFlow::Poll)
+            }
+            ApplicationStateFlow::PopPush(new_state) => {
+                self.state_stack.pop();
+                self.state_stack.push(new_state);
+                Ok(os::ControlFlow::Poll)
+            }
         }
     }
-
-    // TODO: use associated types for clarity for state and state flow?
-    // fn update(
-    //     &mut self,
-    //     state: &mut dyn ApplicationState<ErrorType, CustomEvent>,
-    // ) -> Result<ApplicationStateFlow<ErrorType, CustomEvent>, ErrorType> {
-    //     let mut application_state_flow = ApplicationStateFlow::<ErrorType, CustomEvent>::DontChange;
-
-    //     let current_time = std::time::Instant::now();
-
-    //     while current_time - self.last_fixed_update_time >= self.fixed_update_period {
-    //         application_state_flow = state.on_fixed_update(self.fixed_update_period)?;
-    //         self.last_fixed_update_time += self.fixed_update_period;
-    //     }
-
-    //     let time_since_last_variable_update = current_time - self.last_variable_update_time;
-    //     if time_since_last_variable_update > self.variable_update_min_period {
-    //         state.on_variable_update(time_since_last_variable_update)?;
-    //         self.last_variable_update_time = current_time;
-    //     }
-
-    //     state.on_main_events_cleared()?;
-
-    //     Ok(application_state_flow)
-    // }
 }
 
 #[derive(Clone)]

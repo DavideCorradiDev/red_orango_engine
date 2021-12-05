@@ -1,10 +1,11 @@
 use roe_os as os;
 
+// TODO: rename to something more appropriate
 pub enum ApplicationStateFlow<ErrorType, CustomEventType> {
-    DontChange,
+    Continue,
     Pop,
     Push(Box<dyn ApplicationState<ErrorType, CustomEventType>>),
-    Change(Box<dyn ApplicationState<ErrorType, CustomEventType>>),
+    PopPush(Box<dyn ApplicationState<ErrorType, CustomEventType>>),
     Exit,
 }
 
@@ -296,7 +297,7 @@ where
         &mut self,
         _dt: std::time::Duration,
     ) -> Result<ApplicationStateFlow<ErrorType, CustomEventType>, ErrorType> {
-        Ok(ApplicationStateFlow::DontChange)
+        Ok(ApplicationStateFlow::Continue)
     }
 
     fn on_variable_update(&mut self, _dt: std::time::Duration) -> Result<(), ErrorType> {
