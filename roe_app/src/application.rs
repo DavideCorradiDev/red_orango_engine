@@ -61,6 +61,7 @@ where
     }
 
     pub fn run(mut self) {
+        // TMP_TODO: fix here.
         let event_loop = os::EventLoop::<EventHandlerType::CustomEvent>::new_test_safe();
         let mut event_handler = EventHandlerType::new(&event_loop)
             .expect("Failed to initialize the application event handler");

@@ -1,8 +1,6 @@
-use roe_app::{
-    application::Application,
-    event::{keyboard, ControlFlow, DeviceId, EventHandler, EventLoop},
-    window::{PhysicalSize, Size, Window, WindowBuilder, WindowId},
-};
+use roe_app::{Application, ControlFlow, EventHandler};
+
+use roe_os as os;
 
 use roe_audio::Source;
 
@@ -14,7 +12,7 @@ use roe_examples::*;
 
 #[derive(Debug)]
 struct ApplicationImpl {
-    window: Window,
+    window: os::Window,
     static_source: roe_audio::StaticSource,
     streaming_source: roe_audio::StreamingSource,
 }
@@ -23,10 +21,10 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
     type Error = ApplicationError;
     type CustomEvent = ();
 
-    fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
-        let window = WindowBuilder::new()
+    fn new(event_loop: &os::EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
+        let window = os::WindowBuilder::new()
             .with_title("Sound Player")
-            .with_inner_size(Size::Physical(PhysicalSize {
+            .with_inner_size(os::Size::Physical(os::PhysicalSize {
                 width: 800,
                 height: 600,
             }))
@@ -60,28 +58,28 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
 
     fn on_key_pressed(
         &mut self,
-        wid: WindowId,
-        _device_id: DeviceId,
-        _scan_code: keyboard::ScanCode,
-        key_code: Option<keyboard::KeyCode>,
+        wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _scan_code: os::ScanCode,
+        key_code: Option<os::KeyCode>,
         _is_synthetic: bool,
         is_repeat: bool,
     ) -> Result<ControlFlow, Self::Error> {
         if !is_repeat && wid == self.window.id() {
             if let Some(key_code) = key_code {
-                if key_code == keyboard::KeyCode::Q {
+                if key_code == os::KeyCode::Q {
                     self.static_source.play()?;
                 }
-                if key_code == keyboard::KeyCode::W {
+                if key_code == os::KeyCode::W {
                     self.static_source.replay()?;
                 }
-                if key_code == keyboard::KeyCode::E {
+                if key_code == os::KeyCode::E {
                     self.static_source.pause();
                 }
-                if key_code == keyboard::KeyCode::R {
+                if key_code == os::KeyCode::R {
                     self.static_source.stop();
                 }
-                if key_code == keyboard::KeyCode::T {
+                if key_code == os::KeyCode::T {
                     let cur_time = self.static_source.time_offset();
                     let time_step = std::time::Duration::from_secs_f64(0.1);
                     let new_time = if time_step > cur_time {
@@ -91,25 +89,25 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
                     };
                     self.static_source.set_time_offset(new_time)?;
                 }
-                if key_code == keyboard::KeyCode::Y {
+                if key_code == os::KeyCode::Y {
                     self.static_source.set_time_offset(
                         self.static_source.time_offset() + std::time::Duration::from_secs_f64(0.1),
                     )?;
                 }
 
-                if key_code == keyboard::KeyCode::A {
+                if key_code == os::KeyCode::A {
                     self.streaming_source.play()?;
                 }
-                if key_code == keyboard::KeyCode::S {
+                if key_code == os::KeyCode::S {
                     self.streaming_source.replay()?;
                 }
-                if key_code == keyboard::KeyCode::D {
+                if key_code == os::KeyCode::D {
                     self.streaming_source.pause();
                 }
-                if key_code == keyboard::KeyCode::F {
+                if key_code == os::KeyCode::F {
                     self.streaming_source.stop();
                 }
-                if key_code == keyboard::KeyCode::G {
+                if key_code == os::KeyCode::G {
                     let cur_time = self.static_source.time_offset();
                     let time_step = std::time::Duration::from_secs_f64(0.1);
                     let new_time = if time_step > cur_time {
@@ -119,7 +117,7 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
                     };
                     self.streaming_source.set_time_offset(new_time)?;
                 }
-                if key_code == keyboard::KeyCode::H {
+                if key_code == os::KeyCode::H {
                     self.streaming_source.set_time_offset(
                         self.streaming_source.time_offset()
                             + std::time::Duration::from_secs_f64(1.),

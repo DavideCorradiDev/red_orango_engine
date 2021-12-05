@@ -1,9 +1,6 @@
-use roe_app::{
-    application::Application,
-    event::{ControlFlow, EventHandler, EventLoop},
-    window,
-    window::{WindowBuilder, WindowId},
-};
+use roe_app::{Application, ControlFlow, EventHandler};
+
+use roe_os as os;
 
 use roe_math::{
     conversion::convert,
@@ -40,9 +37,9 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
     type Error = ApplicationError;
     type CustomEvent = ApplicationEvent;
 
-    fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
-        let window = WindowBuilder::new()
-            .with_inner_size(window::Size::Physical(window::PhysicalSize {
+    fn new(event_loop: &os::EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
+        let window = os::WindowBuilder::new()
+            .with_inner_size(os::Size::Physical(os::PhysicalSize {
                 width: 800,
                 height: 800,
             }))
@@ -101,8 +98,8 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
 
     fn on_resized(
         &mut self,
-        wid: WindowId,
-        size: window::PhysicalSize<u32>,
+        wid: os::WindowId,
+        size: os::PhysicalSize<u32>,
     ) -> Result<ControlFlow, Self::Error> {
         if wid == self.window.id() {
             self.window.update_buffer(&self.instance);

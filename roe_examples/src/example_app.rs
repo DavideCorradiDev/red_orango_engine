@@ -2,7 +2,7 @@
 
 use rand::Rng;
 
-use roe_app::event::EventLoopClosed;
+use roe_os::EventLoopClosed;
 
 use roe_math::geometry3;
 
@@ -12,7 +12,7 @@ pub type ApplicationEvent = ();
 
 #[derive(Debug)]
 pub enum ApplicationError {
-    WindowCreationFailed(roe_app::window::OsError),
+    WindowCreationFailed(roe_os::OsError),
     InstanceCreationFailed(roe_graphics::InstanceCreationError),
     RenderFrameCreationFailed(roe_graphics::SurfaceError),
     FontCreationFailed(roe_text::FontError),
@@ -58,8 +58,8 @@ impl std::error::Error for ApplicationError {
     }
 }
 
-impl From<roe_app::window::OsError> for ApplicationError {
-    fn from(e: roe_app::window::OsError) -> Self {
+impl From<roe_os::OsError> for ApplicationError {
+    fn from(e: roe_os::OsError) -> Self {
         ApplicationError::WindowCreationFailed(e)
     }
 }

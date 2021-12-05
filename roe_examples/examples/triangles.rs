@@ -2,12 +2,10 @@ use std::iter::once;
 
 use rand::Rng;
 
-use roe_app::{
-    application::Application,
-    event::{mouse, ControlFlow, DeviceId, EventHandler, EventLoop},
-    window,
-    window::{WindowBuilder, WindowId},
-};
+use roe_app::{Application, ControlFlow, EventHandler};
+
+use roe_os as os;
+
 
 use roe_math::{
     conversion::convert,
@@ -65,9 +63,9 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
     type Error = ApplicationError;
     type CustomEvent = ApplicationEvent;
 
-    fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
-        let window = WindowBuilder::new()
-            .with_inner_size(window::Size::Physical(window::PhysicalSize {
+    fn new(event_loop: &os::EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
+        let window = os::WindowBuilder::new()
+            .with_inner_size(os::Size::Physical(os::PhysicalSize {
                 width: 800,
                 height: 800,
             }))
@@ -145,8 +143,8 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
 
     fn on_resized(
         &mut self,
-        wid: WindowId,
-        size: window::PhysicalSize<u32>,
+        wid: os::WindowId,
+        size: os::PhysicalSize<u32>,
     ) -> Result<ControlFlow, Self::Error> {
         if wid == self.window.id() {
             self.window.update_buffer(&self.instance);
@@ -163,9 +161,9 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
 
     fn on_scale_factor_changed<'a>(
         &mut self,
-        wid: WindowId,
+        wid: os::WindowId,
         _scale_factor: f64,
-        size: &'a mut window::PhysicalSize<u32>,
+        size: &'a mut os::PhysicalSize<u32>,
     ) -> Result<ControlFlow, Self::Error> {
         if wid == self.window.id() {
             self.window.update_buffer(&self.instance);
@@ -182,9 +180,9 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
 
     fn on_cursor_moved(
         &mut self,
-        wid: WindowId,
-        _device_id: DeviceId,
-        position: window::PhysicalPosition<f64>,
+        wid: os::WindowId,
+        _device_id: os::DeviceId,
+        position: os::PhysicalPosition<f64>,
     ) -> Result<ControlFlow, Self::Error> {
         if wid == self.window.id() {
             self.current_position.x = position.x as f32;
@@ -195,12 +193,12 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
 
     fn on_mouse_button_released(
         &mut self,
-        wid: WindowId,
-        _device_id: DeviceId,
-        button: mouse::Button,
+        wid: os::WindowId,
+        _device_id: os::DeviceId,
+        button: os::MouseButton,
     ) -> Result<ControlFlow, Self::Error> {
         if wid == self.window.id() {
-            if button == mouse::Button::Left {
+            if button == os::MouseButton::Left {
                 self.saved_triangle_constants
                     .push(self.generate_push_constant());
                 let mut rng = rand::thread_rng();

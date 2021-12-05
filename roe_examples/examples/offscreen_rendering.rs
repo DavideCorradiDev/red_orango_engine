@@ -1,9 +1,6 @@
-use roe_app::{
-    application::Application,
-    event::{keyboard, ControlFlow, DeviceId, EventHandler, EventLoop},
-    window,
-    window::{WindowBuilder, WindowId},
-};
+use roe_app::{Application, ControlFlow, EventHandler};
+
+use roe_os as os;
 
 use roe_math::{
     conversion::convert,
@@ -72,9 +69,9 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
     type Error = ApplicationError;
     type CustomEvent = ApplicationEvent;
 
-    fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
-        let window = WindowBuilder::new()
-            .with_inner_size(window::Size::Physical(window::PhysicalSize {
+    fn new(event_loop: &os::EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
+        let window = os::WindowBuilder::new()
+            .with_inner_size(os::Size::Physical(os::PhysicalSize {
                 width: 800,
                 height: 800,
             }))
@@ -170,15 +167,15 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
 
     fn on_key_released(
         &mut self,
-        wid: WindowId,
-        _device_id: DeviceId,
-        _scan_code: keyboard::ScanCode,
-        key_code: Option<keyboard::KeyCode>,
+        wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _scan_code: os::ScanCode,
+        key_code: Option<os::KeyCode>,
         _is_synthetic: bool,
     ) -> Result<ControlFlow, Self::Error> {
         if wid == self.window.id() {
             if let Some(key) = key_code {
-                if key == keyboard::KeyCode::Return {
+                if key == os::KeyCode::Return {
                     let image = self
                         .canvas
                         .color_texture()
@@ -200,8 +197,8 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
 
     fn on_resized(
         &mut self,
-        wid: WindowId,
-        _size: window::PhysicalSize<u32>,
+        wid: os::WindowId,
+        _size: os::PhysicalSize<u32>,
     ) -> Result<ControlFlow, Self::Error> {
         if wid == self.window.id() {
             self.window.update_buffer(&self.instance);
