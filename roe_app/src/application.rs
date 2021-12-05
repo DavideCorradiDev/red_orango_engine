@@ -5,10 +5,10 @@ use roe_os as os;
 use std::collections::BTreeMap;
 
 #[derive(Clone)]
-pub struct Application<ApplicationImplType, Error, CustomEvent>
+pub struct Application<ApplicationImplType, ErrorType, CustomEvent>
 where
-    ApplicationImplType: ApplicationImpl<Error, CustomEvent> + 'static,
-    Error: std::fmt::Display + std::error::Error + 'static,
+    ApplicationImplType: ApplicationImpl<ErrorType, CustomEvent> + 'static,
+    ErrorType: std::fmt::Display + std::error::Error + 'static,
     CustomEvent: 'static,
 {
     keyboard_state: KeyboardState,
@@ -16,15 +16,15 @@ where
     variable_update_min_period: std::time::Duration,
     last_fixed_update_time: std::time::Instant,
     last_variable_update_time: std::time::Instant,
-    p0: std::marker::PhantomData<Error>,
+    p0: std::marker::PhantomData<ErrorType>,
     p1: std::marker::PhantomData<CustomEvent>,
     p2: std::marker::PhantomData<ApplicationImplType>,
 }
 
-impl<ApplicationImplType, Error, CustomEvent> Application<ApplicationImplType, Error, CustomEvent>
+impl<ApplicationImplType, ErrorType, CustomEvent> Application<ApplicationImplType, ErrorType, CustomEvent>
 where
-    ApplicationImplType: ApplicationImpl<Error, CustomEvent> + 'static,
-    Error: std::fmt::Display + std::error::Error + 'static,
+    ApplicationImplType: ApplicationImpl<ErrorType, CustomEvent> + 'static,
+    ErrorType: std::fmt::Display + std::error::Error + 'static,
     CustomEvent: 'static,
 {
     pub fn new(
@@ -97,7 +97,7 @@ where
         &mut self,
         eh: &mut ApplicationImplType,
         event: os::Event<CustomEvent>,
-    ) -> Result<ControlFlow, Error> {
+    ) -> Result<ControlFlow, ErrorType> {
         match event {
             os::Event::NewEvents(start_cause) => eh.on_new_events(start_cause),
 
@@ -281,7 +281,7 @@ where
     fn update(
         &mut self,
         eh: &mut ApplicationImplType,
-    ) -> Result<ControlFlow, Error> {
+    ) -> Result<ControlFlow, ErrorType> {
         let current_time = std::time::Instant::now();
 
         while current_time - self.last_fixed_update_time >= self.fixed_update_period {
