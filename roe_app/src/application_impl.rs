@@ -12,4 +12,8 @@ where
     fn create_initial_state(
         event_loop: &os::EventLoop<CustomEventType>,
     ) -> Result<Box<dyn ApplicationState<ErrorType, CustomEventType>>, ErrorType>;
+
+    fn handle_error(error: ErrorType) {
+        eprintln!("The application shut down due to an error ({})", error);
+    }
 }

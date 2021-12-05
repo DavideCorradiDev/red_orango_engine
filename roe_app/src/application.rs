@@ -88,7 +88,7 @@ where
                 },
                 Err(e) => {
                     // TODO: fix this.
-                    // current_state.on_error(e);
+                    ApplicationInitializerType::handle_error(e);
                     *control_flow = os::ControlFlow::Exit;
                 }
             },

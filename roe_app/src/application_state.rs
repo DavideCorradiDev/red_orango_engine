@@ -302,8 +302,4 @@ where
     fn on_variable_update(&mut self, _dt: std::time::Duration) -> Result<(), ErrorType> {
         Ok(())
     }
-
-    fn on_error(&mut self, error: ErrorType) {
-        eprintln!("The application shut down due to an error ({})", error);
-    }
 }
