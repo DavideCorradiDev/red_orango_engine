@@ -1,4 +1,4 @@
-use super::{ApplicationInitializer, ApplicationState, ApplicationStateFlow, ControlFlow};
+use super::{ApplicationInitializer, ApplicationState, ApplicationStateFlow};
 
 use roe_os as os;
 
@@ -82,10 +82,7 @@ where
         // TODO: remove the custom ControlFlow enum.
         event_loop.run(
             move |event, _, control_flow| match self.handle_event(event) {
-                Ok(flow) => match flow {
-                    ControlFlow::Continue => *control_flow = os::ControlFlow::Poll,
-                    ControlFlow::Exit => *control_flow = os::ControlFlow::Exit,
-                },
+                Ok(flow) => *control_flow = flow,
                 Err(e) => {
                     // TODO: fix this.
                     ApplicationInitializerType::handle_error(e);
@@ -96,7 +93,7 @@ where
     }
 
     // TODO: rename CustomEvent to CustomEventType.
-    fn handle_event(&mut self, event: os::Event<CustomEvent>) -> Result<ControlFlow, ErrorType> {
+    fn handle_event(&mut self, event: os::Event<CustomEvent>) -> Result<os::ControlFlow, ErrorType> {
         // TODO: handle states appropriately.
         let mut application_state_flow = ApplicationStateFlow::<ErrorType, CustomEvent>::DontChange;
 
@@ -375,8 +372,8 @@ where
         }
 
         match application_state_flow {
-            ApplicationStateFlow::Exit => Ok(ControlFlow::Exit),
-            _ => Ok(ControlFlow::Continue),
+            ApplicationStateFlow::Exit => Ok(os::ControlFlow::Exit),
+            _ => Ok(os::ControlFlow::Poll),
         }
     }
 
