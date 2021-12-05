@@ -1,13 +1,12 @@
-use super::{ControlFlow, ApplicationImpl};
+use super::{ApplicationInitializer, ApplicationState, ApplicationStateFlow, ControlFlow};
 
 use roe_os as os;
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, ops::DerefMut};
 
-#[derive(Clone)]
-pub struct Application<ApplicationImplType, ErrorType, CustomEvent>
+pub struct Application<ApplicationInitializerType, ErrorType, CustomEvent>
 where
-    ApplicationImplType: ApplicationImpl<ErrorType, CustomEvent> + 'static,
+    ApplicationInitializerType: ApplicationInitializer<ErrorType, CustomEvent> + 'static,
     ErrorType: std::fmt::Display + std::error::Error + 'static,
     CustomEvent: 'static,
 {
@@ -16,14 +15,14 @@ where
     variable_update_min_period: std::time::Duration,
     last_fixed_update_time: std::time::Instant,
     last_variable_update_time: std::time::Instant,
-    p0: std::marker::PhantomData<ErrorType>,
-    p1: std::marker::PhantomData<CustomEvent>,
-    p2: std::marker::PhantomData<ApplicationImplType>,
+    state_stack: Vec<Box<dyn ApplicationState<ErrorType, CustomEvent>>>,
+    p2: std::marker::PhantomData<ApplicationInitializerType>,
 }
 
-impl<ApplicationImplType, ErrorType, CustomEvent> Application<ApplicationImplType, ErrorType, CustomEvent>
+impl<ApplicationInitializerType, ErrorType, CustomEvent>
+    Application<ApplicationInitializerType, ErrorType, CustomEvent>
 where
-    ApplicationImplType: ApplicationImpl<ErrorType, CustomEvent> + 'static,
+    ApplicationInitializerType: ApplicationInitializer<ErrorType, CustomEvent> + 'static,
     ErrorType: std::fmt::Display + std::error::Error + 'static,
     CustomEvent: 'static,
 {
@@ -53,8 +52,7 @@ where
             variable_update_min_period,
             last_fixed_update_time: current_time,
             last_variable_update_time: current_time,
-            p0: std::marker::PhantomData,
-            p1: std::marker::PhantomData,
+            state_stack: Vec::new(),
             p2: std::marker::PhantomData,
         }
     }
@@ -72,244 +70,340 @@ where
 
     pub fn run(mut self) {
         let event_loop = Self::create_event_loop();
-        let mut event_handler = ApplicationImplType::new(&event_loop)
-            .expect("Failed to initialize the application event handler");
+        self.state_stack.push(
+            ApplicationInitializerType::create_initial_state(&event_loop)
+                .expect("Failed to initialize the application initial state"),
+        );
 
         let current_time = std::time::Instant::now();
         self.last_fixed_update_time = current_time;
         self.last_variable_update_time = current_time;
 
-        event_loop.run(move |event, _, control_flow| {
-            match self.handle_event(&mut event_handler, event) {
+        // TODO: remove the custom ControlFlow enum.
+        event_loop.run(
+            move |event, _, control_flow| match self.handle_event(event) {
                 Ok(flow) => match flow {
                     ControlFlow::Continue => *control_flow = os::ControlFlow::Poll,
                     ControlFlow::Exit => *control_flow = os::ControlFlow::Exit,
                 },
                 Err(e) => {
-                    event_handler.on_error(e);
+                    // TODO: fix this.
+                    // current_state.on_error(e);
                     *control_flow = os::ControlFlow::Exit;
                 }
-            }
-        });
-    }
-
-    fn handle_event(
-        &mut self,
-        eh: &mut ApplicationImplType,
-        event: os::Event<CustomEvent>,
-    ) -> Result<ControlFlow, ErrorType> {
-        match event {
-            os::Event::NewEvents(start_cause) => eh.on_new_events(start_cause),
-
-            os::Event::UserEvent(event) => eh.on_custom_event(event),
-
-            os::Event::Suspended => eh.on_suspended(),
-
-            os::Event::Resumed => eh.on_resumed(),
-
-            os::Event::MainEventsCleared => self.update(eh),
-
-            os::Event::RedrawRequested(window_id) => eh.on_redraw_requested(window_id),
-
-            os::Event::RedrawEventsCleared => eh.on_redraw_events_cleared(),
-
-            os::Event::LoopDestroyed => eh.on_event_loop_destroyed(),
-
-            os::Event::WindowEvent { window_id, event } => match event {
-                os::WindowEvent::CloseRequested => eh.on_close_requested(window_id),
-
-                os::WindowEvent::Destroyed => eh.on_destroyed(window_id),
-
-                os::WindowEvent::Focused(focused) => {
-                    if focused {
-                        eh.on_focus_gained(window_id)
-                    } else {
-                        eh.on_focus_lost(window_id)
-                    }
-                }
-
-                os::WindowEvent::Resized(size) => eh.on_resized(window_id, size),
-
-                os::WindowEvent::ScaleFactorChanged {
-                    scale_factor,
-                    new_inner_size,
-                } => eh.on_scale_factor_changed(window_id, scale_factor, new_inner_size),
-
-                os::WindowEvent::Moved(pos) => eh.on_moved(window_id, pos),
-
-                os::WindowEvent::ReceivedCharacter(c) => eh.on_received_character(window_id, c),
-
-                os::WindowEvent::DroppedFile(path) => eh.on_hovered_file_dropped(window_id, path),
-
-                os::WindowEvent::HoveredFile(path) => eh.on_hovered_file_entered(window_id, path),
-
-                os::WindowEvent::HoveredFileCancelled => eh.on_hovered_file_left(window_id),
-
-                os::WindowEvent::KeyboardInput {
-                    device_id,
-                    input,
-                    is_synthetic,
-                } => {
-                    let last_key_state =
-                        self.keyboard_state
-                            .key_state(Some(window_id), device_id, input.scancode);
-                    let is_repeat = *last_key_state == input.state;
-                    *last_key_state = input.state;
-                    match input.state {
-                        os::ElementState::Pressed => eh.on_key_pressed(
-                            window_id,
-                            device_id,
-                            input.scancode,
-                            input.virtual_keycode,
-                            is_synthetic,
-                            is_repeat,
-                        ),
-                        os::ElementState::Released => eh.on_key_released(
-                            window_id,
-                            device_id,
-                            input.scancode,
-                            input.virtual_keycode,
-                            is_synthetic,
-                        ),
-                    }
-                }
-
-                os::WindowEvent::ModifiersChanged(mods) => eh.on_modifiers_changed(window_id, mods),
-
-                os::WindowEvent::CursorMoved {
-                    device_id,
-                    position,
-                    ..
-                } => eh.on_cursor_moved(window_id, device_id, position),
-
-                os::WindowEvent::CursorEntered { device_id } => {
-                    eh.on_cursor_entered(window_id, device_id)
-                }
-
-                os::WindowEvent::CursorLeft { device_id } => {
-                    eh.on_cursor_left(window_id, device_id)
-                }
-
-                os::WindowEvent::MouseInput {
-                    device_id,
-                    state,
-                    button,
-                    ..
-                } => match state {
-                    os::ElementState::Pressed => {
-                        eh.on_mouse_button_pressed(window_id, device_id, button)
-                    }
-                    os::ElementState::Released => {
-                        eh.on_mouse_button_released(window_id, device_id, button)
-                    }
-                },
-
-                os::WindowEvent::MouseWheel {
-                    device_id,
-                    delta,
-                    phase,
-                    ..
-                } => eh.on_scroll(window_id, device_id, delta, phase),
-
-                os::WindowEvent::Touch(touch) => eh.on_touch(
-                    window_id,
-                    touch.device_id,
-                    touch.phase,
-                    touch.location,
-                    touch.force,
-                    touch.id,
-                ),
-
-                os::WindowEvent::AxisMotion {
-                    device_id,
-                    axis,
-                    value,
-                } => eh.on_axis_moved(window_id, device_id, axis, value),
-
-                // Not universally supported.
-                os::WindowEvent::TouchpadPressure { .. } => Ok(ControlFlow::Continue),
-
-                // Not universally supported.
-                os::WindowEvent::ThemeChanged(_) => Ok(ControlFlow::Continue),
             },
+        );
+    }
 
-            os::Event::DeviceEvent { device_id, event } => match event {
-                os::DeviceEvent::Added => eh.on_device_added(device_id),
+    // TODO: rename CustomEvent to CustomEventType.
+    fn handle_event(&mut self, event: os::Event<CustomEvent>) -> Result<ControlFlow, ErrorType> {
+        // TODO: handle states appropriately.
+        let mut application_state_flow = ApplicationStateFlow::<ErrorType, CustomEvent>::DontChange;
 
-                os::DeviceEvent::Removed => eh.on_device_removed(device_id),
-
-                os::DeviceEvent::MouseMotion { delta } => eh
-                    .on_device_cursor_moved(device_id, os::PhysicalPosition::new(delta.0, delta.1)),
-
-                os::DeviceEvent::MouseWheel { delta } => eh.on_device_scroll(device_id, delta),
-
-                os::DeviceEvent::Motion { axis, value } => {
-                    eh.on_device_axis_moved(device_id, axis, value)
-                }
-
-                os::DeviceEvent::Button { button, state } => match state {
-                    os::ElementState::Pressed => eh.on_device_button_pressed(device_id, button),
-                    os::ElementState::Released => eh.on_device_button_released(device_id, button),
-                },
-
-                os::DeviceEvent::Key(input) => {
-                    let last_key_state =
-                        self.keyboard_state
-                            .key_state(None, device_id, input.scancode);
-                    let is_repeat = *last_key_state == input.state;
-                    *last_key_state = input.state;
-                    match input.state {
-                        os::ElementState::Pressed => eh.on_device_key_pressed(
-                            device_id,
-                            input.scancode,
-                            input.virtual_keycode,
-                            is_repeat,
-                        ),
-                        os::ElementState::Released => eh.on_device_key_released(
-                            device_id,
-                            input.scancode,
-                            input.virtual_keycode,
-                        ),
+        match self.state_stack.last_mut() {
+            Some(state) => {
+                let state = state.deref_mut();
+                match event {
+                    os::Event::NewEvents(start_cause) => {
+                        state.on_new_events(start_cause)?;
                     }
+
+                    os::Event::UserEvent(event) => {
+                        state.on_custom_event(event)?;
+                    }
+
+                    os::Event::Suspended => {
+                        state.on_suspended()?;
+                    }
+
+                    os::Event::Resumed => {
+                        state.on_resumed()?;
+                    }
+
+                    os::Event::MainEventsCleared => {
+                        let current_time = std::time::Instant::now();
+
+                        while current_time - self.last_fixed_update_time >= self.fixed_update_period
+                        {
+                            application_state_flow =
+                                state.on_fixed_update(self.fixed_update_period)?;
+                            self.last_fixed_update_time += self.fixed_update_period;
+                        }
+
+                        let time_since_last_variable_update =
+                            current_time - self.last_variable_update_time;
+                        if time_since_last_variable_update > self.variable_update_min_period {
+                            state.on_variable_update(time_since_last_variable_update)?;
+                            self.last_variable_update_time = current_time;
+                        }
+
+                        state.on_main_events_cleared()?;
+                    }
+
+                    os::Event::RedrawRequested(window_id) => {
+                        state.on_redraw_requested(window_id)?;
+                    }
+
+                    os::Event::RedrawEventsCleared => {
+                        state.on_redraw_events_cleared()?;
+                    }
+
+                    os::Event::LoopDestroyed => {
+                        state.on_event_loop_destroyed()?;
+                    }
+
+                    os::Event::WindowEvent { window_id, event } => match event {
+                        os::WindowEvent::CloseRequested => {
+                            state.on_close_requested(window_id)?;
+                            application_state_flow =
+                                ApplicationStateFlow::<ErrorType, CustomEvent>::Exit;
+                        }
+
+                        os::WindowEvent::Destroyed => {
+                            state.on_destroyed(window_id)?;
+                            application_state_flow =
+                                ApplicationStateFlow::<ErrorType, CustomEvent>::Exit;
+                        }
+
+                        os::WindowEvent::Focused(focused) => {
+                            if focused {
+                                state.on_focus_gained(window_id)?;
+                            } else {
+                                state.on_focus_lost(window_id)?;
+                            }
+                        }
+
+                        os::WindowEvent::Resized(size) => {
+                            state.on_resized(window_id, size)?;
+                        }
+
+                        os::WindowEvent::ScaleFactorChanged {
+                            scale_factor,
+                            new_inner_size,
+                        } => {
+                            state.on_scale_factor_changed(
+                                window_id,
+                                scale_factor,
+                                new_inner_size,
+                            )?;
+                        }
+
+                        os::WindowEvent::Moved(pos) => {
+                            state.on_moved(window_id, pos)?;
+                        }
+
+                        os::WindowEvent::ReceivedCharacter(c) => {
+                            state.on_received_character(window_id, c)?;
+                        }
+
+                        os::WindowEvent::DroppedFile(path) => {
+                            state.on_hovered_file_dropped(window_id, path)?;
+                        }
+
+                        os::WindowEvent::HoveredFile(path) => {
+                            state.on_hovered_file_entered(window_id, path)?;
+                        }
+
+                        os::WindowEvent::HoveredFileCancelled => {
+                            state.on_hovered_file_left(window_id)?;
+                        }
+
+                        os::WindowEvent::KeyboardInput {
+                            device_id,
+                            input,
+                            is_synthetic,
+                        } => {
+                            let last_key_state = self.keyboard_state.key_state(
+                                Some(window_id),
+                                device_id,
+                                input.scancode,
+                            );
+                            let is_repeat = *last_key_state == input.state;
+                            *last_key_state = input.state;
+                            match input.state {
+                                os::ElementState::Pressed => state.on_key_pressed(
+                                    window_id,
+                                    device_id,
+                                    input.scancode,
+                                    input.virtual_keycode,
+                                    is_synthetic,
+                                    is_repeat,
+                                )?,
+                                os::ElementState::Released => state.on_key_released(
+                                    window_id,
+                                    device_id,
+                                    input.scancode,
+                                    input.virtual_keycode,
+                                    is_synthetic,
+                                )?,
+                            }
+                        }
+
+                        os::WindowEvent::ModifiersChanged(mods) => {
+                            state.on_modifiers_changed(window_id, mods)?;
+                        }
+
+                        os::WindowEvent::CursorMoved {
+                            device_id,
+                            position,
+                            ..
+                        } => {
+                            state.on_cursor_moved(window_id, device_id, position)?;
+                        }
+
+                        os::WindowEvent::CursorEntered { device_id } => {
+                            state.on_cursor_entered(window_id, device_id)?;
+                        }
+
+                        os::WindowEvent::CursorLeft { device_id } => {
+                            state.on_cursor_left(window_id, device_id)?;
+                        }
+
+                        os::WindowEvent::MouseInput {
+                            device_id,
+                            state: element_state,
+                            button,
+                            ..
+                        } => match element_state {
+                            os::ElementState::Pressed => {
+                                state.on_mouse_button_pressed(window_id, device_id, button)?;
+                            }
+                            os::ElementState::Released => {
+                                state.on_mouse_button_released(window_id, device_id, button)?;
+                            }
+                        },
+
+                        os::WindowEvent::MouseWheel {
+                            device_id,
+                            delta,
+                            phase,
+                            ..
+                        } => {
+                            state.on_scroll(window_id, device_id, delta, phase)?;
+                        }
+
+                        os::WindowEvent::Touch(touch) => {
+                            state.on_touch(
+                                window_id,
+                                touch.device_id,
+                                touch.phase,
+                                touch.location,
+                                touch.force,
+                                touch.id,
+                            )?;
+                        }
+
+                        os::WindowEvent::AxisMotion {
+                            device_id,
+                            axis,
+                            value,
+                        } => {
+                            state.on_axis_moved(window_id, device_id, axis, value)?;
+                        }
+
+                        // Not universally supported.
+                        os::WindowEvent::TouchpadPressure { .. } => {}
+
+                        // Not universally supported.
+                        os::WindowEvent::ThemeChanged(_) => {}
+                    },
+
+                    os::Event::DeviceEvent { device_id, event } => match event {
+                        os::DeviceEvent::Added => {
+                            state.on_device_added(device_id)?;
+                        }
+
+                        os::DeviceEvent::Removed => {
+                            state.on_device_removed(device_id)?;
+                        }
+
+                        os::DeviceEvent::MouseMotion { delta } => {
+                            state.on_device_cursor_moved(
+                                device_id,
+                                os::PhysicalPosition::new(delta.0, delta.1),
+                            )?;
+                        }
+
+                        os::DeviceEvent::MouseWheel { delta } => {
+                            state.on_device_scroll(device_id, delta)?;
+                        }
+
+                        os::DeviceEvent::Motion { axis, value } => {
+                            state.on_device_axis_moved(device_id, axis, value)?;
+                        }
+
+                        os::DeviceEvent::Button {
+                            button,
+                            state: element_state,
+                        } => match element_state {
+                            os::ElementState::Pressed => {
+                                state.on_device_button_pressed(device_id, button)?;
+                            }
+                            os::ElementState::Released => {
+                                state.on_device_button_released(device_id, button)?;
+                            }
+                        },
+
+                        os::DeviceEvent::Key(input) => {
+                            let last_key_state =
+                                self.keyboard_state
+                                    .key_state(None, device_id, input.scancode);
+                            let is_repeat = *last_key_state == input.state;
+                            *last_key_state = input.state;
+                            match input.state {
+                                os::ElementState::Pressed => state.on_device_key_pressed(
+                                    device_id,
+                                    input.scancode,
+                                    input.virtual_keycode,
+                                    is_repeat,
+                                )?,
+                                os::ElementState::Released => state.on_device_key_released(
+                                    device_id,
+                                    input.scancode,
+                                    input.virtual_keycode,
+                                )?,
+                            }
+                        }
+
+                        os::DeviceEvent::Text { codepoint } => {
+                            state.on_device_text(device_id, codepoint)?;
+                        }
+                    },
                 }
-
-                os::DeviceEvent::Text { codepoint } => eh.on_device_text(device_id, codepoint),
-            },
-        }
-    }
-
-    // TODO: rename eh to impl or something.
-    fn update(
-        &mut self,
-        eh: &mut ApplicationImplType,
-    ) -> Result<ControlFlow, ErrorType> {
-        let current_time = std::time::Instant::now();
-
-        while current_time - self.last_fixed_update_time >= self.fixed_update_period {
-            match eh.on_fixed_update(self.fixed_update_period) {
-                Ok(v) => match v {
-                    ControlFlow::Exit => return Ok(ControlFlow::Exit),
-                    _ => (),
-                },
-                Err(e) => return Err(e),
-            };
-            self.last_fixed_update_time += self.fixed_update_period;
-        }
-
-        let time_since_last_variable_update = current_time - self.last_variable_update_time;
-        if time_since_last_variable_update > self.variable_update_min_period {
-            match eh.on_variable_update(time_since_last_variable_update) {
-                Ok(v) => match v {
-                    ControlFlow::Exit => return Ok(ControlFlow::Exit),
-                    _ => (),
-                },
-                Err(e) => return Err(e),
             }
-            self.last_variable_update_time = current_time;
+            None => {}
         }
 
-        eh.on_main_events_cleared()
+        match application_state_flow {
+            ApplicationStateFlow::Exit => Ok(ControlFlow::Exit),
+            _ => Ok(ControlFlow::Continue),
+        }
     }
+
+    // TODO: use associated types for clarity for state and state flow?
+    // fn update(
+    //     &mut self,
+    //     state: &mut dyn ApplicationState<ErrorType, CustomEvent>,
+    // ) -> Result<ApplicationStateFlow<ErrorType, CustomEvent>, ErrorType> {
+    //     let mut application_state_flow = ApplicationStateFlow::<ErrorType, CustomEvent>::DontChange;
+
+    //     let current_time = std::time::Instant::now();
+
+    //     while current_time - self.last_fixed_update_time >= self.fixed_update_period {
+    //         application_state_flow = state.on_fixed_update(self.fixed_update_period)?;
+    //         self.last_fixed_update_time += self.fixed_update_period;
+    //     }
+
+    //     let time_since_last_variable_update = current_time - self.last_variable_update_time;
+    //     if time_since_last_variable_update > self.variable_update_min_period {
+    //         state.on_variable_update(time_since_last_variable_update)?;
+    //         self.last_variable_update_time = current_time;
+    //     }
+
+    //     state.on_main_events_cleared()?;
+
+    //     Ok(application_state_flow)
+    // }
 }
 
 #[derive(Clone)]
@@ -350,8 +444,8 @@ impl KeyboardState {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::EventHandler;
+    use super::*;
 
     #[derive(Debug, PartialEq, Clone)]
     enum MyError {}
@@ -377,7 +471,7 @@ mod tests {
         }
     }
 
-    impl ApplicationImpl<MyError, ()> for MyEventHandler {
+    impl ApplicationInitializer<MyError, ()> for MyEventHandler {
         fn new(_: &os::EventLoop<()>) -> Result<Self, MyError> {
             Ok(Self {})
         }

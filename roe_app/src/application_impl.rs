@@ -1,12 +1,15 @@
-use super::EventHandler;
+use super::ApplicationState;
 
 use roe_os as os;
 
-pub trait ApplicationImpl<ErrorType, CustomEventType> 
+// TODO: rename file.
+// TODO: Maybe replace with lambda?
+pub trait ApplicationInitializer<ErrorType, CustomEventType>
 where
-    Self: std::marker::Sized + EventHandler<ErrorType, CustomEventType>,
     ErrorType: std::fmt::Display + std::error::Error + 'static,
     CustomEventType: 'static,
 {
-    fn new(event_loop: &os::EventLoop<CustomEventType>) -> Result<Self, ErrorType>;
+    fn create_initial_state(
+        event_loop: &os::EventLoop<CustomEventType>,
+    ) -> Result<Box<dyn ApplicationState<ErrorType, CustomEventType>>, ErrorType>;
 }

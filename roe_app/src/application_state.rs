@@ -5,6 +5,7 @@ pub enum ApplicationStateFlow<ErrorType, CustomEventType> {
     Pop,
     Push(Box<dyn ApplicationState<ErrorType, CustomEventType>>),
     Change(Box<dyn ApplicationState<ErrorType, CustomEventType>>),
+    Exit,
 }
 
 pub trait ApplicationState<ErrorType, CustomEventType>
