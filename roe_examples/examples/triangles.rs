@@ -2,7 +2,7 @@ use std::iter::once;
 
 use rand::Rng;
 
-use roe_app::{Application, ControlFlow, EventHandler};
+use roe_app::{Application, ApplicationState};
 
 use roe_os as os;
 
@@ -37,32 +37,7 @@ struct ApplicationImpl {
 impl ApplicationImpl {
     const SAMPLE_COUNT: SampleCount = 4;
 
-    pub fn update_angle(&mut self, dt: std::time::Duration) {
-        const ANGULAR_SPEED: f32 = std::f32::consts::PI * 0.25;
-        self.current_angle = self.current_angle + ANGULAR_SPEED * dt.as_secs_f32();
-        while self.current_angle >= std::f32::consts::PI * 2. {
-            self.current_angle = self.current_angle - std::f32::consts::PI * 2.;
-        }
-    }
-
-    pub fn generate_push_constant(&self) -> roe_shape2::PushConstants {
-        let object_transform = Similarity::<f32>::from_parts(
-            Translation::new(self.current_position.x, self.current_position.y),
-            UnitComplex::new(self.current_angle),
-            self.current_scaling,
-        );
-        roe_shape2::PushConstants::new(
-            &convert(self.projection_transform * object_transform),
-            self.current_color,
-        )
-    }
-}
-
-impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
-    type Error = ApplicationError;
-    type CustomEvent = ApplicationEvent;
-
-    fn new(event_loop: &os::EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
+    fn new(event_loop: &os::EventLoop<ApplicationEvent>) -> Result<Self, ApplicationError> {
         let window = os::WindowBuilder::new()
             .with_inner_size(os::Size::Physical(os::PhysicalSize {
                 width: 800,
@@ -140,11 +115,33 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         })
     }
 
+    pub fn update_angle(&mut self, dt: std::time::Duration) {
+        const ANGULAR_SPEED: f32 = std::f32::consts::PI * 0.25;
+        self.current_angle = self.current_angle + ANGULAR_SPEED * dt.as_secs_f32();
+        while self.current_angle >= std::f32::consts::PI * 2. {
+            self.current_angle = self.current_angle - std::f32::consts::PI * 2.;
+        }
+    }
+
+    pub fn generate_push_constant(&self) -> roe_shape2::PushConstants {
+        let object_transform = Similarity::<f32>::from_parts(
+            Translation::new(self.current_position.x, self.current_position.y),
+            UnitComplex::new(self.current_angle),
+            self.current_scaling,
+        );
+        roe_shape2::PushConstants::new(
+            &convert(self.projection_transform * object_transform),
+            self.current_color,
+        )
+    }
+}
+
+impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
     fn on_resized(
         &mut self,
         wid: os::WindowId,
         size: os::PhysicalSize<u32>,
-    ) -> Result<ControlFlow, Self::Error> {
+    ) -> Result<(), ApplicationError> {
         if wid == self.window.id() {
             self.window.update_buffer(&self.instance);
             self.projection_transform = OrthographicProjection::new(
@@ -155,7 +152,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             )
             .to_projective();
         }
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 
     fn on_scale_factor_changed<'a>(
@@ -163,7 +160,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         wid: os::WindowId,
         _scale_factor: f64,
         size: &'a mut os::PhysicalSize<u32>,
-    ) -> Result<ControlFlow, Self::Error> {
+    ) -> Result<(), ApplicationError> {
         if wid == self.window.id() {
             self.window.update_buffer(&self.instance);
             self.projection_transform = OrthographicProjection::new(
@@ -174,7 +171,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             )
             .to_projective();
         }
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 
     fn on_cursor_moved(
@@ -182,12 +179,12 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         wid: os::WindowId,
         _device_id: os::DeviceId,
         position: os::PhysicalPosition<f64>,
-    ) -> Result<ControlFlow, Self::Error> {
+    ) -> Result<(), ApplicationError> {
         if wid == self.window.id() {
             self.current_position.x = position.x as f32;
             self.current_position.y = position.y as f32;
         }
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 
     fn on_mouse_button_released(
@@ -195,7 +192,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         wid: os::WindowId,
         _device_id: os::DeviceId,
         button: os::MouseButton,
-    ) -> Result<ControlFlow, Self::Error> {
+    ) -> Result<(), ApplicationError> {
         if wid == self.window.id() {
             if button == os::MouseButton::Left {
                 self.saved_triangle_constants
@@ -207,10 +204,10 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                 self.current_color.b = rng.gen_range(0.0..1.0);
             }
         }
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 
-    fn on_variable_update(&mut self, dt: std::time::Duration) -> Result<ControlFlow, Self::Error> {
+    fn on_variable_update(&mut self, dt: std::time::Duration) -> Result<(), ApplicationError> {
         self.update_angle(dt);
 
         let mut draw_static_triangle_params =
@@ -264,12 +261,13 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             cmd_sequence.submit(&self.instance);
             frame.present();
         }
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 }
 
 fn main() {
     const FIXED_FRAMERATE: u64 = 30;
     const VARIABLE_FRAMERATE_CAP: u64 = 60;
-    Application::<ApplicationImpl, _, _>::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP)).run();
+    Application::<_, _>::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP))
+        .run(|event_queue| Ok(Box::new(ApplicationImpl::new(event_queue)?)));
 }
