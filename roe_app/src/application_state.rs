@@ -1,12 +1,11 @@
 use roe_os as os;
 
-// TODO: rename to something more appropriate
-pub enum ApplicationStateFlow<ErrorType, CustomEventType> {
+pub enum ControlFlow<ErrorType, CustomEventType> {
     Continue,
-    Pop,
-    Push(Box<dyn ApplicationState<ErrorType, CustomEventType>>),
-    PopPush(Box<dyn ApplicationState<ErrorType, CustomEventType>>),
     Exit,
+    PopState,
+    PushState(Box<dyn ApplicationState<ErrorType, CustomEventType>>),
+    PopPushState(Box<dyn ApplicationState<ErrorType, CustomEventType>>),
 }
 
 pub trait ApplicationState<ErrorType, CustomEventType>
@@ -296,8 +295,8 @@ where
     fn on_fixed_update(
         &mut self,
         _dt: std::time::Duration,
-    ) -> Result<ApplicationStateFlow<ErrorType, CustomEventType>, ErrorType> {
-        Ok(ApplicationStateFlow::Continue)
+    ) -> Result<ControlFlow<ErrorType, CustomEventType>, ErrorType> {
+        Ok(ControlFlow::Continue)
     }
 
     fn on_variable_update(&mut self, _dt: std::time::Duration) -> Result<(), ErrorType> {

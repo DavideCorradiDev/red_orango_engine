@@ -1,4 +1,4 @@
-use super::{ApplicationState, ApplicationStateFlow};
+use super::{ApplicationState, ControlFlow};
 
 use roe_os as os;
 
@@ -86,7 +86,6 @@ where
         self.last_fixed_update_time = current_time;
         self.last_variable_update_time = current_time;
 
-        // TODO: remove the custom ControlFlow enum.
         event_loop.run(
             move |event, _, control_flow| match self.handle_event(event) {
                 Ok(flow) => *control_flow = flow,
@@ -112,8 +111,7 @@ where
         &mut self,
         event: os::Event<CustomEventType>,
     ) -> Result<os::ControlFlow, ErrorType> {
-        let mut application_state_flow =
-            ApplicationStateFlow::<ErrorType, CustomEventType>::Continue;
+        let mut application_state_flow = ControlFlow::Continue;
 
         match self.state_stack.last_mut() {
             Some(state) => {
@@ -170,14 +168,12 @@ where
                     os::Event::WindowEvent { window_id, event } => match event {
                         os::WindowEvent::CloseRequested => {
                             state.on_close_requested(window_id)?;
-                            application_state_flow =
-                                ApplicationStateFlow::<ErrorType, CustomEventType>::Exit;
+                            application_state_flow = ControlFlow::Exit;
                         }
 
                         os::WindowEvent::Destroyed => {
                             state.on_destroyed(window_id)?;
-                            application_state_flow =
-                                ApplicationStateFlow::<ErrorType, CustomEventType>::Exit;
+                            application_state_flow = ControlFlow::Exit;
                         }
 
                         os::WindowEvent::Focused(focused) => {
@@ -390,9 +386,9 @@ where
         }
 
         match application_state_flow {
-            ApplicationStateFlow::Exit => Ok(os::ControlFlow::Exit),
-            ApplicationStateFlow::Continue => Ok(os::ControlFlow::Poll),
-            ApplicationStateFlow::Pop => {
+            ControlFlow::Exit => Ok(os::ControlFlow::Exit),
+            ControlFlow::Continue => Ok(os::ControlFlow::Poll),
+            ControlFlow::PopState => {
                 self.state_stack.pop();
                 if self.state_stack.is_empty() {
                     Ok(os::ControlFlow::Exit)
@@ -400,11 +396,11 @@ where
                     Ok(os::ControlFlow::Poll)
                 }
             }
-            ApplicationStateFlow::Push(new_state) => {
+            ControlFlow::PushState(new_state) => {
                 self.state_stack.push(new_state);
                 Ok(os::ControlFlow::Poll)
             }
-            ApplicationStateFlow::PopPush(new_state) => {
+            ControlFlow::PopPushState(new_state) => {
                 self.state_stack.pop();
                 self.state_stack.push(new_state);
                 Ok(os::ControlFlow::Poll)
