@@ -1,6 +1,5 @@
 use super::{ControlFlow, EventHandler};
 
-use os::EventLoopAnyThread;
 use roe_os as os;
 
 use std::collections::BTreeMap;
@@ -60,9 +59,19 @@ where
         }
     }
 
+    #[cfg(test)]
+    fn create_event_loop() -> os::EventLoop<EventHandlerType::CustomEvent> {
+        use os::EventLoopAnyThread;
+        os::EventLoop::<EventHandlerType::CustomEvent>::new_any_thread()
+    }
+
+    #[cfg(not(test))]
+    fn create_event_loop() -> os::EventLoop<EventHandlerType::CustomEvent> {
+        os::EventLoop::<EventHandlerType::CustomEvent>::with_user_event()
+    }
+
     pub fn run(mut self) {
-        // TMP_TODO: fix here.
-        let event_loop = os::EventLoop::<EventHandlerType::CustomEvent>::new_test_safe();
+        let event_loop = Self::create_event_loop();
         let mut event_handler = EventHandlerType::new(&event_loop)
             .expect("Failed to initialize the application event handler");
 
