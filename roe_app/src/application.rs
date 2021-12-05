@@ -278,6 +278,7 @@ where
         }
     }
 
+    // TODO: rename eh to impl or something.
     fn update(
         &mut self,
         eh: &mut ApplicationImplType,
