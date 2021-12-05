@@ -5,4 +5,4 @@ name = "roe_app"
 version = "0.1.0"
 
 [dependencies]
-winit = "0.25.*"
+roe_os = {path = "../roe_os"}

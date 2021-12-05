@@ -1,14 +1,9 @@
-extern crate winit;
+use super::{ControlFlow, EventHandler};
+
+use roe_os as os;
+use os::EventLoopAnyThread;
 
 use std::collections::BTreeMap;
-
-use crate::{
-    event::{
-        keyboard::ScanCode, ControlFlow, DeviceEvent, DeviceId, ElementState, Event, EventHandler,
-        EventLoop, EventLoopAnyThread, WindowEvent,
-    },
-    window::{PhysicalPosition, WindowId},
-};
 
 #[derive(Clone)]
 pub struct Application<EventHandlerType, Error, CustomEvent>
@@ -66,7 +61,7 @@ where
     }
 
     pub fn run(mut self) {
-        let event_loop = EventLoop::<EventHandlerType::CustomEvent>::new_test_safe();
+        let event_loop = os::EventLoop::<EventHandlerType::CustomEvent>::new_test_safe();
         let mut event_handler = EventHandlerType::new(&event_loop)
             .expect("Failed to initialize the application event handler");
 
@@ -77,12 +72,12 @@ where
         event_loop.run(move |event, _, control_flow| {
             match self.handle_event(&mut event_handler, event) {
                 Ok(flow) => match flow {
-                    ControlFlow::Continue => *control_flow = winit::event_loop::ControlFlow::Poll,
-                    ControlFlow::Exit => *control_flow = winit::event_loop::ControlFlow::Exit,
+                    ControlFlow::Continue => *control_flow = os::ControlFlow::Poll,
+                    ControlFlow::Exit => *control_flow = os::ControlFlow::Exit,
                 },
                 Err(e) => {
                     event_handler.on_error(e);
-                    *control_flow = winit::event_loop::ControlFlow::Exit;
+                    *control_flow = os::ControlFlow::Exit;
                 }
             }
         });
@@ -91,31 +86,31 @@ where
     fn handle_event(
         &mut self,
         eh: &mut EventHandlerType,
-        event: Event<EventHandlerType::CustomEvent>,
+        event: os::Event<EventHandlerType::CustomEvent>,
     ) -> Result<ControlFlow, EventHandlerType::Error> {
         match event {
-            Event::NewEvents(start_cause) => eh.on_new_events(start_cause),
+            os::Event::NewEvents(start_cause) => eh.on_new_events(start_cause),
 
-            Event::UserEvent(event) => eh.on_custom_event(event),
+            os::Event::UserEvent(event) => eh.on_custom_event(event),
 
-            Event::Suspended => eh.on_suspended(),
+            os::Event::Suspended => eh.on_suspended(),
 
-            Event::Resumed => eh.on_resumed(),
+            os::Event::Resumed => eh.on_resumed(),
 
-            Event::MainEventsCleared => self.update(eh),
+            os::Event::MainEventsCleared => self.update(eh),
 
-            Event::RedrawRequested(window_id) => eh.on_redraw_requested(window_id),
+            os::Event::RedrawRequested(window_id) => eh.on_redraw_requested(window_id),
 
-            Event::RedrawEventsCleared => eh.on_redraw_events_cleared(),
+            os::Event::RedrawEventsCleared => eh.on_redraw_events_cleared(),
 
-            Event::LoopDestroyed => eh.on_event_loop_destroyed(),
+            os::Event::LoopDestroyed => eh.on_event_loop_destroyed(),
 
-            Event::WindowEvent { window_id, event } => match event {
-                WindowEvent::CloseRequested => eh.on_close_requested(window_id),
+            os::Event::WindowEvent { window_id, event } => match event {
+                os::WindowEvent::CloseRequested => eh.on_close_requested(window_id),
 
-                WindowEvent::Destroyed => eh.on_destroyed(window_id),
+                os::WindowEvent::Destroyed => eh.on_destroyed(window_id),
 
-                WindowEvent::Focused(focused) => {
+                os::WindowEvent::Focused(focused) => {
                     if focused {
                         eh.on_focus_gained(window_id)
                     } else {
@@ -123,24 +118,24 @@ where
                     }
                 }
 
-                WindowEvent::Resized(size) => eh.on_resized(window_id, size),
+                os::WindowEvent::Resized(size) => eh.on_resized(window_id, size),
 
-                WindowEvent::ScaleFactorChanged {
+                os::WindowEvent::ScaleFactorChanged {
                     scale_factor,
                     new_inner_size,
                 } => eh.on_scale_factor_changed(window_id, scale_factor, new_inner_size),
 
-                WindowEvent::Moved(pos) => eh.on_moved(window_id, pos),
+                os::WindowEvent::Moved(pos) => eh.on_moved(window_id, pos),
 
-                WindowEvent::ReceivedCharacter(c) => eh.on_received_character(window_id, c),
+                os::WindowEvent::ReceivedCharacter(c) => eh.on_received_character(window_id, c),
 
-                WindowEvent::DroppedFile(path) => eh.on_hovered_file_dropped(window_id, path),
+                os::WindowEvent::DroppedFile(path) => eh.on_hovered_file_dropped(window_id, path),
 
-                WindowEvent::HoveredFile(path) => eh.on_hovered_file_entered(window_id, path),
+                os::WindowEvent::HoveredFile(path) => eh.on_hovered_file_entered(window_id, path),
 
-                WindowEvent::HoveredFileCancelled => eh.on_hovered_file_left(window_id),
+                os::WindowEvent::HoveredFileCancelled => eh.on_hovered_file_left(window_id),
 
-                WindowEvent::KeyboardInput {
+                os::WindowEvent::KeyboardInput {
                     device_id,
                     input,
                     is_synthetic,
@@ -151,7 +146,7 @@ where
                     let is_repeat = *last_key_state == input.state;
                     *last_key_state = input.state;
                     match input.state {
-                        ElementState::Pressed => eh.on_key_pressed(
+                        os::ElementState::Pressed => eh.on_key_pressed(
                             window_id,
                             device_id,
                             input.scancode,
@@ -159,7 +154,7 @@ where
                             is_synthetic,
                             is_repeat,
                         ),
-                        ElementState::Released => eh.on_key_released(
+                        os::ElementState::Released => eh.on_key_released(
                             window_id,
                             device_id,
                             input.scancode,
@@ -169,42 +164,42 @@ where
                     }
                 }
 
-                WindowEvent::ModifiersChanged(mods) => eh.on_modifiers_changed(window_id, mods),
+                os::WindowEvent::ModifiersChanged(mods) => eh.on_modifiers_changed(window_id, mods),
 
-                WindowEvent::CursorMoved {
+                os::WindowEvent::CursorMoved {
                     device_id,
                     position,
                     ..
                 } => eh.on_cursor_moved(window_id, device_id, position),
 
-                WindowEvent::CursorEntered { device_id } => {
+                os::WindowEvent::CursorEntered { device_id } => {
                     eh.on_cursor_entered(window_id, device_id)
                 }
 
-                WindowEvent::CursorLeft { device_id } => eh.on_cursor_left(window_id, device_id),
+                os::WindowEvent::CursorLeft { device_id } => eh.on_cursor_left(window_id, device_id),
 
-                WindowEvent::MouseInput {
+                os::WindowEvent::MouseInput {
                     device_id,
                     state,
                     button,
                     ..
                 } => match state {
-                    ElementState::Pressed => {
+                    os::ElementState::Pressed => {
                         eh.on_mouse_button_pressed(window_id, device_id, button)
                     }
-                    ElementState::Released => {
+                    os::ElementState::Released => {
                         eh.on_mouse_button_released(window_id, device_id, button)
                     }
                 },
 
-                WindowEvent::MouseWheel {
+                os::WindowEvent::MouseWheel {
                     device_id,
                     delta,
                     phase,
                     ..
                 } => eh.on_scroll(window_id, device_id, delta, phase),
 
-                WindowEvent::Touch(touch) => eh.on_touch(
+                os::WindowEvent::Touch(touch) => eh.on_touch(
                     window_id,
                     touch.device_id,
                     touch.phase,
@@ -213,53 +208,53 @@ where
                     touch.id,
                 ),
 
-                WindowEvent::AxisMotion {
+                os::WindowEvent::AxisMotion {
                     device_id,
                     axis,
                     value,
                 } => eh.on_axis_moved(window_id, device_id, axis, value),
 
                 // Not universally supported.
-                WindowEvent::TouchpadPressure { .. } => Ok(ControlFlow::Continue),
+                os::WindowEvent::TouchpadPressure { .. } => Ok(ControlFlow::Continue),
 
                 // Not universally supported.
-                WindowEvent::ThemeChanged(_) => Ok(ControlFlow::Continue),
+                os::WindowEvent::ThemeChanged(_) => Ok(ControlFlow::Continue),
             },
 
-            Event::DeviceEvent { device_id, event } => match event {
-                DeviceEvent::Added => eh.on_device_added(device_id),
+            os::Event::DeviceEvent { device_id, event } => match event {
+                os::DeviceEvent::Added => eh.on_device_added(device_id),
 
-                DeviceEvent::Removed => eh.on_device_removed(device_id),
+                os::DeviceEvent::Removed => eh.on_device_removed(device_id),
 
-                DeviceEvent::MouseMotion { delta } => {
-                    eh.on_device_cursor_moved(device_id, PhysicalPosition::new(delta.0, delta.1))
+                os::DeviceEvent::MouseMotion { delta } => {
+                    eh.on_device_cursor_moved(device_id, os::PhysicalPosition::new(delta.0, delta.1))
                 }
 
-                DeviceEvent::MouseWheel { delta } => eh.on_device_scroll(device_id, delta),
+                os::DeviceEvent::MouseWheel { delta } => eh.on_device_scroll(device_id, delta),
 
-                DeviceEvent::Motion { axis, value } => {
+                os::DeviceEvent::Motion { axis, value } => {
                     eh.on_device_axis_moved(device_id, axis, value)
                 }
 
-                DeviceEvent::Button { button, state } => match state {
-                    ElementState::Pressed => eh.on_device_button_pressed(device_id, button),
-                    ElementState::Released => eh.on_device_button_released(device_id, button),
+                os::DeviceEvent::Button { button, state } => match state {
+                    os::ElementState::Pressed => eh.on_device_button_pressed(device_id, button),
+                    os::ElementState::Released => eh.on_device_button_released(device_id, button),
                 },
 
-                DeviceEvent::Key(input) => {
+                os::DeviceEvent::Key(input) => {
                     let last_key_state =
                         self.keyboard_state
                             .key_state(None, device_id, input.scancode);
                     let is_repeat = *last_key_state == input.state;
                     *last_key_state = input.state;
                     match input.state {
-                        ElementState::Pressed => eh.on_device_key_pressed(
+                        os::ElementState::Pressed => eh.on_device_key_pressed(
                             device_id,
                             input.scancode,
                             input.virtual_keycode,
                             is_repeat,
                         ),
-                        ElementState::Released => eh.on_device_key_released(
+                        os::ElementState::Released => eh.on_device_key_released(
                             device_id,
                             input.scancode,
                             input.virtual_keycode,
@@ -267,7 +262,7 @@ where
                     }
                 }
 
-                DeviceEvent::Text { codepoint } => eh.on_device_text(device_id, codepoint),
+                os::DeviceEvent::Text { codepoint } => eh.on_device_text(device_id, codepoint),
             },
         }
     }
@@ -307,7 +302,7 @@ where
 
 #[derive(Clone)]
 struct KeyboardState {
-    state: BTreeMap<(Option<WindowId>, DeviceId), [ElementState; 128]>,
+    state: BTreeMap<(Option<os::WindowId>, os::DeviceId), [os::ElementState; 128]>,
 }
 
 impl KeyboardState {
@@ -319,13 +314,13 @@ impl KeyboardState {
 
     pub fn key_state(
         &mut self,
-        window_id: Option<WindowId>,
-        device_id: DeviceId,
-        scan_code: ScanCode,
-    ) -> &mut ElementState {
+        window_id: Option<os::WindowId>,
+        device_id: os::DeviceId,
+        scan_code: os::ScanCode,
+    ) -> &mut os::ElementState {
         let key = (window_id, device_id);
         if !self.state.contains_key(&key) {
-            self.state.insert(key, [ElementState::Released; 128]);
+            self.state.insert(key, [os::ElementState::Released; 128]);
         }
         // Guaranteed to succeed due to the previous lines.
         let keyboard_state = self.state.get_mut(&key).unwrap();
@@ -367,7 +362,7 @@ mod tests {
         type Error = MyError;
         type CustomEvent = ();
 
-        fn new(_: &EventLoop<()>) -> Result<Self, Self::Error> {
+        fn new(_: &os::EventLoop<()>) -> Result<Self, Self::Error> {
             Ok(Self {})
         }
 

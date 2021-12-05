@@ -1,9 +1,4 @@
-use super::{
-    controller,
-    event::{EventLoopStartCause, ScrollDelta},
-    keyboard, mouse, touch, DeviceId, EventLoop,
-};
-use crate::window::{PhysicalPosition, PhysicalSize, WindowId};
+use roe_os as os;
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum ControlFlow {
@@ -20,52 +15,52 @@ where
     type Error: std::fmt::Display + std::error::Error + 'static;
     type CustomEvent: 'static;
 
-    fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error>;
+    fn new(event_loop: &os::EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error>;
 
-    fn on_close_requested(&mut self, _wid: WindowId) -> Result<ControlFlow, Self::Error> {
+    fn on_close_requested(&mut self, _wid: os::WindowId) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Exit)
     }
 
-    fn on_destroyed(&mut self, _wid: WindowId) -> Result<ControlFlow, Self::Error> {
+    fn on_destroyed(&mut self, _wid: os::WindowId) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Exit)
     }
 
-    fn on_focus_gained(&mut self, _wid: WindowId) -> Result<ControlFlow, Self::Error> {
+    fn on_focus_gained(&mut self, _wid: os::WindowId) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
-    fn on_focus_lost(&mut self, _wid: WindowId) -> Result<ControlFlow, Self::Error> {
+    fn on_focus_lost(&mut self, _wid: os::WindowId) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_resized(
         &mut self,
-        _wid: WindowId,
-        _size: PhysicalSize<u32>,
+        _wid: os::WindowId,
+        _size: os::PhysicalSize<u32>,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_scale_factor_changed<'a>(
         &mut self,
-        _wid: WindowId,
+        _wid: os::WindowId,
         _scale_factor: f64,
-        _new_inner_size: &'a mut PhysicalSize<u32>,
+        _new_inner_size: &'a mut os::PhysicalSize<u32>,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_moved(
         &mut self,
-        _wid: WindowId,
-        _position: PhysicalPosition<i32>,
+        _wid: os::WindowId,
+        _position: os::PhysicalPosition<i32>,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_received_character(
         &mut self,
-        _wid: WindowId,
+        _wid: os::WindowId,
         _c: char,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
@@ -73,7 +68,7 @@ where
 
     fn on_hovered_file_dropped(
         &mut self,
-        _wid: WindowId,
+        _wid: os::WindowId,
         _path: std::path::PathBuf,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
@@ -81,22 +76,22 @@ where
 
     fn on_hovered_file_entered(
         &mut self,
-        _wid: WindowId,
+        _wid: os::WindowId,
         _path: std::path::PathBuf,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
-    fn on_hovered_file_left(&mut self, _wid: WindowId) -> Result<ControlFlow, Self::Error> {
+    fn on_hovered_file_left(&mut self, _wid: os::WindowId) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_key_pressed(
         &mut self,
-        _wid: WindowId,
-        _device_id: DeviceId,
-        _scan_code: keyboard::ScanCode,
-        _key_code: Option<keyboard::KeyCode>,
+        _wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _scan_code: os::ScanCode,
+        _key_code: Option<os::KeyCode>,
         _is_synthetic: bool,
         _is_repeat: bool,
     ) -> Result<ControlFlow, Self::Error> {
@@ -105,10 +100,10 @@ where
 
     fn on_key_released(
         &mut self,
-        _wid: WindowId,
-        _device_id: DeviceId,
-        _scan_code: keyboard::ScanCode,
-        _key_code: Option<keyboard::KeyCode>,
+        _wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _scan_code: os::ScanCode,
+        _key_code: Option<os::KeyCode>,
         _is_synthetic: bool,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
@@ -116,72 +111,72 @@ where
 
     fn on_modifiers_changed(
         &mut self,
-        _wid: WindowId,
-        _modifiers_state: keyboard::ModifiersState,
+        _wid: os::WindowId,
+        _modifiers_state: os::ModifiersState,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_cursor_moved(
         &mut self,
-        _wid: WindowId,
-        _device_id: DeviceId,
-        _position: PhysicalPosition<f64>,
+        _wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _position: os::PhysicalPosition<f64>,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_cursor_entered(
         &mut self,
-        _wid: WindowId,
-        _device_id: DeviceId,
+        _wid: os::WindowId,
+        _device_id: os::DeviceId,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_cursor_left(
         &mut self,
-        _wid: WindowId,
-        _device_id: DeviceId,
+        _wid: os::WindowId,
+        _device_id: os::DeviceId,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_mouse_button_pressed(
         &mut self,
-        _wid: WindowId,
-        _device_id: DeviceId,
-        _button: mouse::Button,
+        _wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _button: os::MouseButton,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_mouse_button_released(
         &mut self,
-        _wid: WindowId,
-        _device_id: DeviceId,
-        _button: mouse::Button,
+        _wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _button: os::MouseButton,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_scroll(
         &mut self,
-        _wid: WindowId,
-        _device_id: DeviceId,
-        _delta: ScrollDelta,
-        _phase: touch::TouchPhase,
+        _wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _delta: os::MouseScrollDelta,
+        _phase: os::TouchPhase,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_touch(
         &mut self,
-        _wid: WindowId,
-        _device_id: DeviceId,
-        _phase: touch::TouchPhase,
-        _location: PhysicalPosition<f64>,
-        _force: Option<touch::Force>,
+        _wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _phase: os::TouchPhase,
+        _location: os::PhysicalPosition<f64>,
+        _force: Option<os::TouchForce>,
         _id: u64,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
@@ -189,42 +184,42 @@ where
 
     fn on_axis_moved(
         &mut self,
-        _wid: WindowId,
-        _device_id: DeviceId,
-        _axis: controller::AxisId,
+        _wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _axis: os::AxisId,
         _value: f64,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
-    fn on_device_added(&mut self, _device_id: DeviceId) -> Result<ControlFlow, Self::Error> {
+    fn on_device_added(&mut self, _device_id: os::DeviceId) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
-    fn on_device_removed(&mut self, _device_id: DeviceId) -> Result<ControlFlow, Self::Error> {
+    fn on_device_removed(&mut self, _device_id: os::DeviceId) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_device_cursor_moved(
         &mut self,
-        _device_id: DeviceId,
-        _position_delta: PhysicalPosition<f64>,
+        _device_id: os::DeviceId,
+        _position_delta: os::PhysicalPosition<f64>,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_device_scroll(
         &mut self,
-        _device_id: DeviceId,
-        _scroll_delta: ScrollDelta,
+        _device_id: os::DeviceId,
+        _scroll_delta: os::MouseScrollDelta,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_device_axis_moved(
         &mut self,
-        _device_id: DeviceId,
-        _axis: controller::AxisId,
+        _device_id: os::DeviceId,
+        _axis: os::AxisId,
         _value: f64,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
@@ -232,25 +227,25 @@ where
 
     fn on_device_button_pressed(
         &mut self,
-        _device_id: DeviceId,
-        _button: controller::ButtonId,
+        _device_id: os::DeviceId,
+        _button: os::ButtonId,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_device_button_released(
         &mut self,
-        _device_id: DeviceId,
-        _button: controller::ButtonId,
+        _device_id: os::DeviceId,
+        _button: os::ButtonId,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_device_key_pressed(
         &mut self,
-        _device_id: DeviceId,
-        _scan_code: keyboard::ScanCode,
-        _key_code: Option<keyboard::KeyCode>,
+        _device_id: os::DeviceId,
+        _scan_code: os::ScanCode,
+        _key_code: Option<os::KeyCode>,
         _is_repeat: bool,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
@@ -258,16 +253,16 @@ where
 
     fn on_device_key_released(
         &mut self,
-        _device_id: DeviceId,
-        _scan_code: keyboard::ScanCode,
-        _key_code: Option<keyboard::KeyCode>,
+        _device_id: os::DeviceId,
+        _scan_code: os::ScanCode,
+        _key_code: Option<os::KeyCode>,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 
     fn on_device_text(
         &mut self,
-        _device_id: DeviceId,
+        _device_id: os::DeviceId,
         _codepoint: char,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
@@ -279,7 +274,7 @@ where
 
     fn on_new_events(
         &mut self,
-        _start_cause: EventLoopStartCause,
+        _start_cause: os::EventLoopStartCause,
     ) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
@@ -288,7 +283,7 @@ where
         Ok(ControlFlow::Continue)
     }
 
-    fn on_redraw_requested(&mut self, _wid: WindowId) -> Result<ControlFlow, Self::Error> {
+    fn on_redraw_requested(&mut self, _wid: os::WindowId) -> Result<ControlFlow, Self::Error> {
         Ok(ControlFlow::Continue)
     }
 

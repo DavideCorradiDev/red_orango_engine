@@ -1,4 +1,5 @@
-pub mod application;
-pub mod event;
-pub mod monitor;
-pub mod window;
+mod application;
+pub use application::*;
+
+mod event_handler;
+pub use event_handler::*;
