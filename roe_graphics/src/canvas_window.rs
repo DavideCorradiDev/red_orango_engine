@@ -251,10 +251,10 @@ impl Canvas for CanvasWindow {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::InstanceDescriptor;
+    use super::*;
     use galvanic_assert::{matchers::*, *};
-    use os::{EventLoopAnyThread};
+    use os::EventLoopAnyThread;
 
     fn create_window(
         size: os::PhysicalSize<u32>,

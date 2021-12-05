@@ -674,11 +674,11 @@ pub trait Canvas {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::InstanceDescriptor;
+    use super::*;
     use galvanic_assert::{matchers::*, *};
+    use os::EventLoopAnyThread;
     use roe_os as os;
-    use os::{EventLoopAnyThread};
 
     #[test]
     #[serial_test::serial]

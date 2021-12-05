@@ -669,7 +669,7 @@ impl From<wgpu::RequestDeviceError> for InstanceCreationError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use os::{EventLoopAnyThread};
+    use os::EventLoopAnyThread;
 
     #[test]
     #[serial_test::serial]

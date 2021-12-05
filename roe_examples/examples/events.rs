@@ -1,6 +1,6 @@
 use roe_app::{Application, ControlFlow, EventHandler};
-use roe_os as os;
 use roe_examples::*;
+use roe_os as os;
 
 #[derive(Debug, Clone, Copy)]
 enum CustomEvent {

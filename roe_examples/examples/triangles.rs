@@ -6,7 +6,6 @@ use roe_app::{Application, ControlFlow, EventHandler};
 
 use roe_os as os;
 
-
 use roe_math::{
     conversion::convert,
     geometry2::{OrthographicProjection, Point, Projective, Similarity, Translation, UnitComplex},

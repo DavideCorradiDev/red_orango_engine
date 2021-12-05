@@ -1,7 +1,7 @@
 use super::{ControlFlow, EventHandler};
 
-use roe_os as os;
 use os::EventLoopAnyThread;
+use roe_os as os;
 
 use std::collections::BTreeMap;
 
@@ -177,7 +177,9 @@ where
                     eh.on_cursor_entered(window_id, device_id)
                 }
 
-                os::WindowEvent::CursorLeft { device_id } => eh.on_cursor_left(window_id, device_id),
+                os::WindowEvent::CursorLeft { device_id } => {
+                    eh.on_cursor_left(window_id, device_id)
+                }
 
                 os::WindowEvent::MouseInput {
                     device_id,
@@ -227,9 +229,8 @@ where
 
                 os::DeviceEvent::Removed => eh.on_device_removed(device_id),
 
-                os::DeviceEvent::MouseMotion { delta } => {
-                    eh.on_device_cursor_moved(device_id, os::PhysicalPosition::new(delta.0, delta.1))
-                }
+                os::DeviceEvent::MouseMotion { delta } => eh
+                    .on_device_cursor_moved(device_id, os::PhysicalPosition::new(delta.0, delta.1)),
 
                 os::DeviceEvent::MouseWheel { delta } => eh.on_device_scroll(device_id, delta),
 
