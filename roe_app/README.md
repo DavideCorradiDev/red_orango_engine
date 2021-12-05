@@ -1,2 +1,2 @@
-# Red Orango Engine application library
-A game loop implementation in Rust
+# Red Orango Engine Operating System library
+Interface with the OS.
