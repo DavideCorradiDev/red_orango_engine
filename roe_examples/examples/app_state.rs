@@ -75,9 +75,8 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for StateA {
                     os::KeyCode::X => self.control_flow = ControlFlow::Exit,
                     os::KeyCode::Down => self.control_flow = ControlFlow::PopState,
                     os::KeyCode::Up => {
-                        self.control_flow = ControlFlow::PushState(Box::new(StateL::new(
-                            Rc::clone(&self.app_data),
-                        )))
+                        self.control_flow =
+                            ControlFlow::PushState(Box::new(StateL::new(Rc::clone(&self.app_data))))
                     }
                     os::KeyCode::Right => {
                         self.control_flow = ControlFlow::PopPushState(Box::new(StateB::new(
@@ -148,9 +147,8 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for StateB {
                     os::KeyCode::X => self.control_flow = ControlFlow::Exit,
                     os::KeyCode::Down => self.control_flow = ControlFlow::PopState,
                     os::KeyCode::Up => {
-                        self.control_flow = ControlFlow::PushState(Box::new(StateL::new(
-                            Rc::clone(&self.app_data),
-                        )))
+                        self.control_flow =
+                            ControlFlow::PushState(Box::new(StateL::new(Rc::clone(&self.app_data))))
                     }
                     os::KeyCode::Left => {
                         self.control_flow = ControlFlow::PopPushState(Box::new(StateA::new(
@@ -192,7 +190,9 @@ impl StateC {
 
 impl ApplicationState<ApplicationError, ApplicationEvent> for StateC {
     fn on_start(&mut self) -> Result<(), ApplicationError> {
-        println!("State C - Initialized. Left: Change to state B, Up: push state L, Down: pop, X: exit.");
+        println!(
+            "State C - Initialized. Left: Change to state B, Up: push state L, Down: pop, X: exit."
+        );
         Ok(())
     }
 
@@ -226,9 +226,8 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for StateC {
                     os::KeyCode::X => self.control_flow = ControlFlow::Exit,
                     os::KeyCode::Down => self.control_flow = ControlFlow::PopState,
                     os::KeyCode::Up => {
-                        self.control_flow = ControlFlow::PushState(Box::new(StateL::new(
-                            Rc::clone(&self.app_data),
-                        )))
+                        self.control_flow =
+                            ControlFlow::PushState(Box::new(StateL::new(Rc::clone(&self.app_data))))
                     }
                     os::KeyCode::Left => {
                         self.control_flow = ControlFlow::PopPushState(Box::new(StateB::new(

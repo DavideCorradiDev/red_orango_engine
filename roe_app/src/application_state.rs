@@ -308,10 +308,7 @@ where
         Ok(())
     }
 
-    fn on_fixed_update(
-        &mut self,
-        _dt: std::time::Duration,
-    ) -> Result<(), ErrorType> {
+    fn on_fixed_update(&mut self, _dt: std::time::Duration) -> Result<(), ErrorType> {
         Ok(())
     }
 
