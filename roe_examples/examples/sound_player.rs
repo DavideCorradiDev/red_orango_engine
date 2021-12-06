@@ -1,4 +1,4 @@
-use roe_app::{Application, ApplicationState, ControlFlow};
+use roe_app::{Application, ApplicationState};
 
 use roe_os as os;
 
