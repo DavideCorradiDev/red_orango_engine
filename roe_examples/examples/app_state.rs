@@ -25,15 +25,17 @@ impl ApplicationData {
 
 struct StateA {
     app_data: Rc<ApplicationData>,
-    control_flow: ControlFlow<ApplicationError, ApplicationEvent>
+    control_flow: ControlFlow<ApplicationError, ApplicationEvent>,
 }
 
 impl StateA {
     fn new(app_data: Rc<ApplicationData>) -> Self {
-        Self { app_data, control_flow: ControlFlow::Continue }
+        Self {
+            app_data,
+            control_flow: ControlFlow::Continue,
+        }
     }
 }
-
 
 // TODO: Add state init event.
 // TODO: invalid scan code when pressing numpad enter?
@@ -70,14 +72,10 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for StateA {
         Ok(())
     }
 
-    fn on_fixed_update(
-        &mut self,
-        _dt: std::time::Duration,
-    ) -> Result<ControlFlow<ApplicationError, ApplicationEvent>, ApplicationError> {
-        // TODO: add a different callback to pool for state change requests.
+    fn requested_control_flow(&mut self) -> ControlFlow<ApplicationError, ()> {
         let mut control_flow = ControlFlow::Continue;
         std::mem::swap(&mut control_flow, &mut self.control_flow);
-        Ok(control_flow)
+        control_flow
     }
 }
 

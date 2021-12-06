@@ -128,7 +128,7 @@ where
         &mut self,
         event: os::Event<CustomEventType>,
     ) -> Result<os::ControlFlow, ErrorType> {
-        let mut application_state_flow = ControlFlow::Continue;
+        let mut control_flow = ControlFlow::Continue;
 
         match self.state_stack.last_mut() {
             Some(state) => {
@@ -155,8 +155,8 @@ where
 
                         while current_time - self.last_fixed_update_time >= self.fixed_update_period
                         {
-                            application_state_flow =
-                                state.on_fixed_update(self.fixed_update_period)?;
+                            state.on_fixed_update(self.fixed_update_period)?;
+                            control_flow = state.requested_control_flow();
                             self.last_fixed_update_time += self.fixed_update_period;
                         }
 
@@ -185,12 +185,12 @@ where
                     os::Event::WindowEvent { window_id, event } => match event {
                         os::WindowEvent::CloseRequested => {
                             state.on_close_requested(window_id)?;
-                            application_state_flow = ControlFlow::Exit;
+                            control_flow = ControlFlow::Exit;
                         }
 
                         os::WindowEvent::Destroyed => {
                             state.on_destroyed(window_id)?;
-                            application_state_flow = ControlFlow::Exit;
+                            control_flow = ControlFlow::Exit;
                         }
 
                         os::WindowEvent::Focused(focused) => {
@@ -399,10 +399,11 @@ where
                     },
                 }
             }
+            // TODO: remove this None case.
             None => {}
         }
 
-        match application_state_flow {
+        match control_flow {
             ControlFlow::Exit => {
                 while !self.state_stack.is_empty() {
                     self.pop_state()?;
@@ -669,11 +670,8 @@ mod tests {
     struct MyAppState {}
 
     impl ApplicationState<MyError, ()> for MyAppState {
-        fn on_fixed_update(
-            &mut self,
-            _: std::time::Duration,
-        ) -> Result<ControlFlow<MyError, ()>, MyError> {
-            Ok(ControlFlow::Exit)
+        fn requested_control_flow(&mut self) -> ControlFlow<MyError, ()> {
+            ControlFlow::Exit
         }
     }
 

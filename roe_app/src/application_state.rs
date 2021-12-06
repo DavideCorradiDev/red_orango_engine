@@ -303,12 +303,16 @@ where
     fn on_fixed_update(
         &mut self,
         _dt: std::time::Duration,
-    ) -> Result<ControlFlow<ErrorType, CustomEventType>, ErrorType> {
-        Ok(ControlFlow::Continue)
+    ) -> Result<(), ErrorType> {
+        Ok(())
     }
 
     fn on_variable_update(&mut self, _dt: std::time::Duration) -> Result<(), ErrorType> {
         Ok(())
+    }
+
+    fn requested_control_flow(&mut self) -> ControlFlow<ErrorType, CustomEventType> {
+        ControlFlow::Continue
     }
 
     fn handle_error(&mut self, _error: &ErrorType) -> bool {
