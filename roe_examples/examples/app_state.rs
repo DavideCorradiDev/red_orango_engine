@@ -37,8 +37,6 @@ impl StateA {
     }
 }
 
-// TODO: add docu online
-
 impl ApplicationState<ApplicationError, ApplicationEvent> for StateA {
     fn on_start(&mut self) -> Result<(), ApplicationError> {
         println!("State A - Initialized. Right: Change to state B, Up: push state L, Down: pop, X: exit.");
