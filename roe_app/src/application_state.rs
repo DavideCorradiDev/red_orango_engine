@@ -13,6 +13,14 @@ where
     ErrorType: std::fmt::Display + std::error::Error + 'static,
     CustomEventType: 'static,
 {
+    fn on_start(&mut self) -> Result<(), ErrorType> {
+        Ok(())
+    }
+
+    fn on_end(&mut self) -> Result<(), ErrorType> {
+        Ok(())
+    }
+
     fn on_close_requested(&mut self, _wid: os::WindowId) -> Result<(), ErrorType> {
         Ok(())
     }

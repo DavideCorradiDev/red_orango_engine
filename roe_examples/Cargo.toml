@@ -21,6 +21,10 @@ roe_text = {path = "../roe_text"}
 roe_assets = {path = "../roe_assets"}
 
 [[example]]
+name = "app_state"
+path = "examples/app_state.rs"
+
+[[example]]
 name = "events"
 path = "examples/events.rs"
 

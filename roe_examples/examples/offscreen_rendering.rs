@@ -1,4 +1,4 @@
-use roe_app::{Application, ControlFlow, EventHandler};
+use roe_app::{Application, ApplicationState};
 
 use roe_os as os;
 
@@ -38,38 +38,7 @@ impl ApplicationImpl {
     const SAMPLE_COUNT: SampleCount = 4;
     const SCREENSHOT_PATH: &'static str = "screenshot.png";
 
-    pub fn update_angle(&mut self, dt: std::time::Duration) {
-        const ANGULAR_SPEED: f32 = std::f32::consts::PI * 0.25;
-        self.current_angle = self.current_angle + ANGULAR_SPEED * dt.as_secs_f32();
-        while self.current_angle >= std::f32::consts::PI * 2. {
-            self.current_angle = self.current_angle - std::f32::consts::PI * 2.;
-        }
-    }
-
-    pub fn generate_triangle_push_constants(&self) -> roe_shape2::PushConstants {
-        let projection_transform = OrthographicProjection::new(0., 1., 1., 0.).to_projective();
-        let object_transform = Similarity::<f32>::from_parts(
-            Translation::new(0.5, 0.5),
-            UnitComplex::new(self.current_angle),
-            1.,
-        );
-        roe_shape2::PushConstants::new(
-            &convert(projection_transform * object_transform),
-            *self.color.current_color(),
-        )
-    }
-
-    pub fn generate_blit_push_constants(&self) -> roe_sprite::PushConstants {
-        let projection_transform = OrthographicProjection::new(0., 1., 1., 0.).to_projective();
-        roe_sprite::PushConstants::new(&convert(projection_transform), ColorF32::WHITE)
-    }
-}
-
-impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
-    type Error = ApplicationError;
-    type CustomEvent = ApplicationEvent;
-
-    fn new(event_loop: &os::EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
+    fn new(event_loop: &os::EventLoop<ApplicationEvent>) -> Result<Self, ApplicationError> {
         let window = os::WindowBuilder::new()
             .with_inner_size(os::Size::Physical(os::PhysicalSize {
                 width: 800,
@@ -165,6 +134,34 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         })
     }
 
+    pub fn update_angle(&mut self, dt: std::time::Duration) {
+        const ANGULAR_SPEED: f32 = std::f32::consts::PI * 0.25;
+        self.current_angle = self.current_angle + ANGULAR_SPEED * dt.as_secs_f32();
+        while self.current_angle >= std::f32::consts::PI * 2. {
+            self.current_angle = self.current_angle - std::f32::consts::PI * 2.;
+        }
+    }
+
+    pub fn generate_triangle_push_constants(&self) -> roe_shape2::PushConstants {
+        let projection_transform = OrthographicProjection::new(0., 1., 1., 0.).to_projective();
+        let object_transform = Similarity::<f32>::from_parts(
+            Translation::new(0.5, 0.5),
+            UnitComplex::new(self.current_angle),
+            1.,
+        );
+        roe_shape2::PushConstants::new(
+            &convert(projection_transform * object_transform),
+            *self.color.current_color(),
+        )
+    }
+
+    pub fn generate_blit_push_constants(&self) -> roe_sprite::PushConstants {
+        let projection_transform = OrthographicProjection::new(0., 1., 1., 0.).to_projective();
+        roe_sprite::PushConstants::new(&convert(projection_transform), ColorF32::WHITE)
+    }
+}
+
+impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
     fn on_key_released(
         &mut self,
         wid: os::WindowId,
@@ -172,7 +169,7 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
         _scan_code: os::ScanCode,
         key_code: Option<os::KeyCode>,
         _is_synthetic: bool,
-    ) -> Result<ControlFlow, Self::Error> {
+    ) -> Result<(), ApplicationError> {
         if wid == self.window.id() {
             if let Some(key) = key_code {
                 if key == os::KeyCode::Return {
@@ -185,28 +182,28 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                 }
             }
         }
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 
-    fn on_event_loop_destroyed(&mut self) -> Result<ControlFlow, Self::Error> {
+    fn on_event_loop_destroyed(&mut self) -> Result<(), ApplicationError> {
         if std::path::Path::new(Self::SCREENSHOT_PATH).exists() {
             std::fs::remove_file(Self::SCREENSHOT_PATH).unwrap();
         }
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 
     fn on_resized(
         &mut self,
         wid: os::WindowId,
         _size: os::PhysicalSize<u32>,
-    ) -> Result<ControlFlow, Self::Error> {
+    ) -> Result<(), ApplicationError> {
         if wid == self.window.id() {
             self.window.update_buffer(&self.instance);
         }
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 
-    fn on_variable_update(&mut self, dt: std::time::Duration) -> Result<ControlFlow, Self::Error> {
+    fn on_variable_update(&mut self, dt: std::time::Duration) -> Result<(), ApplicationError> {
         self.color.update(dt);
         self.update_angle(dt);
 
@@ -267,12 +264,13 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
                 frame.present();
             }
         }
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 }
 
 fn main() {
     const FIXED_FRAMERATE: u64 = 30;
     const VARIABLE_FRAMERATE_CAP: u64 = 60;
-    Application::<ApplicationImpl, _, _>::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP)).run();
+    Application::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP))
+        .run(|event_queue| Ok(Box::new(ApplicationImpl::new(event_queue)?)));
 }

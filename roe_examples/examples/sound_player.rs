@@ -1,4 +1,4 @@
-use roe_app::{Application, ControlFlow, EventHandler};
+use roe_app::{Application, ApplicationState, ControlFlow};
 
 use roe_os as os;
 
@@ -17,11 +17,8 @@ struct ApplicationImpl {
     streaming_source: roe_audio::StreamingSource,
 }
 
-impl EventHandler<ApplicationError, ()> for ApplicationImpl {
-    type Error = ApplicationError;
-    type CustomEvent = ();
-
-    fn new(event_loop: &os::EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
+impl ApplicationImpl {
+    fn new(event_loop: &os::EventLoop<ApplicationEvent>) -> Result<Self, ApplicationError> {
         let window = os::WindowBuilder::new()
             .with_title("Sound Player")
             .with_inner_size(os::Size::Physical(os::PhysicalSize {
@@ -55,7 +52,9 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
             streaming_source,
         })
     }
+}
 
+impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
     fn on_key_pressed(
         &mut self,
         wid: os::WindowId,
@@ -64,7 +63,7 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
         key_code: Option<os::KeyCode>,
         _is_synthetic: bool,
         is_repeat: bool,
-    ) -> Result<ControlFlow, Self::Error> {
+    ) -> Result<(), ApplicationError> {
         if !is_repeat && wid == self.window.id() {
             if let Some(key_code) = key_code {
                 if key_code == os::KeyCode::Q {
@@ -125,10 +124,13 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
                 }
             }
         }
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 
-    fn on_fixed_update(&mut self, _: std::time::Duration) -> Result<ControlFlow, Self::Error> {
+    fn on_fixed_update(
+        &mut self,
+        _: std::time::Duration,
+    ) -> Result<ControlFlow<ApplicationError, ApplicationEvent>, ApplicationError> {
         self.streaming_source.update_buffers()?;
         Ok(ControlFlow::Continue)
     }
@@ -137,5 +139,6 @@ impl EventHandler<ApplicationError, ()> for ApplicationImpl {
 fn main() {
     const FIXED_FRAMERATE: u64 = 30;
     const VARIABLE_FRAMERATE_CAP: u64 = 60;
-    Application::<ApplicationImpl, _, _>::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP)).run();
+    Application::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP))
+        .run(|event_queue| Ok(Box::new(ApplicationImpl::new(event_queue)?)));
 }

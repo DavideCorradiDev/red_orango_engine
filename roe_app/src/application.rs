@@ -67,6 +67,24 @@ where
         eprintln!("The application shut down due to an error ({})", error);
     }
 
+    fn push_state(
+        &mut self,
+        mut state: Box<dyn ApplicationState<ErrorType, CustomEventType>>,
+    ) -> Result<(), ErrorType> {
+        state.on_start()?;
+        self.state_stack.push(state);
+        Ok(())
+    }
+
+    fn pop_state(
+        &mut self
+    ) -> Result<(), ErrorType> {
+        if let Some(mut state) = self.state_stack.pop() {
+            state.on_end()?;
+        }
+        Ok(())
+    }
+
     pub fn run(
         mut self,
         initialization_fn: fn(
@@ -77,10 +95,10 @@ where
         >,
     ) {
         let event_loop = Self::create_event_loop();
-        self.state_stack.push(
-            initialization_fn(&event_loop)
-                .expect("Failed to initialize the application initial state"),
-        );
+        // TODO: provide information about the error.
+        // TODO: remove the "Exit" control flow?
+        self.push_state(initialization_fn(&event_loop).expect("Initial state creation error."))
+            .expect("State initialization error.");
 
         let current_time = std::time::Instant::now();
         self.last_fixed_update_time = current_time;
@@ -90,6 +108,7 @@ where
             move |event, _, control_flow| match self.handle_event(event) {
                 Ok(flow) => *control_flow = flow,
                 Err(e) => {
+                    // TODO: make the error handler return a control flow?
                     match self.state_stack.last_mut() {
                         Some(state) => {
                             let state = state.deref_mut();
@@ -386,10 +405,15 @@ where
         }
 
         match application_state_flow {
-            ControlFlow::Exit => Ok(os::ControlFlow::Exit),
+            ControlFlow::Exit => {
+                while !self.state_stack.is_empty() {
+                    self.pop_state()?;
+                }
+                Ok(os::ControlFlow::Exit)
+            }
             ControlFlow::Continue => Ok(os::ControlFlow::Poll),
             ControlFlow::PopState => {
-                self.state_stack.pop();
+                self.pop_state()?;
                 if self.state_stack.is_empty() {
                     Ok(os::ControlFlow::Exit)
                 } else {
@@ -397,12 +421,12 @@ where
                 }
             }
             ControlFlow::PushState(new_state) => {
-                self.state_stack.push(new_state);
+                self.push_state(new_state)?;
                 Ok(os::ControlFlow::Poll)
             }
             ControlFlow::PopPushState(new_state) => {
-                self.state_stack.pop();
-                self.state_stack.push(new_state);
+                self.pop_state()?;
+                self.push_state(new_state)?;
                 Ok(os::ControlFlow::Poll)
             }
         }
@@ -483,6 +507,6 @@ mod tests {
 
     #[test]
     fn run() {
-        Application::<_, _>::new(10, Some(10)).run(|_event_queue| Ok(Box::new(MyAppState {})));
+        Application::new(10, Some(10)).run(|_event_queue| Ok(Box::new(MyAppState {})));
     }
 }

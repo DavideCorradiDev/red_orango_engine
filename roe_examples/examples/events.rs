@@ -513,6 +513,6 @@ impl ApplicationState<ApplicationError, CustomEvent> for ApplicationImpl {
 fn main() {
     const FIXED_FRAMERATE: u64 = 30;
     const VARIABLE_FRAMERATE_CAP: u64 = 60;
-    Application::<_, _>::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP))
+    Application::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP))
         .run(|event_queue| Ok(Box::new(ApplicationImpl::new(event_queue)?)));
 }
