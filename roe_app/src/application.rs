@@ -93,10 +93,19 @@ where
         >,
     ) {
         let event_loop = Self::create_event_loop();
-        // TODO: provide information about the error.
-        // TODO: remove the "Exit" control flow?
-        self.push_state(initialization_fn(&event_loop).expect("Initial state creation error."))
-            .expect("State initialization error.");
+
+        let initial_state = match initialization_fn(&event_loop) {
+            Ok(s) => s,
+            Err(e) => {
+                Self::default_error_handler(e);
+                return;
+            }
+        };
+
+        if let Err(e) = self.push_state(initial_state) {
+            Self::default_error_handler(e);
+            return;
+        }
 
         let current_time = std::time::Instant::now();
         self.last_fixed_update_time = current_time;
@@ -106,7 +115,6 @@ where
             move |event, _, control_flow| match self.handle_event(event) {
                 Ok(flow) => *control_flow = flow,
                 Err(e) => {
-                    // TODO: make the error handler return a control flow?
                     match self.state_stack.last_mut() {
                         Some(state) => {
                             let state = state.deref_mut();
@@ -130,277 +138,268 @@ where
     ) -> Result<os::ControlFlow, ErrorType> {
         let mut control_flow = ControlFlow::Continue;
 
-        match self.state_stack.last_mut() {
-            Some(state) => {
-                let state = state.deref_mut();
-                match event {
-                    os::Event::NewEvents(start_cause) => {
-                        state.on_new_events(start_cause)?;
-                    }
-
-                    os::Event::UserEvent(event) => {
-                        state.on_custom_event(event)?;
-                    }
-
-                    os::Event::Suspended => {
-                        state.on_suspended()?;
-                    }
-
-                    os::Event::Resumed => {
-                        state.on_resumed()?;
-                    }
-
-                    os::Event::MainEventsCleared => {
-                        let current_time = std::time::Instant::now();
-
-                        while current_time - self.last_fixed_update_time >= self.fixed_update_period
-                        {
-                            state.on_fixed_update(self.fixed_update_period)?;
-                            control_flow = state.requested_control_flow();
-                            self.last_fixed_update_time += self.fixed_update_period;
-                        }
-
-                        let time_since_last_variable_update =
-                            current_time - self.last_variable_update_time;
-                        if time_since_last_variable_update > self.variable_update_min_period {
-                            state.on_variable_update(time_since_last_variable_update)?;
-                            self.last_variable_update_time = current_time;
-                        }
-
-                        state.on_main_events_cleared()?;
-                    }
-
-                    os::Event::RedrawRequested(window_id) => {
-                        state.on_redraw_requested(window_id)?;
-                    }
-
-                    os::Event::RedrawEventsCleared => {
-                        state.on_redraw_events_cleared()?;
-                    }
-
-                    os::Event::LoopDestroyed => {
-                        state.on_event_loop_destroyed()?;
-                    }
-
-                    os::Event::WindowEvent { window_id, event } => match event {
-                        os::WindowEvent::CloseRequested => {
-                            state.on_close_requested(window_id)?;
-                            control_flow = ControlFlow::Exit;
-                        }
-
-                        os::WindowEvent::Destroyed => {
-                            state.on_destroyed(window_id)?;
-                            control_flow = ControlFlow::Exit;
-                        }
-
-                        os::WindowEvent::Focused(focused) => {
-                            if focused {
-                                state.on_focus_gained(window_id)?;
-                            } else {
-                                state.on_focus_lost(window_id)?;
-                            }
-                        }
-
-                        os::WindowEvent::Resized(size) => {
-                            state.on_resized(window_id, size)?;
-                        }
-
-                        os::WindowEvent::ScaleFactorChanged {
-                            scale_factor,
-                            new_inner_size,
-                        } => {
-                            state.on_scale_factor_changed(
-                                window_id,
-                                scale_factor,
-                                new_inner_size,
-                            )?;
-                        }
-
-                        os::WindowEvent::Moved(pos) => {
-                            state.on_moved(window_id, pos)?;
-                        }
-
-                        os::WindowEvent::ReceivedCharacter(c) => {
-                            state.on_received_character(window_id, c)?;
-                        }
-
-                        os::WindowEvent::DroppedFile(path) => {
-                            state.on_hovered_file_dropped(window_id, path)?;
-                        }
-
-                        os::WindowEvent::HoveredFile(path) => {
-                            state.on_hovered_file_entered(window_id, path)?;
-                        }
-
-                        os::WindowEvent::HoveredFileCancelled => {
-                            state.on_hovered_file_left(window_id)?;
-                        }
-
-                        os::WindowEvent::KeyboardInput {
-                            device_id,
-                            input,
-                            is_synthetic,
-                        } => {
-                            let is_repeat = self.keyboard_state.update_key_state(
-                                Some(window_id),
-                                device_id,
-                                input.virtual_keycode,
-                                input.state,
-                            );
-                            match input.state {
-                                os::ElementState::Pressed => state.on_key_pressed(
-                                    window_id,
-                                    device_id,
-                                    input.scancode,
-                                    input.virtual_keycode,
-                                    is_synthetic,
-                                    is_repeat,
-                                )?,
-                                os::ElementState::Released => state.on_key_released(
-                                    window_id,
-                                    device_id,
-                                    input.scancode,
-                                    input.virtual_keycode,
-                                    is_synthetic,
-                                )?,
-                            }
-                        }
-
-                        os::WindowEvent::ModifiersChanged(mods) => {
-                            state.on_modifiers_changed(window_id, mods)?;
-                        }
-
-                        os::WindowEvent::CursorMoved {
-                            device_id,
-                            position,
-                            ..
-                        } => {
-                            state.on_cursor_moved(window_id, device_id, position)?;
-                        }
-
-                        os::WindowEvent::CursorEntered { device_id } => {
-                            state.on_cursor_entered(window_id, device_id)?;
-                        }
-
-                        os::WindowEvent::CursorLeft { device_id } => {
-                            state.on_cursor_left(window_id, device_id)?;
-                        }
-
-                        os::WindowEvent::MouseInput {
-                            device_id,
-                            state: element_state,
-                            button,
-                            ..
-                        } => match element_state {
-                            os::ElementState::Pressed => {
-                                state.on_mouse_button_pressed(window_id, device_id, button)?;
-                            }
-                            os::ElementState::Released => {
-                                state.on_mouse_button_released(window_id, device_id, button)?;
-                            }
-                        },
-
-                        os::WindowEvent::MouseWheel {
-                            device_id,
-                            delta,
-                            phase,
-                            ..
-                        } => {
-                            state.on_scroll(window_id, device_id, delta, phase)?;
-                        }
-
-                        os::WindowEvent::Touch(touch) => {
-                            state.on_touch(
-                                window_id,
-                                touch.device_id,
-                                touch.phase,
-                                touch.location,
-                                touch.force,
-                                touch.id,
-                            )?;
-                        }
-
-                        os::WindowEvent::AxisMotion {
-                            device_id,
-                            axis,
-                            value,
-                        } => {
-                            state.on_axis_moved(window_id, device_id, axis, value)?;
-                        }
-
-                        // Not universally supported.
-                        os::WindowEvent::TouchpadPressure { .. } => {}
-
-                        // Not universally supported.
-                        os::WindowEvent::ThemeChanged(_) => {}
-                    },
-
-                    os::Event::DeviceEvent { device_id, event } => match event {
-                        os::DeviceEvent::Added => {
-                            state.on_device_added(device_id)?;
-                        }
-
-                        os::DeviceEvent::Removed => {
-                            state.on_device_removed(device_id)?;
-                        }
-
-                        os::DeviceEvent::MouseMotion { delta } => {
-                            state.on_device_cursor_moved(
-                                device_id,
-                                os::PhysicalPosition::new(delta.0, delta.1),
-                            )?;
-                        }
-
-                        os::DeviceEvent::MouseWheel { delta } => {
-                            state.on_device_scroll(device_id, delta)?;
-                        }
-
-                        os::DeviceEvent::Motion { axis, value } => {
-                            state.on_device_axis_moved(device_id, axis, value)?;
-                        }
-
-                        os::DeviceEvent::Button {
-                            button,
-                            state: element_state,
-                        } => match element_state {
-                            os::ElementState::Pressed => {
-                                state.on_device_button_pressed(device_id, button)?;
-                            }
-                            os::ElementState::Released => {
-                                state.on_device_button_released(device_id, button)?;
-                            }
-                        },
-
-                        os::DeviceEvent::Key(input) => {
-                            let is_repeat = self.keyboard_state.update_key_state(
-                                None,
-                                device_id,
-                                input.virtual_keycode,
-                                input.state,
-                            );
-                            match input.state {
-                                os::ElementState::Pressed => state.on_device_key_pressed(
-                                    device_id,
-                                    input.scancode,
-                                    input.virtual_keycode,
-                                    is_repeat,
-                                )?,
-                                os::ElementState::Released => state.on_device_key_released(
-                                    device_id,
-                                    input.scancode,
-                                    input.virtual_keycode,
-                                )?,
-                            }
-                        }
-
-                        os::DeviceEvent::Text { codepoint } => {
-                            state.on_device_text(device_id, codepoint)?;
-                        }
-                    },
+        if let Some(state) = self.state_stack.last_mut() {
+            let state = state.deref_mut();
+            match event {
+                os::Event::NewEvents(start_cause) => {
+                    state.on_new_events(start_cause)?;
                 }
+
+                os::Event::UserEvent(event) => {
+                    state.on_custom_event(event)?;
+                }
+
+                os::Event::Suspended => {
+                    state.on_suspended()?;
+                }
+
+                os::Event::Resumed => {
+                    state.on_resumed()?;
+                }
+
+                os::Event::MainEventsCleared => {
+                    let current_time = std::time::Instant::now();
+
+                    while current_time - self.last_fixed_update_time >= self.fixed_update_period {
+                        state.on_fixed_update(self.fixed_update_period)?;
+                        control_flow = state.requested_control_flow();
+                        self.last_fixed_update_time += self.fixed_update_period;
+                    }
+
+                    let time_since_last_variable_update =
+                        current_time - self.last_variable_update_time;
+                    if time_since_last_variable_update > self.variable_update_min_period {
+                        state.on_variable_update(time_since_last_variable_update)?;
+                        self.last_variable_update_time = current_time;
+                    }
+
+                    state.on_main_events_cleared()?;
+                }
+
+                os::Event::RedrawRequested(window_id) => {
+                    state.on_redraw_requested(window_id)?;
+                }
+
+                os::Event::RedrawEventsCleared => {
+                    state.on_redraw_events_cleared()?;
+                }
+
+                os::Event::LoopDestroyed => {
+                    state.on_event_loop_destroyed()?;
+                }
+
+                os::Event::WindowEvent { window_id, event } => match event {
+                    os::WindowEvent::CloseRequested => {
+                        state.on_close_requested(window_id)?;
+                        control_flow = ControlFlow::Exit;
+                    }
+
+                    os::WindowEvent::Destroyed => {
+                        state.on_destroyed(window_id)?;
+                        control_flow = ControlFlow::Exit;
+                    }
+
+                    os::WindowEvent::Focused(focused) => {
+                        if focused {
+                            state.on_focus_gained(window_id)?;
+                        } else {
+                            state.on_focus_lost(window_id)?;
+                        }
+                    }
+
+                    os::WindowEvent::Resized(size) => {
+                        state.on_resized(window_id, size)?;
+                    }
+
+                    os::WindowEvent::ScaleFactorChanged {
+                        scale_factor,
+                        new_inner_size,
+                    } => {
+                        state.on_scale_factor_changed(window_id, scale_factor, new_inner_size)?;
+                    }
+
+                    os::WindowEvent::Moved(pos) => {
+                        state.on_moved(window_id, pos)?;
+                    }
+
+                    os::WindowEvent::ReceivedCharacter(c) => {
+                        state.on_received_character(window_id, c)?;
+                    }
+
+                    os::WindowEvent::DroppedFile(path) => {
+                        state.on_hovered_file_dropped(window_id, path)?;
+                    }
+
+                    os::WindowEvent::HoveredFile(path) => {
+                        state.on_hovered_file_entered(window_id, path)?;
+                    }
+
+                    os::WindowEvent::HoveredFileCancelled => {
+                        state.on_hovered_file_left(window_id)?;
+                    }
+
+                    os::WindowEvent::KeyboardInput {
+                        device_id,
+                        input,
+                        is_synthetic,
+                    } => {
+                        let is_repeat = self.keyboard_state.update_key_state(
+                            Some(window_id),
+                            device_id,
+                            input.virtual_keycode,
+                            input.state,
+                        );
+                        match input.state {
+                            os::ElementState::Pressed => state.on_key_pressed(
+                                window_id,
+                                device_id,
+                                input.scancode,
+                                input.virtual_keycode,
+                                is_synthetic,
+                                is_repeat,
+                            )?,
+                            os::ElementState::Released => state.on_key_released(
+                                window_id,
+                                device_id,
+                                input.scancode,
+                                input.virtual_keycode,
+                                is_synthetic,
+                            )?,
+                        }
+                    }
+
+                    os::WindowEvent::ModifiersChanged(mods) => {
+                        state.on_modifiers_changed(window_id, mods)?;
+                    }
+
+                    os::WindowEvent::CursorMoved {
+                        device_id,
+                        position,
+                        ..
+                    } => {
+                        state.on_cursor_moved(window_id, device_id, position)?;
+                    }
+
+                    os::WindowEvent::CursorEntered { device_id } => {
+                        state.on_cursor_entered(window_id, device_id)?;
+                    }
+
+                    os::WindowEvent::CursorLeft { device_id } => {
+                        state.on_cursor_left(window_id, device_id)?;
+                    }
+
+                    os::WindowEvent::MouseInput {
+                        device_id,
+                        state: element_state,
+                        button,
+                        ..
+                    } => match element_state {
+                        os::ElementState::Pressed => {
+                            state.on_mouse_button_pressed(window_id, device_id, button)?;
+                        }
+                        os::ElementState::Released => {
+                            state.on_mouse_button_released(window_id, device_id, button)?;
+                        }
+                    },
+
+                    os::WindowEvent::MouseWheel {
+                        device_id,
+                        delta,
+                        phase,
+                        ..
+                    } => {
+                        state.on_scroll(window_id, device_id, delta, phase)?;
+                    }
+
+                    os::WindowEvent::Touch(touch) => {
+                        state.on_touch(
+                            window_id,
+                            touch.device_id,
+                            touch.phase,
+                            touch.location,
+                            touch.force,
+                            touch.id,
+                        )?;
+                    }
+
+                    os::WindowEvent::AxisMotion {
+                        device_id,
+                        axis,
+                        value,
+                    } => {
+                        state.on_axis_moved(window_id, device_id, axis, value)?;
+                    }
+
+                    // Not universally supported.
+                    os::WindowEvent::TouchpadPressure { .. } => {}
+
+                    // Not universally supported.
+                    os::WindowEvent::ThemeChanged(_) => {}
+                },
+
+                os::Event::DeviceEvent { device_id, event } => match event {
+                    os::DeviceEvent::Added => {
+                        state.on_device_added(device_id)?;
+                    }
+
+                    os::DeviceEvent::Removed => {
+                        state.on_device_removed(device_id)?;
+                    }
+
+                    os::DeviceEvent::MouseMotion { delta } => {
+                        state.on_device_cursor_moved(
+                            device_id,
+                            os::PhysicalPosition::new(delta.0, delta.1),
+                        )?;
+                    }
+
+                    os::DeviceEvent::MouseWheel { delta } => {
+                        state.on_device_scroll(device_id, delta)?;
+                    }
+
+                    os::DeviceEvent::Motion { axis, value } => {
+                        state.on_device_axis_moved(device_id, axis, value)?;
+                    }
+
+                    os::DeviceEvent::Button {
+                        button,
+                        state: element_state,
+                    } => match element_state {
+                        os::ElementState::Pressed => {
+                            state.on_device_button_pressed(device_id, button)?;
+                        }
+                        os::ElementState::Released => {
+                            state.on_device_button_released(device_id, button)?;
+                        }
+                    },
+
+                    os::DeviceEvent::Key(input) => {
+                        let is_repeat = self.keyboard_state.update_key_state(
+                            None,
+                            device_id,
+                            input.virtual_keycode,
+                            input.state,
+                        );
+                        match input.state {
+                            os::ElementState::Pressed => state.on_device_key_pressed(
+                                device_id,
+                                input.scancode,
+                                input.virtual_keycode,
+                                is_repeat,
+                            )?,
+                            os::ElementState::Released => state.on_device_key_released(
+                                device_id,
+                                input.scancode,
+                                input.virtual_keycode,
+                            )?,
+                        }
+                    }
+
+                    os::DeviceEvent::Text { codepoint } => {
+                        state.on_device_text(device_id, codepoint)?;
+                    }
+                },
             }
-            // TODO: remove this None case.
-            None => {}
         }
 
         match control_flow {
