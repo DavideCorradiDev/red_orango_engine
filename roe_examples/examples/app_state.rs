@@ -37,6 +37,7 @@ impl StateA {
 
 // TODO: Add state init event.
 // TODO: invalid scan code when pressing numpad enter?
+// TODO: add docu online
 
 impl ApplicationState<ApplicationError, ApplicationEvent> for StateA {
     fn on_start(&mut self) -> Result<(), ApplicationError> {

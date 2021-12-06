@@ -76,9 +76,7 @@ where
         Ok(())
     }
 
-    fn pop_state(
-        &mut self
-    ) -> Result<(), ErrorType> {
+    fn pop_state(&mut self) -> Result<(), ErrorType> {
         if let Some(mut state) = self.state_stack.pop() {
             state.on_end()?;
         }
@@ -243,13 +241,16 @@ where
                             input,
                             is_synthetic,
                         } => {
-                            let last_key_state = self.keyboard_state.key_state(
-                                Some(window_id),
-                                device_id,
-                                input.scancode,
-                            );
-                            let is_repeat = *last_key_state == input.state;
-                            *last_key_state = input.state;
+                            let mut is_repeat = false;
+                            if let Some(key_code) = input.virtual_keycode {
+                                let last_key_state = self.keyboard_state.key_state(
+                                    Some(window_id),
+                                    device_id,
+                                    key_code,
+                                );
+                                is_repeat = *last_key_state == input.state;
+                                *last_key_state = input.state;
+                            }
                             match input.state {
                                 os::ElementState::Pressed => state.on_key_pressed(
                                     window_id,
@@ -375,11 +376,14 @@ where
                         },
 
                         os::DeviceEvent::Key(input) => {
-                            let last_key_state =
-                                self.keyboard_state
-                                    .key_state(None, device_id, input.scancode);
-                            let is_repeat = *last_key_state == input.state;
-                            *last_key_state = input.state;
+                            // TODO: remove code repetition.
+                            let mut is_repeat = false;
+                            if let Some(key_code) = input.virtual_keycode {
+                                let last_key_state =
+                                    self.keyboard_state.key_state(None, device_id, key_code);
+                                is_repeat = *last_key_state == input.state;
+                                *last_key_state = input.state;
+                            }
                             match input.state {
                                 os::ElementState::Pressed => state.on_device_key_pressed(
                                     device_id,
@@ -433,9 +437,179 @@ where
     }
 }
 
+fn get_key_index(key_code: os::KeyCode) -> usize {
+    match key_code {
+        os::KeyCode::Key0 => 0,
+        os::KeyCode::Key1 => 1,
+        os::KeyCode::Key2 => 2,
+        os::KeyCode::Key3 => 3,
+        os::KeyCode::Key4 => 4,
+        os::KeyCode::Key5 => 5,
+        os::KeyCode::Key6 => 6,
+        os::KeyCode::Key7 => 7,
+        os::KeyCode::Key8 => 8,
+        os::KeyCode::Key9 => 9,
+        os::KeyCode::A => 10,
+        os::KeyCode::B => 11,
+        os::KeyCode::C => 12,
+        os::KeyCode::D => 13,
+        os::KeyCode::E => 14,
+        os::KeyCode::F => 15,
+        os::KeyCode::G => 16,
+        os::KeyCode::H => 17,
+        os::KeyCode::I => 18,
+        os::KeyCode::J => 19,
+        os::KeyCode::K => 20,
+        os::KeyCode::L => 21,
+        os::KeyCode::M => 22,
+        os::KeyCode::N => 23,
+        os::KeyCode::O => 24,
+        os::KeyCode::P => 25,
+        os::KeyCode::Q => 26,
+        os::KeyCode::R => 27,
+        os::KeyCode::S => 28,
+        os::KeyCode::T => 29,
+        os::KeyCode::U => 30,
+        os::KeyCode::V => 31,
+        os::KeyCode::W => 32,
+        os::KeyCode::X => 33,
+        os::KeyCode::Y => 34,
+        os::KeyCode::Z => 35,
+        os::KeyCode::Escape => 36,
+        os::KeyCode::F1 => 37,
+        os::KeyCode::F2 => 38,
+        os::KeyCode::F3 => 39,
+        os::KeyCode::F4 => 40,
+        os::KeyCode::F5 => 41,
+        os::KeyCode::F6 => 42,
+        os::KeyCode::F7 => 43,
+        os::KeyCode::F8 => 44,
+        os::KeyCode::F9 => 45,
+        os::KeyCode::F10 => 46,
+        os::KeyCode::F11 => 47,
+        os::KeyCode::F12 => 48,
+        os::KeyCode::F13 => 49,
+        os::KeyCode::F14 => 50,
+        os::KeyCode::F15 => 51,
+        os::KeyCode::F16 => 52,
+        os::KeyCode::F17 => 53,
+        os::KeyCode::F18 => 54,
+        os::KeyCode::F19 => 55,
+        os::KeyCode::F20 => 56,
+        os::KeyCode::F21 => 57,
+        os::KeyCode::F22 => 58,
+        os::KeyCode::F23 => 59,
+        os::KeyCode::F24 => 60,
+        os::KeyCode::Snapshot => 61,
+        os::KeyCode::Scroll => 62,
+        os::KeyCode::Pause => 63,
+        os::KeyCode::Insert => 64,
+        os::KeyCode::Home => 65,
+        os::KeyCode::Delete => 66,
+        os::KeyCode::End => 67,
+        os::KeyCode::PageDown => 68,
+        os::KeyCode::PageUp => 69,
+        os::KeyCode::Left => 70,
+        os::KeyCode::Up => 71,
+        os::KeyCode::Right => 72,
+        os::KeyCode::Down => 73,
+        os::KeyCode::Back => 74,
+        os::KeyCode::Return => 75,
+        os::KeyCode::Space => 76,
+        os::KeyCode::Compose => 77,
+        os::KeyCode::Caret => 78,
+        os::KeyCode::Numlock => 79,
+        os::KeyCode::Numpad0 => 80,
+        os::KeyCode::Numpad1 => 81,
+        os::KeyCode::Numpad2 => 82,
+        os::KeyCode::Numpad3 => 83,
+        os::KeyCode::Numpad4 => 84,
+        os::KeyCode::Numpad5 => 85,
+        os::KeyCode::Numpad6 => 86,
+        os::KeyCode::Numpad7 => 87,
+        os::KeyCode::Numpad8 => 88,
+        os::KeyCode::Numpad9 => 89,
+        os::KeyCode::NumpadAdd => 90,
+        os::KeyCode::NumpadDivide => 91,
+        os::KeyCode::NumpadDecimal => 92,
+        os::KeyCode::NumpadComma => 93,
+        os::KeyCode::NumpadEnter => 94,
+        os::KeyCode::NumpadEquals => 95,
+        os::KeyCode::NumpadMultiply => 96,
+        os::KeyCode::NumpadSubtract => 97,
+        os::KeyCode::AbntC1 => 98,
+        os::KeyCode::AbntC2 => 99,
+        os::KeyCode::Apostrophe => 100,
+        os::KeyCode::Apps => 101,
+        os::KeyCode::Asterisk => 102,
+        os::KeyCode::At => 103,
+        os::KeyCode::Ax => 104,
+        os::KeyCode::Backslash => 105,
+        os::KeyCode::Calculator => 106,
+        os::KeyCode::Capital => 107,
+        os::KeyCode::Colon => 108,
+        os::KeyCode::Comma => 109,
+        os::KeyCode::Convert => 110,
+        os::KeyCode::Equals => 111,
+        os::KeyCode::Grave => 112,
+        os::KeyCode::Kana => 113,
+        os::KeyCode::Kanji => 114,
+        os::KeyCode::LAlt => 115,
+        os::KeyCode::LBracket => 116,
+        os::KeyCode::LControl => 117,
+        os::KeyCode::LShift => 118,
+        os::KeyCode::LWin => 119,
+        os::KeyCode::Mail => 120,
+        os::KeyCode::MediaSelect => 121,
+        os::KeyCode::MediaStop => 122,
+        os::KeyCode::Minus => 123,
+        os::KeyCode::Mute => 124,
+        os::KeyCode::MyComputer => 125,
+        os::KeyCode::NavigateForward => 126,
+        os::KeyCode::NavigateBackward => 127,
+        os::KeyCode::NextTrack => 128,
+        os::KeyCode::NoConvert => 129,
+        os::KeyCode::OEM102 => 130,
+        os::KeyCode::Period => 131,
+        os::KeyCode::PlayPause => 132,
+        os::KeyCode::Plus => 133,
+        os::KeyCode::Power => 134,
+        os::KeyCode::PrevTrack => 135,
+        os::KeyCode::RAlt => 136,
+        os::KeyCode::RBracket => 137,
+        os::KeyCode::RControl => 138,
+        os::KeyCode::RShift => 139,
+        os::KeyCode::RWin => 140,
+        os::KeyCode::Semicolon => 141,
+        os::KeyCode::Slash => 142,
+        os::KeyCode::Sleep => 143,
+        os::KeyCode::Stop => 144,
+        os::KeyCode::Sysrq => 145,
+        os::KeyCode::Tab => 146,
+        os::KeyCode::Underline => 147,
+        os::KeyCode::Unlabeled => 148,
+        os::KeyCode::VolumeDown => 149,
+        os::KeyCode::VolumeUp => 150,
+        os::KeyCode::Wake => 151,
+        os::KeyCode::WebBack => 152,
+        os::KeyCode::WebFavorites => 153,
+        os::KeyCode::WebForward => 154,
+        os::KeyCode::WebHome => 155,
+        os::KeyCode::WebRefresh => 156,
+        os::KeyCode::WebSearch => 157,
+        os::KeyCode::WebStop => 158,
+        os::KeyCode::Yen => 159,
+        os::KeyCode::Copy => 160,
+        os::KeyCode::Paste => 161,
+        os::KeyCode::Cut => 162,
+    }
+}
+
+const KEY_COUNT: usize = 163;
+
 #[derive(Clone)]
 struct KeyboardState {
-    state: BTreeMap<(Option<os::WindowId>, os::DeviceId), [os::ElementState; 128]>,
+    state: BTreeMap<(Option<os::WindowId>, os::DeviceId), [os::ElementState; KEY_COUNT]>,
 }
 
 impl KeyboardState {
@@ -449,23 +623,16 @@ impl KeyboardState {
         &mut self,
         window_id: Option<os::WindowId>,
         device_id: os::DeviceId,
-        scan_code: os::ScanCode,
+        key_code: os::KeyCode,
     ) -> &mut os::ElementState {
         let key = (window_id, device_id);
         if !self.state.contains_key(&key) {
-            self.state.insert(key, [os::ElementState::Released; 128]);
+            self.state
+                .insert(key, [os::ElementState::Released; KEY_COUNT]);
         }
         // Guaranteed to succeed due to the previous lines.
         let keyboard_state = self.state.get_mut(&key).unwrap();
-        // Assuming at most a certain number of scancodes. It should be enough.
-        // Asserting just for safety.
-        let key_idx = scan_code as usize;
-        assert!(
-            key_idx < keyboard_state.len(),
-            "Invalid scan code {}",
-            key_idx
-        );
-        &mut keyboard_state[key_idx]
+        &mut keyboard_state[get_key_index(key_code)]
     }
 }
 
