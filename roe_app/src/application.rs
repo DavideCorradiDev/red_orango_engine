@@ -241,16 +241,12 @@ where
                             input,
                             is_synthetic,
                         } => {
-                            let mut is_repeat = false;
-                            if let Some(key_code) = input.virtual_keycode {
-                                let last_key_state = self.keyboard_state.key_state(
-                                    Some(window_id),
-                                    device_id,
-                                    key_code,
-                                );
-                                is_repeat = *last_key_state == input.state;
-                                *last_key_state = input.state;
-                            }
+                            let is_repeat = self.keyboard_state.update_key_state(
+                                Some(window_id),
+                                device_id,
+                                input.virtual_keycode,
+                                input.state,
+                            );
                             match input.state {
                                 os::ElementState::Pressed => state.on_key_pressed(
                                     window_id,
@@ -376,14 +372,12 @@ where
                         },
 
                         os::DeviceEvent::Key(input) => {
-                            // TODO: remove code repetition.
-                            let mut is_repeat = false;
-                            if let Some(key_code) = input.virtual_keycode {
-                                let last_key_state =
-                                    self.keyboard_state.key_state(None, device_id, key_code);
-                                is_repeat = *last_key_state == input.state;
-                                *last_key_state = input.state;
-                            }
+                            let is_repeat = self.keyboard_state.update_key_state(
+                                None,
+                                device_id,
+                                input.virtual_keycode,
+                                input.state,
+                            );
                             match input.state {
                                 os::ElementState::Pressed => state.on_device_key_pressed(
                                     device_id,
@@ -633,6 +627,22 @@ impl KeyboardState {
         // Guaranteed to succeed due to the previous lines.
         let keyboard_state = self.state.get_mut(&key).unwrap();
         &mut keyboard_state[get_key_index(key_code)]
+    }
+
+    pub fn update_key_state(
+        &mut self,
+        window_id: Option<os::WindowId>,
+        device_id: os::DeviceId,
+        key_code: Option<os::KeyCode>,
+        new_state: os::ElementState,
+    ) -> bool {
+        let mut is_repeat = false;
+        if let Some(key_code) = key_code {
+            let last_key_state = self.key_state(window_id, device_id, key_code);
+            is_repeat = *last_key_state == new_state;
+            *last_key_state = new_state;
+        }
+        is_repeat
     }
 }
 

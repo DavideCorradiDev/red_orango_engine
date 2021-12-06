@@ -13,7 +13,7 @@ struct ApplicationData {
 impl ApplicationData {
     fn new(event_loop: &os::EventLoop<ApplicationEvent>) -> Result<Self, ApplicationError> {
         let window = os::WindowBuilder::new()
-            .with_title("Sound Player")
+            .with_title("Application State")
             .with_inner_size(os::Size::Physical(os::PhysicalSize {
                 width: 800,
                 height: 600,
@@ -68,6 +68,16 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for StateA {
             }
         }
         Ok(())
+    }
+
+    fn on_fixed_update(
+        &mut self,
+        _dt: std::time::Duration,
+    ) -> Result<ControlFlow<ApplicationError, ApplicationEvent>, ApplicationError> {
+        // TODO: add a different callback to pool for state change requests.
+        let mut control_flow = ControlFlow::Continue;
+        std::mem::swap(&mut control_flow, &mut self.control_flow);
+        Ok(control_flow)
     }
 }
 
