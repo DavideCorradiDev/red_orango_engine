@@ -47,10 +47,7 @@ impl ApplicationImpl {
 }
 
 impl ApplicationState<ApplicationError, CustomEvent> for ApplicationImpl {
-    fn on_fixed_update(
-        &mut self,
-        dt: std::time::Duration,
-    ) -> Result<ControlFlow<ApplicationError, CustomEvent>, ApplicationError> {
+    fn on_fixed_update(&mut self, dt: std::time::Duration) -> Result<(), ApplicationError> {
         if self.processed_fixed_frames % 30 == 0 {
             println!("Processed 'fixed update' event, dt = {:?}", dt);
         }
@@ -67,7 +64,7 @@ impl ApplicationState<ApplicationError, CustomEvent> for ApplicationImpl {
 
         self.processed_fixed_frames = self.processed_fixed_frames + 1;
 
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 
     fn on_variable_update(&mut self, dt: std::time::Duration) -> Result<(), ApplicationError> {

@@ -127,12 +127,9 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
         Ok(())
     }
 
-    fn on_fixed_update(
-        &mut self,
-        _: std::time::Duration,
-    ) -> Result<ControlFlow<ApplicationError, ApplicationEvent>, ApplicationError> {
+    fn on_fixed_update(&mut self, _: std::time::Duration) -> Result<(), ApplicationError> {
         self.streaming_source.update_buffers()?;
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 }
 

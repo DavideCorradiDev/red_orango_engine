@@ -37,8 +37,6 @@ impl StateA {
     }
 }
 
-// TODO: Add state init event.
-// TODO: invalid scan code when pressing numpad enter?
 // TODO: add docu online
 // TODO: fix examples.
 
