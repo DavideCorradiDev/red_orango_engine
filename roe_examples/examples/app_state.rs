@@ -38,7 +38,6 @@ impl StateA {
 }
 
 // TODO: add docu online
-// TODO: fix examples.
 
 impl ApplicationState<ApplicationError, ApplicationEvent> for StateA {
     fn on_start(&mut self) -> Result<(), ApplicationError> {
@@ -48,6 +47,16 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for StateA {
 
     fn on_end(&mut self) -> Result<(), ApplicationError> {
         println!("State A - Removed.");
+        Ok(())
+    }
+
+    fn on_paused(&mut self) -> Result<(), ApplicationError> {
+        println!("State A - Paused.");
+        Ok(())
+    }
+
+    fn on_unpaused(&mut self) -> Result<(), ApplicationError> {
+        println!("State A - Unpaused.");
         Ok(())
     }
 
@@ -111,6 +120,16 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for StateB {
 
     fn on_end(&mut self) -> Result<(), ApplicationError> {
         println!("State B - Removed.");
+        Ok(())
+    }
+
+    fn on_paused(&mut self) -> Result<(), ApplicationError> {
+        println!("State B - Paused.");
+        Ok(())
+    }
+
+    fn on_unpaused(&mut self) -> Result<(), ApplicationError> {
+        println!("State B - Unpaused.");
         Ok(())
     }
 
@@ -182,6 +201,16 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for StateC {
         Ok(())
     }
 
+    fn on_paused(&mut self) -> Result<(), ApplicationError> {
+        println!("State C - Paused.");
+        Ok(())
+    }
+
+    fn on_unpaused(&mut self) -> Result<(), ApplicationError> {
+        println!("State C - Unpaused.");
+        Ok(())
+    }
+
     fn on_key_pressed(
         &mut self,
         wid: os::WindowId,
@@ -245,6 +274,16 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for StateL {
         Ok(())
     }
 
+    fn on_paused(&mut self) -> Result<(), ApplicationError> {
+        println!("State L - Paused.");
+        Ok(())
+    }
+
+    fn on_unpaused(&mut self) -> Result<(), ApplicationError> {
+        println!("State L - Unpaused.");
+        Ok(())
+    }
+
     fn on_key_pressed(
         &mut self,
         wid: os::WindowId,
@@ -303,7 +342,15 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for StateM {
         Ok(())
     }
 
-    // TODO: on suspend? on resume?
+    fn on_paused(&mut self) -> Result<(), ApplicationError> {
+        println!("State M - Paused.");
+        Ok(())
+    }
+
+    fn on_unpaused(&mut self) -> Result<(), ApplicationError> {
+        println!("State M - Unpaused.");
+        Ok(())
+    }
 
     fn on_key_pressed(
         &mut self,

@@ -71,6 +71,9 @@ where
         &mut self,
         mut state: Box<dyn ApplicationState<ErrorType, CustomEventType>>,
     ) -> Result<(), ErrorType> {
+        if let Some(state) = self.state_stack.last_mut() {
+            state.on_paused()?;
+        }
         state.on_start()?;
         self.state_stack.push(state);
         Ok(())
@@ -80,6 +83,21 @@ where
         if let Some(mut state) = self.state_stack.pop() {
             state.on_end()?;
         }
+        if let Some(state) = self.state_stack.last_mut() {
+            state.on_unpaused()?;
+        }
+        Ok(())
+    }
+
+    fn pop_push_state(
+        &mut self,
+        mut state: Box<dyn ApplicationState<ErrorType, CustomEventType>>,
+    ) -> Result<(), ErrorType> {
+        if let Some(mut state) = self.state_stack.pop() {
+            state.on_end()?;
+        }
+        state.on_start()?;
+        self.state_stack.push(state);
         Ok(())
     }
 
@@ -423,8 +441,7 @@ where
                 Ok(os::ControlFlow::Poll)
             }
             ControlFlow::PopPushState(new_state) => {
-                self.pop_state()?;
-                self.push_state(new_state)?;
+                self.pop_push_state(new_state)?;
                 Ok(os::ControlFlow::Poll)
             }
         }

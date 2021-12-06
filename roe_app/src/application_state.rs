@@ -21,6 +21,14 @@ where
         Ok(())
     }
 
+    fn on_paused(&mut self) -> Result<(), ErrorType> {
+        Ok(())
+    }
+
+    fn on_unpaused(&mut self) -> Result<(), ErrorType> {
+        Ok(())
+    }
+
     fn on_close_requested(&mut self, _wid: os::WindowId) -> Result<(), ErrorType> {
         Ok(())
     }
