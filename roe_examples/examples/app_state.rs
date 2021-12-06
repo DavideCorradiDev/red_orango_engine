@@ -44,7 +44,7 @@ impl StateA {
 
 impl ApplicationState<ApplicationError, ApplicationEvent> for StateA {
     fn on_start(&mut self) -> Result<(), ApplicationError> {
-        println!("State A - Initialized. Right: Change to state B, Up: push state L, Down: pop.");
+        println!("State A - Initialized. Right: Change to state B, Up: push state L, Down: pop, X: exit.");
         Ok(())
     }
 
@@ -65,7 +65,267 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for StateA {
         if !is_repeat && wid == self.app_data.window.id() {
             if let Some(key_code) = key_code {
                 match key_code {
+                    os::KeyCode::X => self.control_flow = ControlFlow::Exit,
                     os::KeyCode::Down => self.control_flow = ControlFlow::PopState,
+                    os::KeyCode::Up => {
+                        self.control_flow = ControlFlow::PushState(Box::new(StateL::new(
+                            Rc::clone(&self.app_data),
+                        )))
+                    }
+                    os::KeyCode::Right => {
+                        self.control_flow = ControlFlow::PopPushState(Box::new(StateB::new(
+                            Rc::clone(&self.app_data),
+                        )))
+                    }
+                    _ => println!("Invalid key"),
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn requested_control_flow(&mut self) -> ControlFlow<ApplicationError, ()> {
+        let mut control_flow = ControlFlow::Continue;
+        std::mem::swap(&mut control_flow, &mut self.control_flow);
+        control_flow
+    }
+}
+
+struct StateB {
+    app_data: Rc<ApplicationData>,
+    control_flow: ControlFlow<ApplicationError, ApplicationEvent>,
+}
+
+impl StateB {
+    fn new(app_data: Rc<ApplicationData>) -> Self {
+        Self {
+            app_data,
+            control_flow: ControlFlow::Continue,
+        }
+    }
+}
+
+impl ApplicationState<ApplicationError, ApplicationEvent> for StateB {
+    fn on_start(&mut self) -> Result<(), ApplicationError> {
+        println!("State B - Initialized. Left: Change to state A, Right: Change to state C, Up: push state L, Down: pop, X: exit.");
+        Ok(())
+    }
+
+    fn on_end(&mut self) -> Result<(), ApplicationError> {
+        println!("State B - Removed.");
+        Ok(())
+    }
+
+    fn on_key_pressed(
+        &mut self,
+        wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _scan_code: os::ScanCode,
+        key_code: Option<os::KeyCode>,
+        _is_synthetic: bool,
+        is_repeat: bool,
+    ) -> Result<(), ApplicationError> {
+        if !is_repeat && wid == self.app_data.window.id() {
+            if let Some(key_code) = key_code {
+                match key_code {
+                    os::KeyCode::X => self.control_flow = ControlFlow::Exit,
+                    os::KeyCode::Down => self.control_flow = ControlFlow::PopState,
+                    os::KeyCode::Up => {
+                        self.control_flow = ControlFlow::PushState(Box::new(StateL::new(
+                            Rc::clone(&self.app_data),
+                        )))
+                    }
+                    os::KeyCode::Left => {
+                        self.control_flow = ControlFlow::PopPushState(Box::new(StateA::new(
+                            Rc::clone(&self.app_data),
+                        )))
+                    }
+                    os::KeyCode::Right => {
+                        self.control_flow = ControlFlow::PopPushState(Box::new(StateC::new(
+                            Rc::clone(&self.app_data),
+                        )))
+                    }
+                    _ => println!("Invalid key"),
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn requested_control_flow(&mut self) -> ControlFlow<ApplicationError, ()> {
+        let mut control_flow = ControlFlow::Continue;
+        std::mem::swap(&mut control_flow, &mut self.control_flow);
+        control_flow
+    }
+}
+
+struct StateC {
+    app_data: Rc<ApplicationData>,
+    control_flow: ControlFlow<ApplicationError, ApplicationEvent>,
+}
+
+impl StateC {
+    fn new(app_data: Rc<ApplicationData>) -> Self {
+        Self {
+            app_data,
+            control_flow: ControlFlow::Continue,
+        }
+    }
+}
+
+impl ApplicationState<ApplicationError, ApplicationEvent> for StateC {
+    fn on_start(&mut self) -> Result<(), ApplicationError> {
+        println!("State C - Initialized. Left: Change to state B, Up: push state L, Down: pop, X: exit.");
+        Ok(())
+    }
+
+    fn on_end(&mut self) -> Result<(), ApplicationError> {
+        println!("State C - Removed.");
+        Ok(())
+    }
+
+    fn on_key_pressed(
+        &mut self,
+        wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _scan_code: os::ScanCode,
+        key_code: Option<os::KeyCode>,
+        _is_synthetic: bool,
+        is_repeat: bool,
+    ) -> Result<(), ApplicationError> {
+        if !is_repeat && wid == self.app_data.window.id() {
+            if let Some(key_code) = key_code {
+                match key_code {
+                    os::KeyCode::X => self.control_flow = ControlFlow::Exit,
+                    os::KeyCode::Down => self.control_flow = ControlFlow::PopState,
+                    os::KeyCode::Up => {
+                        self.control_flow = ControlFlow::PushState(Box::new(StateL::new(
+                            Rc::clone(&self.app_data),
+                        )))
+                    }
+                    os::KeyCode::Left => {
+                        self.control_flow = ControlFlow::PopPushState(Box::new(StateB::new(
+                            Rc::clone(&self.app_data),
+                        )))
+                    }
+                    _ => println!("Invalid key"),
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn requested_control_flow(&mut self) -> ControlFlow<ApplicationError, ()> {
+        let mut control_flow = ControlFlow::Continue;
+        std::mem::swap(&mut control_flow, &mut self.control_flow);
+        control_flow
+    }
+}
+
+struct StateL {
+    app_data: Rc<ApplicationData>,
+    control_flow: ControlFlow<ApplicationError, ApplicationEvent>,
+}
+
+impl StateL {
+    fn new(app_data: Rc<ApplicationData>) -> Self {
+        Self {
+            app_data,
+            control_flow: ControlFlow::Continue,
+        }
+    }
+}
+
+impl ApplicationState<ApplicationError, ApplicationEvent> for StateL {
+    fn on_start(&mut self) -> Result<(), ApplicationError> {
+        println!("State L - Initialized. Right: Change to state M, Down: pop, X: exit.");
+        Ok(())
+    }
+
+    fn on_end(&mut self) -> Result<(), ApplicationError> {
+        println!("State L - Removed.");
+        Ok(())
+    }
+
+    fn on_key_pressed(
+        &mut self,
+        wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _scan_code: os::ScanCode,
+        key_code: Option<os::KeyCode>,
+        _is_synthetic: bool,
+        is_repeat: bool,
+    ) -> Result<(), ApplicationError> {
+        if !is_repeat && wid == self.app_data.window.id() {
+            if let Some(key_code) = key_code {
+                match key_code {
+                    os::KeyCode::X => self.control_flow = ControlFlow::Exit,
+                    os::KeyCode::Down => self.control_flow = ControlFlow::PopState,
+                    os::KeyCode::Right => {
+                        self.control_flow = ControlFlow::PopPushState(Box::new(StateM::new(
+                            Rc::clone(&self.app_data),
+                        )))
+                    }
+                    _ => println!("Invalid key"),
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn requested_control_flow(&mut self) -> ControlFlow<ApplicationError, ()> {
+        let mut control_flow = ControlFlow::Continue;
+        std::mem::swap(&mut control_flow, &mut self.control_flow);
+        control_flow
+    }
+}
+
+struct StateM {
+    app_data: Rc<ApplicationData>,
+    control_flow: ControlFlow<ApplicationError, ApplicationEvent>,
+}
+
+impl StateM {
+    fn new(app_data: Rc<ApplicationData>) -> Self {
+        Self {
+            app_data,
+            control_flow: ControlFlow::Continue,
+        }
+    }
+}
+
+impl ApplicationState<ApplicationError, ApplicationEvent> for StateM {
+    fn on_start(&mut self) -> Result<(), ApplicationError> {
+        println!("State M - Initialized. Left: Change to state L, Down: pop, X: exit.");
+        Ok(())
+    }
+
+    fn on_end(&mut self) -> Result<(), ApplicationError> {
+        println!("State M - Removed.");
+        Ok(())
+    }
+
+    // TODO: on suspend? on resume?
+
+    fn on_key_pressed(
+        &mut self,
+        wid: os::WindowId,
+        _device_id: os::DeviceId,
+        _scan_code: os::ScanCode,
+        key_code: Option<os::KeyCode>,
+        _is_synthetic: bool,
+        is_repeat: bool,
+    ) -> Result<(), ApplicationError> {
+        if !is_repeat && wid == self.app_data.window.id() {
+            if let Some(key_code) = key_code {
+                match key_code {
+                    os::KeyCode::X => self.control_flow = ControlFlow::Exit,
+                    os::KeyCode::Down => self.control_flow = ControlFlow::PopState,
+                    os::KeyCode::Left => {
+                        self.control_flow = ControlFlow::PopPushState(Box::new(StateL::new(
+                            Rc::clone(&self.app_data),
+                        )))
+                    }
                     _ => println!("Invalid key"),
                 }
             }
