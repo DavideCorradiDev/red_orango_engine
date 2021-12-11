@@ -1,8 +1,8 @@
 [package]
 authors = ["Davide Corradi <davide.corradi.dev@gmail.com>"]
 edition = "2021"
-name = "roe_app"
+name = "roe_os"
 version = "0.1.1"
 
 [dependencies]
-roe_os = {path = "../roe_os"}
+winit = "0.25.*"

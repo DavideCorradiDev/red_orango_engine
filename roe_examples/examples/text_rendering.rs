@@ -1,9 +1,6 @@
-use roe_app::{
-    application::Application,
-    event::{ControlFlow, EventHandler, EventLoop},
-    window,
-    window::{WindowBuilder, WindowId},
-};
+use roe_app::{Application, ApplicationState};
+
+use roe_os as os;
 
 use roe_math::{
     conversion::convert,
@@ -34,15 +31,10 @@ struct ApplicationImpl {
 
 impl ApplicationImpl {
     const SAMPLE_COUNT: SampleCount = 4;
-}
 
-impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
-    type Error = ApplicationError;
-    type CustomEvent = ApplicationEvent;
-
-    fn new(event_loop: &EventLoop<Self::CustomEvent>) -> Result<Self, Self::Error> {
-        let window = WindowBuilder::new()
-            .with_inner_size(window::Size::Physical(window::PhysicalSize {
+    fn new(event_loop: &os::EventLoop<ApplicationEvent>) -> Result<Self, ApplicationError> {
+        let window = os::WindowBuilder::new()
+            .with_inner_size(os::Size::Physical(os::PhysicalSize {
                 width: 800,
                 height: 800,
             }))
@@ -98,12 +90,14 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             font_cache,
         })
     }
+}
 
+impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
     fn on_resized(
         &mut self,
-        wid: WindowId,
-        size: window::PhysicalSize<u32>,
-    ) -> Result<ControlFlow, Self::Error> {
+        wid: os::WindowId,
+        size: os::PhysicalSize<u32>,
+    ) -> Result<(), ApplicationError> {
         if wid == self.window.id() {
             self.window.update_buffer(&self.instance);
             self.projection_transform = OrthographicProjection::new(
@@ -114,10 +108,10 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             )
             .to_projective();
         }
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 
-    fn on_variable_update(&mut self, _dt: std::time::Duration) -> Result<ControlFlow, Self::Error> {
+    fn on_variable_update(&mut self, _dt: std::time::Duration) -> Result<(), ApplicationError> {
         if let Some(frame) = self.window.current_frame()? {
             let mut cmd_sequence = CommandSequence::new(&self.instance);
 
@@ -150,12 +144,13 @@ impl EventHandler<ApplicationError, ApplicationEvent> for ApplicationImpl {
             cmd_sequence.submit(&self.instance);
             frame.present();
         }
-        Ok(ControlFlow::Continue)
+        Ok(())
     }
 }
 
 fn main() {
     const FIXED_FRAMERATE: u64 = 30;
     const VARIABLE_FRAMERATE_CAP: u64 = 60;
-    Application::<ApplicationImpl, _, _>::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP)).run();
+    Application::new(FIXED_FRAMERATE, Some(VARIABLE_FRAMERATE_CAP))
+        .run(|event_queue| Ok(Box::new(ApplicationImpl::new(event_queue)?)));
 }

@@ -148,7 +148,6 @@ impl From<txt::FontError> for FontCacheError {
     }
 }
 
-// TODO: tests.
 #[cfg(test)]
 mod tests {
     use super::*;

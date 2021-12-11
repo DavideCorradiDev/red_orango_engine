@@ -674,21 +674,17 @@ pub trait Canvas {
 
 #[cfg(test)]
 mod tests {
+    use super::super::InstanceDescriptor;
     use super::*;
     use galvanic_assert::{matchers::*, *};
-
-    use roe_app::{
-        event::{EventLoop, EventLoopAnyThread},
-        window::WindowBuilder,
-    };
-
-    use crate::InstanceDescriptor;
+    use os::EventLoopAnyThread;
+    use roe_os as os;
 
     #[test]
     #[serial_test::serial]
     fn canvas_surface() {
-        let event_loop = EventLoop::<()>::new_any_thread();
-        let window = WindowBuilder::new()
+        let event_loop = os::EventLoop::<()>::new_any_thread();
+        let window = os::WindowBuilder::new()
             .with_visible(false)
             .build(&event_loop)
             .unwrap();
@@ -707,8 +703,8 @@ mod tests {
     #[serial_test::serial]
     #[should_panic(expected = "Surface was not configured")]
     fn retrieve_canvas_surface_reference_before_configuration() {
-        let event_loop = EventLoop::<()>::new_any_thread();
-        let window = WindowBuilder::new()
+        let event_loop = os::EventLoop::<()>::new_any_thread();
+        let window = os::WindowBuilder::new()
             .with_visible(false)
             .build(&event_loop)
             .unwrap();
@@ -723,8 +719,8 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn canvas_surface_configure() {
-        let event_loop = EventLoop::<()>::new_any_thread();
-        let window = WindowBuilder::new()
+        let event_loop = os::EventLoop::<()>::new_any_thread();
+        let window = os::WindowBuilder::new()
             .with_visible(false)
             .build(&event_loop)
             .unwrap();
@@ -807,8 +803,8 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn canvas_buffer_complex_creation() {
-        let event_loop = EventLoop::<()>::new_any_thread();
-        let window = WindowBuilder::new()
+        let event_loop = os::EventLoop::<()>::new_any_thread();
+        let window = os::WindowBuilder::new()
             .with_visible(false)
             .build(&event_loop)
             .unwrap();
@@ -888,8 +884,8 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn canvas_buffer_only_surface() {
-        let event_loop = EventLoop::<()>::new_any_thread();
-        let window = WindowBuilder::new()
+        let event_loop = os::EventLoop::<()>::new_any_thread();
+        let window = os::WindowBuilder::new()
             .with_visible(false)
             .build(&event_loop)
             .unwrap();
@@ -936,8 +932,8 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn canvas_buffer_only_multisampled_surface() {
-        let event_loop = EventLoop::<()>::new_any_thread();
-        let window = WindowBuilder::new()
+        let event_loop = os::EventLoop::<()>::new_any_thread();
+        let window = os::WindowBuilder::new()
             .with_visible(false)
             .build(&event_loop)
             .unwrap();
@@ -1167,8 +1163,8 @@ mod tests {
     #[serial_test::serial]
     #[should_panic(expected = "Canvas buffer created with a surface, but no surface descriptor")]
     fn canvas_buffer_error_no_surface_descriptor() {
-        let event_loop = EventLoop::<()>::new_any_thread();
-        let window = WindowBuilder::new()
+        let event_loop = os::EventLoop::<()>::new_any_thread();
+        let window = os::WindowBuilder::new()
             .with_visible(false)
             .build(&event_loop)
             .unwrap();
@@ -1211,8 +1207,8 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn canvas_buffer_zero_size() {
-        let event_loop = EventLoop::<()>::new_any_thread();
-        let window = WindowBuilder::new()
+        let event_loop = os::EventLoop::<()>::new_any_thread();
+        let window = os::WindowBuilder::new()
             .with_visible(false)
             .build(&event_loop)
             .unwrap();
@@ -1256,8 +1252,8 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn canvas_buffer_configure() {
-        let event_loop = EventLoop::<()>::new_any_thread();
-        let window = WindowBuilder::new()
+        let event_loop = os::EventLoop::<()>::new_any_thread();
+        let window = os::WindowBuilder::new()
             .with_visible(false)
             .build(&event_loop)
             .unwrap();
@@ -1319,8 +1315,8 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn canvas_buffer_configure_to_zero_size() {
-        let event_loop = EventLoop::<()>::new_any_thread();
-        let window = WindowBuilder::new()
+        let event_loop = os::EventLoop::<()>::new_any_thread();
+        let window = os::WindowBuilder::new()
             .with_visible(false)
             .build(&event_loop)
             .unwrap();

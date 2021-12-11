@@ -1,14 +1,3 @@
-use std::{
-    default::Default,
-    ops::{Deref, DerefMut},
-};
-
-use roe_app::window::Window;
-
-use wgpu::util::DeviceExt;
-
-use raw_window_handle::HasRawWindowHandle;
-
 use super::{
     AdapterInfo, Backend, BindGroupDescriptor, BindGroupLayoutDescriptor, BufferAddress,
     BufferDescriptor, BufferInitDescriptor, BufferUsage, ColorF64, CommandBuffer,
@@ -17,6 +6,17 @@ use super::{
     PowerPreference, RenderBundleEncoderDescriptor, RenderPipelineDescriptor, SamplerDescriptor,
     ShaderModuleDescriptor, SurfaceConfiguration, SurfaceError, SurfaceTexture, TextureAspect,
     TextureDescriptor, TextureDimension, TextureFormat, TextureUsage,
+};
+
+use roe_os as os;
+
+use wgpu::util::DeviceExt;
+
+use raw_window_handle::HasRawWindowHandle;
+
+use std::{
+    default::Default,
+    ops::{Deref, DerefMut},
 };
 
 pub type SampleCount = u32;
@@ -85,7 +85,7 @@ impl Instance {
     // Unsafe: surface creation.
     pub unsafe fn new_with_compatible_window(
         desc: &InstanceDescriptor,
-        compatible_window: &Window,
+        compatible_window: &os::Window,
     ) -> Result<(Self, Surface), InstanceCreationError> {
         let instance = Self::create_instance(desc);
         let surface = instance.create_surface(compatible_window);
@@ -669,11 +669,7 @@ impl From<wgpu::RequestDeviceError> for InstanceCreationError {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    use roe_app::{
-        event::{EventLoop, EventLoopAnyThread},
-        window::WindowBuilder,
-    };
+    use os::EventLoopAnyThread;
 
     #[test]
     #[serial_test::serial]
@@ -697,8 +693,8 @@ mod tests {
     #[test]
     #[serial_test::serial]
     fn new_with_compatible_window() {
-        let event_loop = EventLoop::<()>::new_any_thread();
-        let window = WindowBuilder::new()
+        let event_loop = os::EventLoop::<()>::new_any_thread();
+        let window = os::WindowBuilder::new()
             .with_visible(false)
             .build(&event_loop)
             .unwrap();
