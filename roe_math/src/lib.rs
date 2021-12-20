@@ -9,6 +9,7 @@ pub use nalgebra::{
 
 pub use Vector2 as Translation2;
 pub use UnitComplex as Rotation2;
+pub use Vector2 as Scaling2;
 pub use Matrix3 as HomogeneousMatrix2;
 pub use Vector3 as HomogeneousVector2;
 pub use Matrix4 as HomogeneousMatrix3;
