@@ -1,4 +1,8 @@
-pub mod conversion;
-pub mod geometry2;
-pub mod geometry3;
-pub mod matrix;
+pub use nalgebra::{
+    base::*,
+    geometry::{
+        DualQuaternion, Point, Point1, Point2, Point3, Point4, Point5, Point6, Quaternion,
+        UnitDualQuaternion, UnitQuaternion,
+    },
+    ComplexField, Field, RealField,
+};
