@@ -6,3 +6,6 @@ pub use nalgebra::{
     },
     ComplexField, Field, RealField,
 };
+
+pub use Matrix4 as HomogeneousMatrix;
+pub use Vector4 as HomogeneousVector;
