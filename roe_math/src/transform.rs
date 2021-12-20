@@ -127,7 +127,7 @@ mod tests {
 
     #[test]
     fn test_transform2_to_transform3() {
-        let transform2 = Transform2::new(1., 2., 3., 4., 5., 6., 0., 0., 1.);
+        let transform2 = Transform2::new(1., 2., 3., 4., 5., 6., 7., 8., 9.);
         let res = transform2_to_transform3::<f32>(&transform2);
         expect_that!(&res[(0, 0)], close_to(1., 1e-6));
         expect_that!(&res[(0, 1)], close_to(2., 1e-6));
