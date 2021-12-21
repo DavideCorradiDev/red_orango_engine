@@ -14,7 +14,9 @@ pub struct Vertex {
 
 impl Vertex {
     pub fn new<P: Into<[f32; 2]>>(position: P) -> Self {
-        Self { position: position.into() }
+        Self {
+            position: position.into(),
+        }
     }
 }
 
@@ -243,7 +245,7 @@ mod tests {
     use super::*;
     use galvanic_assert::{matchers::*, *};
     use gfx::Canvas;
-    use roe_math::{Vector2, Rotation2};
+    use roe_math::{Rotation2, Vector2};
 
     #[test]
     #[serial_test::serial]

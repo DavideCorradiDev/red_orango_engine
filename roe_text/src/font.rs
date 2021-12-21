@@ -4,7 +4,7 @@ extern crate harfbuzz_rs as hb;
 use std::{collections::HashMap, fmt::Debug};
 
 use roe_graphics as gfx;
-use roe_math::{Vector2};
+use roe_math::Vector2;
 
 use super::{Mesh, MeshIndex, MeshIndexRange, UniformConstants, Vertex};
 

@@ -14,7 +14,7 @@ pub struct Vertex {
 }
 
 impl Vertex {
-    pub fn new<P: Into<[f32;2]>, T: Into<[f32;2]>>(position: P, texture_coordinates: T) -> Self {
+    pub fn new<P: Into<[f32; 2]>, T: Into<[f32; 2]>>(position: P, texture_coordinates: T) -> Self {
         Self {
             position: position.into(),
             texture_coordinates: texture_coordinates.into(),
@@ -396,7 +396,7 @@ mod tests {
     use super::*;
     use galvanic_assert::{matchers::*, *};
     use gfx::Canvas;
-    use roe_math::{Vector2, Rotation2};
+    use roe_math::{Rotation2, Vector2};
 
     #[test]
     #[serial_test::serial]

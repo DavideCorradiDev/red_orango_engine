@@ -2,7 +2,7 @@ use roe_app::{Application, ApplicationState};
 
 use roe_os as os;
 
-use roe_math::{HomogeneousMatrix2};
+use roe_math::HomogeneousMatrix2;
 
 use roe_graphics::{
     AddressMode, Canvas, CanvasWindow, CanvasWindowDescriptor, ColorF32, CommandSequence,
@@ -260,10 +260,8 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
 
     fn on_variable_update(&mut self, dt: std::time::Duration) -> Result<(), ApplicationError> {
         self.color.update(dt);
-        let push_constants = roe_sprite::PushConstants::new(
-            &self.projection_transform,
-            *self.color.current_color(),
-        );
+        let push_constants =
+            roe_sprite::PushConstants::new(&self.projection_transform, *self.color.current_color());
 
         if let Some(frame) = self.window.current_frame()? {
             let mut cmd_sequence = CommandSequence::new(&self.instance);

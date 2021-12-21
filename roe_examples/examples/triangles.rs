@@ -6,7 +6,7 @@ use roe_app::{Application, ApplicationState};
 
 use roe_os as os;
 
-use roe_math::{Rotation2, Vector2, HomogeneousMatrix2};
+use roe_math::{HomogeneousMatrix2, Rotation2, Vector2};
 
 use roe_graphics::{
     Canvas, CanvasWindow, CanvasWindowDescriptor, ColorF32, CommandSequence, Instance,
@@ -120,10 +120,9 @@ impl ApplicationImpl {
     }
 
     pub fn generate_push_constant(&self) -> roe_shape::PushConstants {
-        let object_transform = 
-            roe_math::translation2(&Vector2::from(self.current_offset)) *
-            roe_math::rotation2(&Rotation2::new(self.current_angle)) *
-            roe_math::scale2(&Vector2::new(self.current_scaling, self.current_scaling));
+        let object_transform = roe_math::translation2(&Vector2::from(self.current_offset))
+            * roe_math::rotation2(&Rotation2::new(self.current_angle))
+            * roe_math::scale2(&Vector2::new(self.current_scaling, self.current_scaling));
         roe_shape::PushConstants::new(
             &(self.projection_transform * object_transform),
             self.current_color,

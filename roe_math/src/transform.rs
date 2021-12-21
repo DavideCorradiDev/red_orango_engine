@@ -1,4 +1,4 @@
-use super::{convert, RealField, Rotation2, HomogeneousMatrix2, HomogeneousMatrix3, Vector2};
+use super::{convert, HomogeneousMatrix2, HomogeneousMatrix3, RealField, Rotation2, Vector2};
 
 pub fn translation2<N: RealField + Copy>(translation: &Vector2<N>) -> HomogeneousMatrix2<N> {
     let mut out = HomogeneousMatrix2::<N>::identity();
@@ -39,7 +39,9 @@ pub fn ortographic_projection2<N: RealField + Copy>(
     out
 }
 
-pub fn transform2_to_transform3<N: RealField + Copy>(transform2: &HomogeneousMatrix2<N>) -> HomogeneousMatrix3<N> {
+pub fn transform2_to_transform3<N: RealField + Copy>(
+    transform2: &HomogeneousMatrix2<N>,
+) -> HomogeneousMatrix3<N> {
     let mut out = HomogeneousMatrix3::<N>::identity();
     out[(0, 0)] = transform2[(0, 0)];
     out[(0, 1)] = transform2[(0, 1)];
