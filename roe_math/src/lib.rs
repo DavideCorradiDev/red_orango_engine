@@ -10,6 +10,7 @@ pub use UnitComplex as Rotation2;
 pub use Vector3 as HomogeneousVector2;
 
 pub use Matrix4 as HomogeneousMatrix3;
+pub use UnitQuaternion as Rotation3;
 pub use Vector4 as HomogeneousVector3;
 
 mod transform;
