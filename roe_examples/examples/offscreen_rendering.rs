@@ -2,10 +2,7 @@ use roe_app::{Application, ApplicationState};
 
 use roe_os as os;
 
-use roe_math::{
-    conversion::convert,
-    geometry2::{OrthographicProjection, Similarity, Translation, UnitComplex},
-};
+use roe_math::{Rotation2, Vector2};
 
 use roe_graphics::{
     AddressMode, Canvas, CanvasColorBufferFormat, CanvasColorBufferUsage, CanvasTexture,
@@ -143,21 +140,19 @@ impl ApplicationImpl {
     }
 
     pub fn generate_triangle_push_constants(&self) -> roe_shape2::PushConstants {
-        let projection_transform = OrthographicProjection::new(0., 1., 1., 0.).to_projective();
-        let object_transform = Similarity::<f32>::from_parts(
-            Translation::new(0.5, 0.5),
-            UnitComplex::new(self.current_angle),
-            1.,
-        );
+        let projection_transform = roe_math::ortographic_projection2(0., 1., 1., 0.);
+        let object_transform = roe_math::translation2(&Vector2::new(0.5, 0.5))
+            * roe_math::rotation2(&Rotation2::new(self.current_angle))
+            * roe_math::scale2(&Vector2::new(1., 1.));
         roe_shape2::PushConstants::new(
-            &convert(projection_transform * object_transform),
+            &(projection_transform * object_transform),
             *self.color.current_color(),
         )
     }
 
     pub fn generate_blit_push_constants(&self) -> roe_sprite::PushConstants {
-        let projection_transform = OrthographicProjection::new(0., 1., 1., 0.).to_projective();
-        roe_sprite::PushConstants::new(&convert(projection_transform), ColorF32::WHITE)
+        let projection_transform = roe_math::ortographic_projection2(0., 1., 1., 0.);
+        roe_sprite::PushConstants::new(&projection_transform, ColorF32::WHITE)
     }
 }
 
