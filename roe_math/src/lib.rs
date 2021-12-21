@@ -8,9 +8,13 @@ pub use nalgebra::{
     try_convert, try_convert_ref, ComplexField, Field, RealField,
 };
 
+pub use UnitComplex as Rotation2;
+pub use Vector2 as Translation2;
+pub use Vector2 as Scale2;
+pub use Vector2 as Shear2;
+pub use Matrix3 as Transform2;
 
-pub mod geometry2;
-pub mod geometry3;
+pub use Matrix4 as Transform3;
 
-mod conversion;
-pub use conversion::*;
+mod transform;
+pub use transform::*;
