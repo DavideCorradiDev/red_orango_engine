@@ -1,6 +1,8 @@
-use super::{RealField, geometry2, geometry3};
+use super::{geometry2, geometry3, RealField};
 
-pub fn transform2_to_transform3<N: RealField + Copy>(transform2: &geometry2::Transform<N>) -> geometry3::Transform<N> {
+pub fn transform2_to_transform3<N: RealField + Copy>(
+    transform2: &geometry2::Transform<N>,
+) -> geometry3::Transform<N> {
     let mut out = geometry3::Transform::<N>::identity();
     out[(0, 0)] = transform2[(0, 0)];
     out[(0, 1)] = transform2[(0, 1)];
@@ -41,4 +43,3 @@ mod tests {
         expect_that!(&res[(3, 3)], close_to(9., 1e-6));
     }
 }
-
