@@ -19,9 +19,6 @@ pub enum ApplicationError {
     AudioError(roe_audio::Error),
     IoError(std::io::Error),
     ImageError(image::error::ImageError),
-    TextureLoadError(roe_assets::TextureCacheError),
-    AudioLoadError(roe_assets::AudioCacheError),
-    FontLoadError(roe_assets::FontCacheError),
     CustomEventSendingError,
 }
 
@@ -35,9 +32,6 @@ impl std::fmt::Display for ApplicationError {
             Self::AudioError(e) => write!(f, "Audio error ({})", e),
             Self::IoError(e) => write!(f, "I/O error ({})", e),
             Self::ImageError(e) => write!(f, "Image load error ({})", e),
-            Self::TextureLoadError(e) => write!(f, "Texture load error ({})", e),
-            Self::AudioLoadError(e) => write!(f, "Audio load error ({})", e),
-            Self::FontLoadError(e) => write!(f, "Font load error ({})", e),
             Self::CustomEventSendingError => write!(f, "Failed to send custom event"),
         }
     }
@@ -53,9 +47,6 @@ impl std::error::Error for ApplicationError {
             Self::AudioError(e) => Some(e),
             Self::IoError(e) => Some(e),
             Self::ImageError(e) => Some(e),
-            Self::TextureLoadError(e) => Some(e),
-            Self::AudioLoadError(e) => Some(e),
-            Self::FontLoadError(e) => Some(e),
             Self::CustomEventSendingError => None,
         }
     }
@@ -106,24 +97,6 @@ impl From<std::io::Error> for ApplicationError {
 impl From<image::error::ImageError> for ApplicationError {
     fn from(e: image::error::ImageError) -> Self {
         ApplicationError::ImageError(e)
-    }
-}
-
-impl From<roe_assets::TextureCacheError> for ApplicationError {
-    fn from(e: roe_assets::TextureCacheError) -> Self {
-        ApplicationError::TextureLoadError(e)
-    }
-}
-
-impl From<roe_assets::AudioCacheError> for ApplicationError {
-    fn from(e: roe_assets::AudioCacheError) -> Self {
-        ApplicationError::AudioLoadError(e)
-    }
-}
-
-impl From<roe_assets::FontCacheError> for ApplicationError {
-    fn from(e: roe_assets::FontCacheError) -> Self {
-        ApplicationError::FontLoadError(e)
     }
 }
 
