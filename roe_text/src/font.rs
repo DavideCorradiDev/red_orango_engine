@@ -4,7 +4,7 @@ extern crate harfbuzz_rs as hb;
 use std::{collections::HashMap, fmt::Debug};
 
 use roe_graphics as gfx;
-use roe_math::geometry2;
+use roe_math::Vector2;
 
 use super::{Mesh, MeshIndex, MeshIndexRange, UniformConstants, Vertex};
 
@@ -146,7 +146,7 @@ impl GlyphSet {
 #[derive(Debug)]
 pub struct GlyphRenderingInfo {
     pub index_range: MeshIndexRange,
-    pub bearing: geometry2::Vector<f32>,
+    pub bearing: Vector2<f32>,
 }
 
 #[derive(Debug)]
@@ -287,7 +287,7 @@ impl Font {
                 g.char_index,
                 GlyphRenderingInfo {
                     index_range: indices_begin..indices_end,
-                    bearing: geometry2::Vector::new(g.left as f32, -g.top as f32),
+                    bearing: Vector2::new(g.left as f32, -g.top as f32),
                 },
             );
         }

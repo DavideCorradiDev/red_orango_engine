@@ -2,10 +2,7 @@ use roe_app::{Application, ApplicationState};
 
 use roe_os as os;
 
-use roe_math::{
-    conversion::convert,
-    geometry2::{OrthographicProjection, Projective, Translation},
-};
+use roe_math::{HomogeneousMatrix2, Vector2};
 
 use roe_graphics::{
     Canvas, CanvasWindow, CanvasWindowDescriptor, ColorF32, CommandSequence, Instance,
@@ -24,7 +21,7 @@ use roe_examples::*;
 struct ApplicationImpl {
     window: CanvasWindow,
     instance: Rc<Instance>,
-    projection_transform: Projective<f32>,
+    projection_transform: HomogeneousMatrix2<f32>,
     pipeline: roe_text::RenderPipeline,
     font_cache: FontCache,
 }
@@ -58,13 +55,12 @@ impl ApplicationImpl {
 
         let window_size = window.inner_size();
 
-        let projection_transform = OrthographicProjection::new(
+        let projection_transform = roe_math::ortographic_projection2(
             0.,
             window_size.width as f32,
             window_size.height as f32,
             0.,
-        )
-        .to_projective();
+        );
 
         let pipeline = roe_text::RenderPipeline::new(
             &instance,
@@ -100,13 +96,12 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
     ) -> Result<(), ApplicationError> {
         if wid == self.window.id() {
             self.window.update_buffer(&self.instance);
-            self.projection_transform = OrthographicProjection::new(
+            self.projection_transform = roe_math::ortographic_projection2(
                 0.,
                 1f32.max(size.width as f32),
                 1f32.max(size.height as f32),
                 0.,
-            )
-            .to_projective();
+            );
         }
         Ok(())
     }
@@ -126,7 +121,8 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
                         &self.pipeline,
                         self.font_cache.get("Roboto-Regular.ttf", 0, 11.).unwrap(),
                         "Lorem ipsum dolor sit amet",
-                        &convert(self.projection_transform * Translation::new(100., 100.)),
+                        &(self.projection_transform
+                            * roe_math::translation2(&Vector2::new(100., 100.))),
                         &ColorF32::BLUE,
                     );
                 }
@@ -135,7 +131,8 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
                         &self.pipeline,
                         self.font_cache.get("Roboto-Regular.ttf", 0, 11.).unwrap(),
                         "Hello world!",
-                        &convert(self.projection_transform * Translation::new(300., 300.)),
+                        &(self.projection_transform
+                            * roe_math::translation2(&Vector2::new(300., 300.))),
                         &ColorF32::RED,
                     );
                 }

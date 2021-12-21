@@ -6,17 +6,14 @@ use roe_app::{Application, ApplicationState};
 
 use roe_os as os;
 
-use roe_math::{
-    conversion::convert,
-    geometry2::{OrthographicProjection, Point, Projective, Similarity, Translation, UnitComplex},
-};
+use roe_math::{HomogeneousMatrix2, Rotation2, Vector2};
 
 use roe_graphics::{
     Canvas, CanvasWindow, CanvasWindowDescriptor, ColorF32, CommandSequence, Instance,
     InstanceDescriptor, RenderPassOperations, SampleCount,
 };
 
-use roe_shape2::Renderer as Shape2Renderer;
+use roe_shape::Renderer as Shape2Renderer;
 
 use roe_examples::*;
 
@@ -24,11 +21,11 @@ use roe_examples::*;
 struct ApplicationImpl {
     window: CanvasWindow,
     instance: Instance,
-    pipeline: roe_shape2::RenderPipeline,
-    triangle_mesh: roe_shape2::Mesh,
-    saved_triangle_constants: Vec<roe_shape2::PushConstants>,
-    projection_transform: Projective<f32>,
-    current_position: Point<f32>,
+    pipeline: roe_shape::RenderPipeline,
+    triangle_mesh: roe_shape::Mesh,
+    saved_triangle_constants: Vec<roe_shape::PushConstants>,
+    projection_transform: HomogeneousMatrix2<f32>,
+    current_offset: Vector2<f32>,
     current_angle: f32,
     current_scaling: f32,
     current_color: ColorF32,
@@ -61,35 +58,34 @@ impl ApplicationImpl {
             (window, instance)
         };
 
-        let pipeline = roe_shape2::RenderPipeline::new(
+        let pipeline = roe_shape::RenderPipeline::new(
             &instance,
-            &roe_shape2::RenderPipelineDescriptor {
+            &roe_shape::RenderPipelineDescriptor {
                 sample_count: Self::SAMPLE_COUNT,
-                ..roe_shape2::RenderPipelineDescriptor::default()
+                ..roe_shape::RenderPipelineDescriptor::default()
             },
         );
 
-        let triangle_mesh = roe_shape2::Mesh::new(
+        let triangle_mesh = roe_shape::Mesh::new(
             &instance,
             &[
-                roe_shape2::Vertex::new([-50., 50.]),
-                roe_shape2::Vertex::new([50., 50.]),
-                roe_shape2::Vertex::new([0., -50.]),
+                roe_shape::Vertex::new([-50., 50.]),
+                roe_shape::Vertex::new([50., 50.]),
+                roe_shape::Vertex::new([0., -50.]),
             ],
             &[0, 1, 2],
         );
 
         let window_size = window.inner_size();
 
-        let projection_transform = OrthographicProjection::new(
+        let projection_transform = roe_math::ortographic_projection2(
             0.,
             window_size.width as f32,
             window_size.height as f32,
             0.,
-        )
-        .to_projective();
+        );
 
-        let current_position = Point::from([
+        let current_offset = Vector2::from([
             window_size.width as f32 / 2.,
             window_size.height as f32 / 2.,
         ]);
@@ -108,7 +104,7 @@ impl ApplicationImpl {
             triangle_mesh,
             saved_triangle_constants: Vec::new(),
             projection_transform,
-            current_position,
+            current_offset,
             current_angle: 0.,
             current_scaling: 1.,
             current_color,
@@ -123,14 +119,12 @@ impl ApplicationImpl {
         }
     }
 
-    pub fn generate_push_constant(&self) -> roe_shape2::PushConstants {
-        let object_transform = Similarity::<f32>::from_parts(
-            Translation::new(self.current_position.x, self.current_position.y),
-            UnitComplex::new(self.current_angle),
-            self.current_scaling,
-        );
-        roe_shape2::PushConstants::new(
-            &convert(self.projection_transform * object_transform),
+    pub fn generate_push_constant(&self) -> roe_shape::PushConstants {
+        let object_transform = roe_math::translation2(&Vector2::from(self.current_offset))
+            * roe_math::rotation2(&Rotation2::new(self.current_angle))
+            * roe_math::scale2(&Vector2::new(self.current_scaling, self.current_scaling));
+        roe_shape::PushConstants::new(
+            &(self.projection_transform * object_transform),
             self.current_color,
         )
     }
@@ -144,13 +138,12 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
     ) -> Result<(), ApplicationError> {
         if wid == self.window.id() {
             self.window.update_buffer(&self.instance);
-            self.projection_transform = OrthographicProjection::new(
+            self.projection_transform = roe_math::ortographic_projection2(
                 0.,
                 1f32.max(size.width as f32),
                 1f32.max(size.height as f32),
                 0.,
-            )
-            .to_projective();
+            );
         }
         Ok(())
     }
@@ -163,13 +156,12 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
     ) -> Result<(), ApplicationError> {
         if wid == self.window.id() {
             self.window.update_buffer(&self.instance);
-            self.projection_transform = OrthographicProjection::new(
+            self.projection_transform = roe_math::ortographic_projection2(
                 0.,
                 1f32.max(size.width as f32),
                 1f32.max(size.height as f32),
                 0.,
-            )
-            .to_projective();
+            );
         }
         Ok(())
     }
@@ -181,8 +173,8 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
         position: os::PhysicalPosition<f64>,
     ) -> Result<(), ApplicationError> {
         if wid == self.window.id() {
-            self.current_position.x = position.x as f32;
-            self.current_position.y = position.y as f32;
+            self.current_offset.x = position.x as f32;
+            self.current_offset.y = position.y as f32;
         }
         Ok(())
     }

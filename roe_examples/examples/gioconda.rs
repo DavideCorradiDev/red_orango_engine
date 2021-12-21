@@ -2,10 +2,7 @@ use roe_app::{Application, ApplicationState};
 
 use roe_os as os;
 
-use roe_math::{
-    conversion::convert,
-    geometry2::{OrthographicProjection, Projective},
-};
+use roe_math::HomogeneousMatrix2;
 
 use roe_graphics::{
     AddressMode, Canvas, CanvasWindow, CanvasWindowDescriptor, ColorF32, CommandSequence,
@@ -32,7 +29,7 @@ struct ApplicationImpl {
     window: CanvasWindow,
     instance: Rc<Instance>,
     pipeline: roe_sprite::RenderPipeline,
-    projection_transform: Projective<f32>,
+    projection_transform: HomogeneousMatrix2<f32>,
     sprites: Vec<Sprite>,
     color: ChangingColor,
     texture_cache: TextureCache,
@@ -75,13 +72,12 @@ impl ApplicationImpl {
 
         let window_size = window.inner_size();
 
-        let projection_transform = OrthographicProjection::new(
+        let projection_transform = roe_math::ortographic_projection2(
             0.,
             window_size.width as f32,
             window_size.height as f32,
             0.,
-        )
-        .to_projective();
+        );
 
         let mut texture_cache = TextureCache::new(
             Rc::clone(&instance),
@@ -252,23 +248,20 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
     ) -> Result<(), ApplicationError> {
         if wid == self.window.id() {
             self.window.update_buffer(&self.instance);
-            self.projection_transform = OrthographicProjection::new(
+            self.projection_transform = roe_math::ortographic_projection2(
                 0.,
                 1f32.max(size.width as f32),
                 1f32.max(size.height as f32),
                 0.,
-            )
-            .to_projective();
+            );
         }
         Ok(())
     }
 
     fn on_variable_update(&mut self, dt: std::time::Duration) -> Result<(), ApplicationError> {
         self.color.update(dt);
-        let push_constants = roe_sprite::PushConstants::new(
-            &convert(self.projection_transform),
-            *self.color.current_color(),
-        );
+        let push_constants =
+            roe_sprite::PushConstants::new(&self.projection_transform, *self.color.current_color());
 
         if let Some(frame) = self.window.current_frame()? {
             let mut cmd_sequence = CommandSequence::new(&self.instance);

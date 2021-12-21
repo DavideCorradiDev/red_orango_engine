@@ -8,7 +8,7 @@ use num_traits::identities::Zero;
 pub use gfx::{MeshIndex, MeshIndexRange};
 use roe_graphics as gfx;
 
-use roe_math::{conversion::ToHomogeneousMatrix3, geometry2, geometry3};
+use roe_math::{HomogeneousMatrix2, HomogeneousMatrix3, HomogeneousVector2, HomogeneousVector3};
 
 use super::{i26dot6_to_fsize, Font, GlyphRenderingInfo};
 
@@ -20,10 +20,10 @@ pub struct Vertex {
 }
 
 impl Vertex {
-    pub fn new(position: [f32; 2], texture_coordinates: [f32; 3]) -> Self {
+    pub fn new<P: Into<[f32; 2]>, T: Into<[f32; 3]>>(position: P, texture_coordinates: T) -> Self {
         Self {
-            position,
-            texture_coordinates,
+            position: position.into(),
+            texture_coordinates: texture_coordinates.into(),
         }
     }
 }
@@ -132,9 +132,9 @@ impl Default for RenderPipelineDescriptor {
 
 const PC_TRANSFORM_MEM_OFFSET: u32 = 0;
 const PC_GLYPH_OFFSET_MEM_OFFSET: u32 =
-    PC_TRANSFORM_MEM_OFFSET + size_of::<geometry3::HomogeneousMatrix<f32>>() as u32;
+    PC_TRANSFORM_MEM_OFFSET + size_of::<HomogeneousMatrix3<f32>>() as u32;
 const PC_COLOR_MEM_OFFSET: u32 =
-    PC_GLYPH_OFFSET_MEM_OFFSET + size_of::<geometry3::HomogeneousVector<f32>>() as u32;
+    PC_GLYPH_OFFSET_MEM_OFFSET + size_of::<HomogeneousVector3<f32>>() as u32;
 const PC_SIZE: u32 = PC_COLOR_MEM_OFFSET + size_of::<gfx::ColorF32>() as u32;
 
 #[derive(Debug)]
@@ -244,7 +244,7 @@ pub trait Renderer<'a> {
         pipeline: &'a RenderPipeline,
         font: &'a Font,
         text: &str,
-        transform: &geometry2::Transform<f32>,
+        transform: &HomogeneousMatrix2<f32>,
         color: &gfx::ColorF32,
     );
 }
@@ -255,7 +255,7 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
         pipeline: &'a RenderPipeline,
         font: &'a Font,
         text: &str,
-        transform: &geometry2::Transform<f32>,
+        transform: &HomogeneousMatrix2<f32>,
         color: &gfx::ColorF32,
     ) {
         let shaping_output = font.shape_text(text);
@@ -268,13 +268,13 @@ impl<'a> Renderer<'a> for gfx::RenderPass<'a> {
         self.set_vertex_buffer(0, font.vertex_buffer().slice(..));
 
         let pc = (
-            transform.to_homogeneous3(),
-            geometry3::HomogeneousVector::<f32>::zero(),
+            roe_math::transform2_to_transform3(transform),
+            HomogeneousVector3::<f32>::zero(),
             color.clone(),
         );
         self.set_push_constants(gfx::ShaderStage::VERTEX, 0, gfx::utility::as_slice(&pc));
 
-        let mut cursor_pos = geometry2::HomogeneousVector::<f32>::zero();
+        let mut cursor_pos = HomogeneousVector2::<f32>::zero();
         for (position, info) in positions.iter().zip(infos) {
             let GlyphRenderingInfo {
                 index_range,
@@ -306,7 +306,7 @@ mod tests {
     };
     use galvanic_assert::{matchers::*, *};
     use gfx::Canvas;
-    use roe_math::{conversion::convert, geometry2 as geo};
+    use roe_math::Vector2;
 
     #[test]
     #[serial_test::serial]
@@ -343,8 +343,7 @@ mod tests {
         let face = Face::from_file(&font_lib, "data/fonts/Roboto-Regular.ttf", 0).unwrap();
         let font = Font::new(&instance, &face, 10., character_set::english().as_slice()).unwrap();
 
-        let projection_transform =
-            geo::OrthographicProjection::new(0., 300., 300., 0.).to_projective();
+        let projection_transform = roe_math::ortographic_projection2(0., 300., 300., 0.);
 
         {
             let frame = canvas.current_frame().unwrap().unwrap();
@@ -359,14 +358,14 @@ mod tests {
                     &pipeline,
                     &font,
                     "Lorem ipsum dolor sit amet",
-                    &convert(projection_transform * geo::Translation::new(10., 60.)),
+                    &(projection_transform * roe_math::translation2(&Vector2::new(10., 60.))),
                     &gfx::ColorF32::BLUE,
                 );
                 rpass.draw_text(
                     &pipeline,
                     &font,
                     "Hello world!",
-                    &convert(projection_transform * geo::Translation::new(30., 150.)),
+                    &(projection_transform * roe_math::translation2(&Vector2::new(30., 150.))),
                     &gfx::ColorF32::RED,
                 );
             }

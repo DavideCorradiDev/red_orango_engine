@@ -1,7 +1,7 @@
 [package]
 authors = ["Davide Corradi <davide.corradi.dev@gmail.com>"]
 edition = "2021"
-name = "roe_shape2"
+name = "roe_shape"
 version = "0.1.1"
 
 [dependencies]
