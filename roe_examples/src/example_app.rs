@@ -4,7 +4,7 @@ use rand::Rng;
 
 use roe_os::EventLoopClosed;
 
-use roe_math::geometry3;
+use roe_math::Vector3;
 
 use roe_graphics::ColorF32;
 
@@ -157,12 +157,12 @@ impl ChangingColor {
         const COLOR_CHANGE_SPEED: f32 = 1.;
 
         if self.current_color != self.target_color {
-            let current_color = geometry3::Point::new(
+            let current_color = Vector3::new(
                 self.current_color.r,
                 self.current_color.g,
                 self.current_color.b,
             );
-            let target_color = geometry3::Point::new(
+            let target_color = Vector3::new(
                 self.target_color.r,
                 self.target_color.g,
                 self.target_color.b,
