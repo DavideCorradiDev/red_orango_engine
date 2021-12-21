@@ -15,7 +15,7 @@ roe_graphics = {path = "../roe_graphics"}
 roe_math = {path = "../roe_math", features = [
   "serde-serialize",
 ]}
-roe_shape2 = {path = "../roe_shape2"}
+roe_shape = {path = "../roe_shape"}
 roe_sprite = {path = "../roe_sprite"}
 roe_text = {path = "../roe_text"}
 roe_assets = {path = "../roe_assets"}

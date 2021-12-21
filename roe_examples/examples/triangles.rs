@@ -13,7 +13,7 @@ use roe_graphics::{
     InstanceDescriptor, RenderPassOperations, SampleCount,
 };
 
-use roe_shape2::Renderer as Shape2Renderer;
+use roe_shape::Renderer as Shape2Renderer;
 
 use roe_examples::*;
 
@@ -21,9 +21,9 @@ use roe_examples::*;
 struct ApplicationImpl {
     window: CanvasWindow,
     instance: Instance,
-    pipeline: roe_shape2::RenderPipeline,
-    triangle_mesh: roe_shape2::Mesh,
-    saved_triangle_constants: Vec<roe_shape2::PushConstants>,
+    pipeline: roe_shape::RenderPipeline,
+    triangle_mesh: roe_shape::Mesh,
+    saved_triangle_constants: Vec<roe_shape::PushConstants>,
     projection_transform: HomogeneousMatrix2<f32>,
     current_offset: Vector2<f32>,
     current_angle: f32,
@@ -58,20 +58,20 @@ impl ApplicationImpl {
             (window, instance)
         };
 
-        let pipeline = roe_shape2::RenderPipeline::new(
+        let pipeline = roe_shape::RenderPipeline::new(
             &instance,
-            &roe_shape2::RenderPipelineDescriptor {
+            &roe_shape::RenderPipelineDescriptor {
                 sample_count: Self::SAMPLE_COUNT,
-                ..roe_shape2::RenderPipelineDescriptor::default()
+                ..roe_shape::RenderPipelineDescriptor::default()
             },
         );
 
-        let triangle_mesh = roe_shape2::Mesh::new(
+        let triangle_mesh = roe_shape::Mesh::new(
             &instance,
             &[
-                roe_shape2::Vertex::new([-50., 50.]),
-                roe_shape2::Vertex::new([50., 50.]),
-                roe_shape2::Vertex::new([0., -50.]),
+                roe_shape::Vertex::new([-50., 50.]),
+                roe_shape::Vertex::new([50., 50.]),
+                roe_shape::Vertex::new([0., -50.]),
             ],
             &[0, 1, 2],
         );
@@ -119,12 +119,12 @@ impl ApplicationImpl {
         }
     }
 
-    pub fn generate_push_constant(&self) -> roe_shape2::PushConstants {
+    pub fn generate_push_constant(&self) -> roe_shape::PushConstants {
         let object_transform = 
             roe_math::translation2(&Vector2::from(self.current_offset)) *
             roe_math::rotation2(&Rotation2::new(self.current_angle)) *
             roe_math::scale2(&Vector2::new(self.current_scaling, self.current_scaling));
-        roe_shape2::PushConstants::new(
+        roe_shape::PushConstants::new(
             &(self.projection_transform * object_transform),
             self.current_color,
         )

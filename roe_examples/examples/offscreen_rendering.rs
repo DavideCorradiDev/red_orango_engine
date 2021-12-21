@@ -12,7 +12,7 @@ use roe_graphics::{
     Size,
 };
 
-use roe_shape2::Renderer as Shape2Renderer;
+use roe_shape::Renderer as Shape2Renderer;
 use roe_sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer};
 
 use roe_examples::*;
@@ -22,8 +22,8 @@ struct ApplicationImpl {
     window: CanvasWindow,
     canvas: CanvasTexture,
     instance: Instance,
-    shape2_pipeline: roe_shape2::RenderPipeline,
-    triangle_mesh: roe_shape2::Mesh,
+    shape2_pipeline: roe_shape::RenderPipeline,
+    triangle_mesh: roe_shape::Mesh,
     sprite_pipeline: roe_sprite::RenderPipeline,
     quad_mesh: roe_sprite::Mesh,
     sprite_uniform_constants: roe_sprite::UniformConstants,
@@ -70,21 +70,21 @@ impl ApplicationImpl {
             },
         );
 
-        let shape2_pipeline = roe_shape2::RenderPipeline::new(
+        let shape2_pipeline = roe_shape::RenderPipeline::new(
             &instance,
-            &roe_shape2::RenderPipelineDescriptor {
+            &roe_shape::RenderPipelineDescriptor {
                 sample_count: Self::SAMPLE_COUNT,
                 color_buffer_format: CanvasColorBufferFormat::Rgba8UnormSrgb,
-                ..roe_shape2::RenderPipelineDescriptor::default()
+                ..roe_shape::RenderPipelineDescriptor::default()
             },
         );
 
-        let triangle_mesh = roe_shape2::Mesh::new(
+        let triangle_mesh = roe_shape::Mesh::new(
             &instance,
             &[
-                roe_shape2::Vertex::new([-0.25, 0.25]),
-                roe_shape2::Vertex::new([0.25, 0.25]),
-                roe_shape2::Vertex::new([0., -0.25]),
+                roe_shape::Vertex::new([-0.25, 0.25]),
+                roe_shape::Vertex::new([0.25, 0.25]),
+                roe_shape::Vertex::new([0., -0.25]),
             ],
             &[0, 1, 2],
         );
@@ -139,12 +139,12 @@ impl ApplicationImpl {
         }
     }
 
-    pub fn generate_triangle_push_constants(&self) -> roe_shape2::PushConstants {
+    pub fn generate_triangle_push_constants(&self) -> roe_shape::PushConstants {
         let projection_transform = roe_math::ortographic_projection2(0., 1., 1., 0.);
         let object_transform = roe_math::translation2(&Vector2::new(0.5, 0.5))
             * roe_math::rotation2(&Rotation2::new(self.current_angle))
             * roe_math::scale2(&Vector2::new(1., 1.));
-        roe_shape2::PushConstants::new(
+        roe_shape::PushConstants::new(
             &(projection_transform * object_transform),
             *self.color.current_color(),
         )
