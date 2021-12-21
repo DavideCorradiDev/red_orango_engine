@@ -2,7 +2,7 @@ use std::{default::Default, iter::IntoIterator};
 
 use num_traits::Zero;
 
-use roe_math::{conversion::ToHomogeneousMatrix3, geometry2, geometry3};
+use roe_math::{Point2, Transform2, Transform3};
 
 use roe_graphics as gfx;
 
@@ -22,8 +22,8 @@ impl Vertex {
     }
 
     pub fn from_points(
-        position: &geometry2::Point<f32>,
-        texture_coordinates: &geometry2::Point<f32>,
+        position: &Point2<f32>,
+        texture_coordinates: &Point2<f32>,
     ) -> Self {
         Self {
             position: [position.x, position.y],
@@ -111,14 +111,14 @@ impl MeshTemplates for Mesh {
 #[repr(C, packed)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct PushConstants {
-    transform: geometry3::HomogeneousMatrix<f32>,
+    transform: Transform3<f32>,
     color: gfx::ColorF32,
 }
 
 impl PushConstants {
-    pub fn new(transform: &geometry2::Transform<f32>, color: gfx::ColorF32) -> Self {
+    pub fn new(transform: &Transform2<f32>, color: gfx::ColorF32) -> Self {
         Self {
-            transform: transform.to_homogeneous3(),
+            transform: roe_math::transform2_to_transform3(transform),
             color,
         }
     }
@@ -127,7 +127,7 @@ impl PushConstants {
 unsafe impl bytemuck::Zeroable for PushConstants {
     fn zeroed() -> Self {
         Self {
-            transform: geometry3::HomogeneousMatrix::zero(),
+            transform: Transform3::zero(),
             color: gfx::ColorF32::default(),
         }
     }
@@ -406,7 +406,7 @@ mod tests {
     use super::*;
     use galvanic_assert::{matchers::*, *};
     use gfx::Canvas;
-    use roe_math::{conversion::convert, geometry2 as geo};
+    use roe_math::{Scale2, Translation2, Rotation2};
 
     #[test]
     #[serial_test::serial]
@@ -498,41 +498,28 @@ mod tests {
             ),
         );
 
-        let projection_transform =
-            geo::OrthographicProjection::new(0., 100., 100., 0.).to_projective();
+        let projection_transform = roe_math::ortographic_projection2(0., 100., 100., 0.);
 
         let push_constants_1 = PushConstants::new(
-            &convert(
-                projection_transform
-                    * geo::Similarity::<f32>::from_parts(
-                        geo::Translation::new(50., 60.),
-                        geo::UnitComplex::new(std::f32::consts::PI * 0.5),
-                        0.1,
-                    ),
-            ),
+            &(projection_transform
+                * roe_math::translation2(&Translation2::new(50., 60.))
+                * roe_math::rotation2(&Rotation2::new(std::f32::consts::PI * 0.5))
+                * roe_math::scale2(&Scale2::new(0.1, 0.1))),
             gfx::ColorF32::CYAN,
         );
         let push_constants_2 = PushConstants::new(
-            &convert(
-                projection_transform
-                    * geo::Similarity::<f32>::from_parts(
-                        geo::Translation::new(70., 30.),
-                        geo::UnitComplex::new(0.),
-                        0.05,
-                    ),
-            ),
+            &(projection_transform
+                * roe_math::translation2(&Translation2::new(70., 30.))
+                * roe_math::rotation2(&Rotation2::new(0.))
+                * roe_math::scale2(&Scale2::new(0.05, 0.05))),
             gfx::ColorF32::RED,
         );
 
         let push_constants_3 = PushConstants::new(
-            &convert(
-                projection_transform
-                    * geo::Similarity::<f32>::from_parts(
-                        geo::Translation::new(20., 80.),
-                        geo::UnitComplex::new(std::f32::consts::PI),
-                        0.02,
-                    ),
-            ),
+            &(projection_transform
+                * roe_math::translation2(&Translation2::new(20., 80.))
+                * roe_math::rotation2(&Rotation2::new(std::f32::consts::PI))
+                * roe_math::scale2(&Scale2::new(0.02, 0.02))),
             gfx::ColorF32::YELLOW,
         );
 
