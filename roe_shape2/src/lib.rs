@@ -4,7 +4,7 @@ use num_traits::Zero;
 
 use roe_graphics as gfx;
 
-use roe_math::{geometry2::{Point, Transform}, geometry3};
+use roe_math::{Point2, Transform2, Transform3};
 
 #[repr(C, packed)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -17,7 +17,7 @@ impl Vertex {
         Self { position }
     }
 
-    pub fn from_point(position: &Point<f32>) -> Self {
+    pub fn from_point(position: &Point2<f32>) -> Self {
         Self {
             position: [position.x, position.y],
         }
@@ -39,12 +39,12 @@ pub type Mesh = gfx::IndexedMesh<Vertex>;
 #[repr(C, packed)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct PushConstants {
-    transform: geometry3::Transform<f32>,
+    transform: Transform3<f32>,
     color: gfx::ColorF32,
 }
 
 impl PushConstants {
-    pub fn new(transform: &Transform<f32>, color: gfx::ColorF32) -> Self {
+    pub fn new(transform: &Transform2<f32>, color: gfx::ColorF32) -> Self {
         Self {
             transform: roe_math::transform2_to_transform3(transform),
             color,
@@ -55,7 +55,7 @@ impl PushConstants {
 unsafe impl bytemuck::Zeroable for PushConstants {
     fn zeroed() -> Self {
         Self {
-            transform: geometry3::Transform::zero(),
+            transform: Transform3::zero(),
             color: gfx::ColorF32::default(),
         }
     }
@@ -249,7 +249,7 @@ mod tests {
     use super::*;
     use galvanic_assert::{matchers::*, *};
     use gfx::Canvas;
-    use roe_math::geometry2::{Scale, Translation, Rotation};
+    use roe_math::{Scale2, Translation2, Rotation2};
 
     #[test]
     #[serial_test::serial]
