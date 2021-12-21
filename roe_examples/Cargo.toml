@@ -18,7 +18,6 @@ roe_math = {path = "../roe_math", features = [
 roe_shape = {path = "../roe_shape"}
 roe_sprite = {path = "../roe_sprite"}
 roe_text = {path = "../roe_text"}
-roe_assets = {path = "../roe_assets"}
 
 [[example]]
 name = "app_state"

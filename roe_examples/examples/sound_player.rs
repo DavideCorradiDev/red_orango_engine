@@ -2,11 +2,9 @@ use roe_app::{Application, ApplicationState};
 
 use roe_os as os;
 
-use roe_audio::Source;
+use roe_audio::{Buffer, Decoder, Source};
 
-use roe_assets::{AudioBufferCache, AudioDecoderCache};
-
-use std::{path::PathBuf, rc::Rc};
+use std::{borrow::BorrowMut, rc::Rc};
 
 use roe_examples::*;
 
@@ -29,17 +27,14 @@ impl ApplicationImpl {
         let audio_device = roe_audio::Device::default()?;
         let audio_context = Rc::new(roe_audio::Context::default(&audio_device)?);
 
-        let mut buffer_cache = AudioBufferCache::new(
-            Rc::clone(&audio_context),
-            PathBuf::from("roe_examples/data/audio"),
-        );
-
-        let mut decoder_cache = AudioDecoderCache::new(PathBuf::from("roe_examples/data/audio"));
-
-        let audio_buffer = buffer_cache.get_or_load("stereo-16-44100.wav")?;
+        let audio_buffer = Buffer::from_decoder(
+            &audio_context,
+            load_decoder("roe_examples/data/audio/stereo-16-44100.wav")?.borrow_mut()
+                as &mut dyn Decoder,
+        )?;
         let static_source = roe_audio::StaticSource::with_buffer(&audio_context, &audio_buffer)?;
 
-        let audio_decoder = decoder_cache.remove_or_load("bach.ogg")?;
+        let audio_decoder = load_decoder("roe_examples/data/audio/bach.ogg")?;
         let streaming_source = roe_audio::StreamingSource::with_decoder(
             &audio_context,
             audio_decoder,

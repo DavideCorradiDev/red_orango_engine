@@ -9,11 +9,9 @@ use roe_graphics::{
     InstanceDescriptor, RenderPassOperations, SampleCount,
 };
 
-use roe_text::Renderer as TextRenderer;
+use roe_text::{character_set, Face, Font, FontLibrary, Renderer as TextRenderer};
 
-use roe_assets::FontCache;
-
-use std::{path::PathBuf, rc::Rc};
+use std::rc::Rc;
 
 use roe_examples::*;
 
@@ -23,7 +21,7 @@ struct ApplicationImpl {
     instance: Rc<Instance>,
     projection_transform: HomogeneousMatrix2<f32>,
     pipeline: roe_text::RenderPipeline,
-    font_cache: FontCache,
+    font: Font,
 }
 
 impl ApplicationImpl {
@@ -70,20 +68,16 @@ impl ApplicationImpl {
             },
         );
 
-        let mut font_cache = FontCache::new(
-            Rc::clone(&instance),
-            Rc::new(roe_text::FontLibrary::new()?),
-            PathBuf::from("roe_examples/data/fonts"),
-            roe_text::character_set::english(),
-        );
-        font_cache.load("Roboto-Regular.ttf", 0, 11.)?;
+        let lib = FontLibrary::new()?;
+        let face = Face::from_file(&lib, "roe_examples/data/fonts/Roboto-Regular.ttf", 0)?;
+        let font = Font::new(&instance, &face, 11., &character_set::english())?;
 
         Ok(Self {
             window,
             instance,
             projection_transform,
             pipeline,
-            font_cache,
+            font,
         })
     }
 }
@@ -119,7 +113,7 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
                 {
                     rpass.draw_text(
                         &self.pipeline,
-                        self.font_cache.get("Roboto-Regular.ttf", 0, 11.).unwrap(),
+                        &self.font,
                         "Lorem ipsum dolor sit amet",
                         &(self.projection_transform
                             * roe_math::translation2(&Vector2::new(100., 100.))),
@@ -129,7 +123,7 @@ impl ApplicationState<ApplicationError, ApplicationEvent> for ApplicationImpl {
                 {
                     rpass.draw_text(
                         &self.pipeline,
-                        self.font_cache.get("Roboto-Regular.ttf", 0, 11.).unwrap(),
+                        &self.font,
                         "Hello world!",
                         &(self.projection_transform
                             * roe_math::translation2(&Vector2::new(300., 300.))),
