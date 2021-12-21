@@ -13,8 +13,8 @@ pub struct Vertex {
 }
 
 impl Vertex {
-    pub fn new(position: [f32; 2]) -> Self {
-        Self { position }
+    pub fn new<P: Into<[f32; 2]>>(position: P) -> Self {
+        Self { position: position.into() }
     }
 }
 

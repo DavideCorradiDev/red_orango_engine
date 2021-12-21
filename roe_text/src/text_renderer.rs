@@ -8,9 +8,7 @@ use num_traits::identities::Zero;
 pub use gfx::{MeshIndex, MeshIndexRange};
 use roe_graphics as gfx;
 
-use roe_math::{
-    HomogeneousMatrix2, HomogeneousMatrix3, HomogeneousVector2, HomogeneousVector3, 
-};
+use roe_math::{HomogeneousMatrix2, HomogeneousMatrix3, HomogeneousVector2, HomogeneousVector3};
 
 use super::{i26dot6_to_fsize, Font, GlyphRenderingInfo};
 
@@ -22,10 +20,10 @@ pub struct Vertex {
 }
 
 impl Vertex {
-    pub fn new(position: [f32; 2], texture_coordinates: [f32; 3]) -> Self {
+    pub fn new<P: Into<[f32; 2]>, T: Into<[f32; 3]>>(position: P, texture_coordinates: T) -> Self {
         Self {
-            position,
-            texture_coordinates,
+            position: position.into(),
+            texture_coordinates: texture_coordinates.into(),
         }
     }
 }

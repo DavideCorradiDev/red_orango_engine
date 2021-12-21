@@ -14,10 +14,10 @@ pub struct Vertex {
 }
 
 impl Vertex {
-    pub fn new(position: [f32; 2], texture_coordinates: [f32; 2]) -> Self {
+    pub fn new<P: Into<[f32;2]>, T: Into<[f32;2]>>(position: P, texture_coordinates: T) -> Self {
         Self {
-            position,
-            texture_coordinates,
+            position: position.into(),
+            texture_coordinates: texture_coordinates.into(),
         }
     }
 }
