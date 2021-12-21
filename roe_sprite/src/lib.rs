@@ -2,7 +2,7 @@ use std::{default::Default, iter::IntoIterator};
 
 use num_traits::Zero;
 
-use roe_math::{Point2, HomogeneousMatrix2, HomogeneousMatrix3};
+use roe_math::{HomogeneousMatrix2, HomogeneousMatrix3};
 
 use roe_graphics as gfx;
 
@@ -18,16 +18,6 @@ impl Vertex {
         Self {
             position,
             texture_coordinates,
-        }
-    }
-
-    pub fn from_points(
-        position: &Point2<f32>,
-        texture_coordinates: &Point2<f32>,
-    ) -> Self {
-        Self {
-            position: [position.x, position.y],
-            texture_coordinates: [texture_coordinates.x, texture_coordinates.y],
         }
     }
 }

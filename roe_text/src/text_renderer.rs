@@ -9,7 +9,7 @@ pub use gfx::{MeshIndex, MeshIndexRange};
 use roe_graphics as gfx;
 
 use roe_math::{
-    HomogeneousMatrix2, HomogeneousMatrix3, HomogeneousVector2, HomogeneousVector3, Point2, Point3,
+    HomogeneousMatrix2, HomogeneousMatrix3, HomogeneousVector2, HomogeneousVector3, 
 };
 
 use super::{i26dot6_to_fsize, Font, GlyphRenderingInfo};
@@ -26,17 +26,6 @@ impl Vertex {
         Self {
             position,
             texture_coordinates,
-        }
-    }
-
-    pub fn from_points(position: &Point2<f32>, texture_coordinates: &Point3<f32>) -> Self {
-        Self {
-            position: [position.x, position.y],
-            texture_coordinates: [
-                texture_coordinates.x,
-                texture_coordinates.y,
-                texture_coordinates.z,
-            ],
         }
     }
 }

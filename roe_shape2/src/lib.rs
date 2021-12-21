@@ -4,7 +4,7 @@ use num_traits::Zero;
 
 use roe_graphics as gfx;
 
-use roe_math::{Point2, HomogeneousMatrix2, HomogeneousMatrix3};
+use roe_math::{HomogeneousMatrix2, HomogeneousMatrix3};
 
 #[repr(C, packed)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -15,12 +15,6 @@ pub struct Vertex {
 impl Vertex {
     pub fn new(position: [f32; 2]) -> Self {
         Self { position }
-    }
-
-    pub fn from_points(position: &Point2<f32>) -> Self {
-        Self {
-            position: [position.x, position.y],
-        }
     }
 }
 
