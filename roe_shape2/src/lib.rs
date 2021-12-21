@@ -4,7 +4,7 @@ use num_traits::Zero;
 
 use roe_graphics as gfx;
 
-use roe_math::{Point2, Transform2, Transform3};
+use roe_math::{Point2, HomogeneousMatrix2, HomogeneousMatrix3};
 
 #[repr(C, packed)]
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -39,12 +39,12 @@ pub type Mesh = gfx::IndexedMesh<Vertex>;
 #[repr(C, packed)]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct PushConstants {
-    transform: Transform3<f32>,
+    transform: HomogeneousMatrix3<f32>,
     color: gfx::ColorF32,
 }
 
 impl PushConstants {
-    pub fn new(transform: &Transform2<f32>, color: gfx::ColorF32) -> Self {
+    pub fn new(transform: &HomogeneousMatrix2<f32>, color: gfx::ColorF32) -> Self {
         Self {
             transform: roe_math::transform2_to_transform3(transform),
             color,
@@ -55,7 +55,7 @@ impl PushConstants {
 unsafe impl bytemuck::Zeroable for PushConstants {
     fn zeroed() -> Self {
         Self {
-            transform: Transform3::zero(),
+            transform: HomogeneousMatrix3::zero(),
             color: gfx::ColorF32::default(),
         }
     }
@@ -249,7 +249,7 @@ mod tests {
     use super::*;
     use galvanic_assert::{matchers::*, *};
     use gfx::Canvas;
-    use roe_math::{Scale2, Translation2, Rotation2};
+    use roe_math::{Vector2, Rotation2};
 
     #[test]
     #[serial_test::serial]
@@ -295,23 +295,23 @@ mod tests {
         let projection_transform = roe_math::ortographic_projection2(0., 100., 100., 0.);
         let constants_1 = PushConstants::new(
             &(projection_transform
-                * roe_math::translation2(&Translation2::new(50., 60.))
+                * roe_math::translation2(&Vector2::new(50., 60.))
                 * roe_math::rotation2(&Rotation2::new(std::f32::consts::PI * 0.5))
-                * roe_math::scale2(&Scale2::new(0.5, 0.5))),
+                * roe_math::scale2(&Vector2::new(0.5, 0.5))),
             gfx::ColorF32::CYAN,
         );
         let constants_2 = PushConstants::new(
             &(projection_transform
-                * roe_math::translation2(&Translation2::new(70., 30.))
+                * roe_math::translation2(&Vector2::new(70., 30.))
                 * roe_math::rotation2(&Rotation2::new(0.))
-                * roe_math::scale2(&Scale2::new(0.25, 0.25))),
+                * roe_math::scale2(&Vector2::new(0.25, 0.25))),
             gfx::ColorF32::RED,
         );
         let constants_3 = PushConstants::new(
             &(projection_transform
-                * roe_math::translation2(&Translation2::new(20., 80.))
+                * roe_math::translation2(&Vector2::new(20., 80.))
                 * roe_math::rotation2(&Rotation2::new(std::f32::consts::PI))
-                * roe_math::scale2(&Scale2::new(0.15, 0.15))),
+                * roe_math::scale2(&Vector2::new(0.15, 0.15))),
             gfx::ColorF32::YELLOW,
         );
 

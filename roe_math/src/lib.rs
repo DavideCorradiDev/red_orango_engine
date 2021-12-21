@@ -9,13 +9,10 @@ pub use nalgebra::{
 };
 
 pub use UnitComplex as Rotation2;
-pub use Vector2 as Translation2;
-pub use Vector2 as Scale2;
-pub use Vector2 as Shear2;
-pub use Matrix3 as Transform2;
+pub use Matrix3 as HomogeneousMatrix2;
 pub use Vector3 as HomogeneousVector2;
 
-pub use Matrix4 as Transform3;
+pub use Matrix4 as HomogeneousMatrix3;
 pub use Vector4 as HomogeneousVector3;
 
 mod transform;
