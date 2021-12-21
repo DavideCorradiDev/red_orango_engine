@@ -7,16 +7,14 @@ use roe_math::HomogeneousMatrix2;
 use roe_graphics::{
     AddressMode, Canvas, CanvasWindow, CanvasWindowDescriptor, ColorF32, CommandSequence,
     FilterMode, Instance, InstanceDescriptor, RenderPassOperations, SampleCount, Sampler,
-    SamplerDescriptor,
+    SamplerDescriptor, Texture, TextureUsage, TextureView, TextureViewDescriptor,
 };
 
 use roe_sprite::{MeshTemplates as SpriteMeshTemplates, Renderer as SpriteRenderer};
 
-use roe_assets::TextureCache;
-
 use roe_examples::*;
 
-use std::{path::PathBuf, rc::Rc};
+use std::rc::Rc;
 
 #[derive(Debug)]
 struct Sprite {
@@ -32,7 +30,7 @@ struct ApplicationImpl {
     projection_transform: HomogeneousMatrix2<f32>,
     sprites: Vec<Sprite>,
     color: ChangingColor,
-    texture_cache: TextureCache,
+    texture_view: TextureView,
 }
 
 impl ApplicationImpl {
@@ -79,12 +77,15 @@ impl ApplicationImpl {
             0.,
         );
 
-        let mut texture_cache = TextureCache::new(
-            Rc::clone(&instance),
-            PathBuf::from("roe_examples/data/pictures"),
+        let texture = Texture::from_image(
+            &instance,
+            &image::open("roe_examples/data/pictures/gioconda.jpg")?.into_rgba8(),
+            TextureUsage::TEXTURE_BINDING,
         );
 
-        let sprites = Self::create_sprites(&instance, &mut texture_cache)?;
+        let texture_view = texture.create_view(&TextureViewDescriptor::default());
+
+        let sprites = Self::create_sprites(&instance, &texture_view)?;
 
         let color = ChangingColor::new(ColorF32::WHITE, ColorF32::WHITE);
 
@@ -95,16 +96,14 @@ impl ApplicationImpl {
             projection_transform,
             sprites,
             color,
-            texture_cache,
+            texture_view,
         })
     }
 
     fn create_sprites(
         instance: &Instance,
-        texture_cache: &mut TextureCache,
+        sprite_texture: &TextureView,
     ) -> Result<Vec<Sprite>, ApplicationError> {
-        let sprite_texture = texture_cache.get_or_load("gioconda.jpg")?;
-
         Ok(vec![
             Sprite {
                 uniform_constants: roe_sprite::UniformConstants::new(

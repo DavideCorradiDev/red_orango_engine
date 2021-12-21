@@ -18,6 +18,7 @@ pub enum ApplicationError {
     FontCreationFailed(roe_text::FontError),
     AudioError(roe_audio::Error),
     IoError(std::io::Error),
+    ImageError(image::error::ImageError),
     TextureLoadError(roe_assets::TextureCacheError),
     AudioLoadError(roe_assets::AudioCacheError),
     FontLoadError(roe_assets::FontCacheError),
@@ -33,6 +34,7 @@ impl std::fmt::Display for ApplicationError {
             Self::FontCreationFailed(e) => write!(f, "Font creation failed ({})", e),
             Self::AudioError(e) => write!(f, "Audio error ({})", e),
             Self::IoError(e) => write!(f, "I/O error ({})", e),
+            Self::ImageError(e) => write!(f, "Image load error ({})", e),
             Self::TextureLoadError(e) => write!(f, "Texture load error ({})", e),
             Self::AudioLoadError(e) => write!(f, "Audio load error ({})", e),
             Self::FontLoadError(e) => write!(f, "Font load error ({})", e),
@@ -50,6 +52,7 @@ impl std::error::Error for ApplicationError {
             Self::FontCreationFailed(e) => Some(e),
             Self::AudioError(e) => Some(e),
             Self::IoError(e) => Some(e),
+            Self::ImageError(e) => Some(e),
             Self::TextureLoadError(e) => Some(e),
             Self::AudioLoadError(e) => Some(e),
             Self::FontLoadError(e) => Some(e),
@@ -97,6 +100,12 @@ impl From<roe_audio::DecoderError> for ApplicationError {
 impl From<std::io::Error> for ApplicationError {
     fn from(e: std::io::Error) -> Self {
         ApplicationError::IoError(e)
+    }
+}
+
+impl From<image::error::ImageError> for ApplicationError {
+    fn from(e: image::error::ImageError) -> Self {
+        ApplicationError::ImageError(e)
     }
 }
 
@@ -180,6 +189,38 @@ impl ChangingColor {
             self.target_color = COLORS[rng.gen_range(0..COLORS.len())];
         }
     }
+}
+
+pub enum AudioFormat {
+    Wav,
+    Ogg,
+    Unknown,
+}
+
+pub fn read_audio_format<P: AsRef<std::path::Path>>(path: P) -> AudioFormat {
+    if let Some(extension) = path.as_ref().extension() {
+        let extension = extension.to_ascii_lowercase();
+        if extension == "wav" {
+            return AudioFormat::Wav;
+        }
+        if extension == "ogg" {
+            return AudioFormat::Ogg;
+        }
+    }
+    AudioFormat::Unknown
+}
+
+pub fn load_decoder<P: AsRef<std::path::Path>>(
+    path: P,
+) -> Result<Box<dyn roe_audio::Decoder>, roe_audio::DecoderError> {
+    let format = read_audio_format(&path);
+    let input = std::io::BufReader::new(std::fs::File::open(&path)?);
+    let decoder: Box<dyn roe_audio::Decoder> = match format {
+        AudioFormat::Wav => Box::new(roe_audio::WavDecoder::new(input)?),
+        AudioFormat::Ogg => Box::new(roe_audio::OggDecoder::new(input)?),
+        AudioFormat::Unknown => return Err(roe_audio::DecoderError::Unimplemented),
+    };
+    Ok(decoder)
 }
 
 fn main() {}
