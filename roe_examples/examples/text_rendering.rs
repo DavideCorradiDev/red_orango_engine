@@ -9,7 +9,7 @@ use roe_graphics::{
     InstanceDescriptor, RenderPassOperations, SampleCount,
 };
 
-use roe_text::{character_set, FontLibrary, Face, Font, Renderer as TextRenderer};
+use roe_text::{character_set, Face, Font, FontLibrary, Renderer as TextRenderer};
 
 use std::rc::Rc;
 

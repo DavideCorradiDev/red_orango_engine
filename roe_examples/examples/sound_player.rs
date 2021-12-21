@@ -4,7 +4,7 @@ use roe_os as os;
 
 use roe_audio::{Buffer, Decoder, Source};
 
-use std::{rc::Rc, borrow::BorrowMut};
+use std::{borrow::BorrowMut, rc::Rc};
 
 use roe_examples::*;
 
@@ -26,7 +26,6 @@ impl ApplicationImpl {
             .build(event_loop)?;
         let audio_device = roe_audio::Device::default()?;
         let audio_context = Rc::new(roe_audio::Context::default(&audio_device)?);
-
 
         let audio_buffer = Buffer::from_decoder(
             &audio_context,
