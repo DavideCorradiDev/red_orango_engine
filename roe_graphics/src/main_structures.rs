@@ -499,7 +499,7 @@ impl Texture {
             img.as_flat_samples().as_slice(),
             ImageDataLayout {
                 offset: 0,
-                bytes_per_row: core::num::NonZeroU32::new(4 * size.height),
+                bytes_per_row: core::num::NonZeroU32::new(4 * size.width),
                 rows_per_image: None,
             },
             size,
@@ -669,6 +669,7 @@ impl From<wgpu::RequestDeviceError> for InstanceCreationError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use galvanic_assert::{matchers::*, *};
     use os::EventLoopAnyThread;
 
     #[test]
@@ -701,5 +702,21 @@ mod tests {
         let (_instance, _surface) = unsafe {
             Instance::new_with_compatible_window(&InstanceDescriptor::default(), &window).unwrap()
         };
+    }
+
+    #[test]
+    #[serial_test::serial]
+    fn load_texture_from_image() {
+        let instance = Instance::new(&InstanceDescriptor::default()).unwrap();
+        let image = image::open("data/pictures/test.png").unwrap().into_rgba8();
+        let texture = Texture::from_image(&instance, &image, TextureUsage::TEXTURE_BINDING);
+        expect_that!(
+            &texture.size(),
+            eq(Extent3d {
+                width: 27,
+                height: 33,
+                depth_or_array_layers: 1
+            })
+        );
     }
 }
